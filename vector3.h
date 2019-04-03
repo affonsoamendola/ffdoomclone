@@ -1,3 +1,6 @@
+#ifndef VECTOR3_H
+#define VECTOR3_H
+
 typedef struct _VECTOR3
 {
 	float x;
@@ -15,3 +18,5 @@ VECTOR3 scale_v3(VECTOR3 vector, float scalar);
 
 float dot_v3(VECTOR3 vector_a, VECTOR3 vector_b);
 VECTOR3 cross_v3(VECTOR3 vector_a, VECTOR3 vector_b);
+
+#endif

@@ -1,16 +1,16 @@
-#include "SDL.h"
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "SDL.h"
+
+#include "input.h"
+#include "console.h"
+#include "gfx.h"
+
+#include "engine.h"
 
 SDL_Surface* screen = NULL;
-
-int main(int argc, char** argv)
-{
-	ENGINE_Init();
-	
-	ENGINE_Quit();
-}
+bool e_running = false;
 
 void ENGINE_Init()
 {
@@ -29,6 +29,14 @@ void ENGINE_Init()
 	{
 		printf("Could not set up video mode 320x240x8: %s\n", SDL_GetError());
 	}
+
+	printf("Initting Console Subsystem...\n");
+
+	CONSOLE_Init();
+
+	INPUT_Init();
+
+	e_running = true;
 }
 
 void ENGINE_Quit()
@@ -37,4 +45,22 @@ void ENGINE_Quit()
 
 	SDL_Quit();
 	exit(0);
+}
+
+void ENGINE_Loop()
+{
+	GFX_Render();
+	INPUT_Handle();
+}
+
+int main(int argc, char** argv)
+{
+	ENGINE_Init();
+	
+	while(e_running == true)
+	{
+		ENGINE_Loop();
+	}
+
+	ENGINE_Quit();
 }
