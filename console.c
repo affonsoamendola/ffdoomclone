@@ -39,14 +39,43 @@ void CONSOLE_Init()
 	for(int i = 0; i < HISTORY_SIZE; i ++)
 	{
 		*(console_history + i) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
-	}	
+	}
 }
 
 void parse_console(char* text_input)
 {
+	char* token;
+	int parser_location = 0;
+	int token_location = 0;
+
+	token = malloc(sizeof(char)*256);
+
+	while(*(text_input + parser_location) != 0)
+	{
+		while(*(text_input + parser_location) != ' ' && *(text_input+parser_location) != 0)
+		{
+			*(token + token_location) = *(text_input + parser_location);
+			token_location++;
+			parser_location++;
+		}
+
+		token_location = 0;
+
+		parse_token(token);
+	}
 }
 
-
+void parse_token(char * token)
+{
+	if(token == "ver")
+	{
+		CONSOLE_print("Fofonso's Raytracing Engine\n");
+		CONSOLE_print("Codename RT76800\n");
+		CONSOLE_print("Version ");
+		CONSOLE_print(ENGINE_version());
+		CONSOLE_print("\n");
+	}
+}
 
 
 

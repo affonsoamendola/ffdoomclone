@@ -9,6 +9,8 @@
 
 #include "engine.h"
 
+#define ENGINE_VERSION "0.01"
+
 SDL_Surface* screen = NULL;
 bool e_running = false;
 
@@ -63,4 +65,15 @@ int main(int argc, char** argv)
 	}
 
 	ENGINE_Quit();
+}
+
+char* ENGINE_ver()
+{
+	char* text;
+
+	text = malloc(sizeof(char)*16);
+
+	text = ENGINE_VERSION;
+
+	return text;
 }
