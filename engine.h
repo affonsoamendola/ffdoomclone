@@ -11,4 +11,6 @@ void ENGINE_Quit();
 
 void ENGINE_Loop();
 
+char* ENGINE_version();
+
 #endif

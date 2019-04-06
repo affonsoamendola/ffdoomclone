@@ -26,6 +26,7 @@ void INPUT_Handle()
 		{
 			if(event.key.keysym.sym == '`')
 			{
+				printf("OPENING CONSOLE\n");
 				set_console_open(!get_console_open());
 			}
 			else if(get_console_open() == true)
@@ -44,6 +45,9 @@ void INPUT_Handle()
 				if(event.key.keysym.sym == SDLK_RETURN)
 				{
 					parse_console(console_buffer);
+					CONSOLE_scroll(1);
+					CONSOLE_print(console_buffer);
+					console_buffer_cursor_pos = 0;
 				}
 			}
 		}

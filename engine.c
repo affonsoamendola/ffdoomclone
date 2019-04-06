@@ -25,7 +25,7 @@ void ENGINE_Init()
 
 	printf("SDL Initted.\n");
 
-	screen = SDL_SetVideoMode(320, 240, 8, SDL_SWSURFACE);
+	screen = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE);
 
 	if(screen == NULL)
 	{
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 	ENGINE_Quit();
 }
 
-char* ENGINE_ver()
+char* ENGINE_version()
 {
 	char* text;
 

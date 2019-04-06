@@ -10,6 +10,8 @@ bool console_open = false;
 
 char** console_history;
 
+int console_cursor_location = 0;
+
 void set_console_open(bool value)
 {
 	console_open = value;
@@ -32,6 +34,40 @@ char* get_console_history(int history_index)
 	}
 }
 
+void CONSOLE_scroll(int lines)
+{
+	console_cursor_location = 0;
+
+	for(int i = 0; i < lines; i++)
+	{
+		free(*(console_history + HISTORY_SIZE - 1));
+
+		for(int j = HISTORY_SIZE - 1; j > 0; j--)
+		{
+			*(console_history + j) = *(console_history + j - 1);
+		}
+
+		*(console_history) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
+	}
+}
+
+void CONSOLE_print(char* text)
+{
+	int location_pointer = 0;
+
+	while(*(text + location_pointer) != '\0')
+	{
+		if(*(text + location_pointer) >= 32 && *(text + location_pointer) <= 126)
+		{
+			*(*(console_history) + console_cursor_location) = *(text + location_pointer); 
+		}
+		else if(*(text + location_pointer) == '\n')
+		{
+			CONSOLE_scroll(1);
+		}
+	}
+}
+
 void CONSOLE_Init()
 {
 	console_history = malloc(HISTORY_SIZE * sizeof(char*));
@@ -39,6 +75,17 @@ void CONSOLE_Init()
 	for(int i = 0; i < HISTORY_SIZE; i ++)
 	{
 		*(console_history + i) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
+	}
+}
+
+void parse_token(char * token)
+{
+	if(token == "ver")
+	{
+		CONSOLE_print("\nFofonso's Raytracing Engine");
+		CONSOLE_print("\nCodename RT76800");
+		CONSOLE_print("\nVersion ");
+		CONSOLE_print(ENGINE_version());
 	}
 }
 
@@ -65,17 +112,7 @@ void parse_console(char* text_input)
 	}
 }
 
-void parse_token(char * token)
-{
-	if(token == "ver")
-	{
-		CONSOLE_print("Fofonso's Raytracing Engine\n");
-		CONSOLE_print("Codename RT76800\n");
-		CONSOLE_print("Version ");
-		CONSOLE_print(ENGINE_version());
-		CONSOLE_print("\n");
-	}
-}
+
 
 
 
