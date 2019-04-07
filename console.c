@@ -65,13 +65,14 @@ void CONSOLE_print(char* text)
 		if(*(text + location_pointer) >= 32 && *(text + location_pointer) <= 126)
 		{
 			*(*(console_history) + console_cursor_location) = *(text + location_pointer); 
+			console_cursor_location += 1;
 		}
-		else if(*(text + location_pointer) == '\n')
+		
+		if(*(text + location_pointer) == '\n')
 		{
 			CONSOLE_scroll(1);
 		}
 
-		console_cursor_location += 1;
 		location_pointer += 1;
 	}
 }
@@ -91,29 +92,70 @@ void CONSOLE_Init()
 	}
 }
 
+void CONSOLE_command_ver()
+{
+	CONSOLE_print("\nRT76800");	
+	CONSOLE_print("\nVersion ");
+	CONSOLE_print(ENGINE_version());
+}
+
+void CONSOLE_command_intro()
+{
+	CONSOLE_print("\nFofonso's Raytracing Engine\n");
+	CONSOLE_print("\nCodename RT76800");
+	CONSOLE_print("\nCopyright Affonso Amendola, 2019");	
+	CONSOLE_print("\nVersion ");
+	CONSOLE_print(ENGINE_version());
+	CONSOLE_print("\n\nBe Excellent to Each Other");
+	CONSOLE_print("\n----------------------------------------");
+}
+
+int str_compare(char * str_a, char * str_b)
+{
+	int counter = 0;
+
+	while(*(str_a + counter) != '\0')
+	{	
+		if(*(str_a + counter) != *(str_b + counter))
+		{
+			return 0;
+		}
+
+		counter++;
+	}
+
+	return 1;
+}
+
 void parse_token(char * token)
 {
-	if(token == "ver")
+	if(str_compare("ver", token))
 	{
-		CONSOLE_print("\nFofonso's Raytracing Engine");
-		CONSOLE_print("\nCodename RT76800");
-		CONSOLE_print("\nVersion ");
-		CONSOLE_print(ENGINE_version());
+		CONSOLE_command_ver();
+	}
+
+	if(str_compare("intro", token))
+	{
+		CONSOLE_command_intro();
 	}
 }
 
 void parse_console(char* text_input)
 {
-
 	char* token;
 	int parser_location = 0;
 	int token_location = 0;
 
 	token = malloc(sizeof(char)*256);
 
-	while(*(text_input + parser_location) != 0)
+	for(int i = 0; i < 256; i ++)
 	{
-		while(*(text_input + parser_location) != ' ' && *(text_input+parser_location) != 0)
+		*(token + i) = '\0';
+	}
+
+	while(*(text_input + parser_location) != '\0')
+	{
+		while(*(text_input + parser_location) != ' ' && *(text_input+parser_location) != '\0')
 		{
 			*(token + token_location) = *(text_input + parser_location);
 			token_location++;
@@ -121,7 +163,6 @@ void parse_console(char* text_input)
 		}
 
 		token_location = 0;
-
 		parse_token(token);
 	}
 }

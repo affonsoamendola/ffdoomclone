@@ -102,6 +102,11 @@ void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 	}
 }
 
+void GFX_clear_screen()
+{
+	GFX_fill_rectangle(point2(0,0) , point2(319, 239), SDL_MapRGB(screen->format, 0, 0, 0));
+}
+
 void GFX_Render()
 {
 	if(SDL_MUSTLOCK(screen))
@@ -113,8 +118,8 @@ void GFX_Render()
 		}
 	}
 
-	GFX_fill_rectangle(point2(0,0) , point2(319, 239), SDL_MapRGB(screen->format, 0, 0, 0));
-
+	GFX_clear_screen();
+	
 	if(get_console_open())
 	{
 		GFX_draw_console();	

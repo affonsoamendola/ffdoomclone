@@ -96,9 +96,9 @@ void INPUT_Handle_Console()
 			
 			if(event.key.keysym.sym == SDLK_RETURN)
 			{
-				//parse_console(console_buffer);
 				CONSOLE_scroll(1);
     			CONSOLE_print(console_buffer);
+				parse_console(console_buffer);
 				console_buffer_cursor_pos = 0;
 				clear_console_buffer();
 			}

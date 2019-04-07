@@ -38,6 +38,8 @@ void ENGINE_Init()
 
 	INPUT_Init();
 
+	CONSOLE_command_intro();
+
 	e_running = true;
 }
 
