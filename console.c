@@ -48,6 +48,11 @@ void CONSOLE_scroll(int lines)
 		}
 
 		*(console_history) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
+
+		for(int j = 0; j < CONSOLE_CHAR_LIMIT; j++)
+		{
+			*(*(console_history)+j) = '\0';
+		}
 	}
 }
 
@@ -65,6 +70,9 @@ void CONSOLE_print(char* text)
 		{
 			CONSOLE_scroll(1);
 		}
+
+		console_cursor_location += 1;
+		location_pointer += 1;
 	}
 }
 
@@ -75,6 +83,11 @@ void CONSOLE_Init()
 	for(int i = 0; i < HISTORY_SIZE; i ++)
 	{
 		*(console_history + i) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
+
+		for(int j = 0; j < CONSOLE_CHAR_LIMIT; j++)
+		{
+			*(*(console_history + i) + j) = '\0';
+		}
 	}
 }
 
@@ -91,6 +104,7 @@ void parse_token(char * token)
 
 void parse_console(char* text_input)
 {
+
 	char* token;
 	int parser_location = 0;
 	int token_location = 0;

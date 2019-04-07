@@ -9,8 +9,6 @@
 
 #include "engine.h"
 
-#define ENGINE_VERSION "0.01"
-
 SDL_Surface* screen = NULL;
 bool e_running = false;
 
@@ -25,7 +23,7 @@ void ENGINE_Init()
 
 	printf("SDL Initted.\n");
 
-	screen = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE);
+	screen = SDL_SetVideoMode(320 * PIXEL_SCALE, 240 * PIXEL_SCALE, 16, SDL_SWSURFACE);
 
 	if(screen == NULL)
 	{
@@ -35,6 +33,8 @@ void ENGINE_Init()
 	printf("Initting Console Subsystem...\n");
 
 	CONSOLE_Init();
+
+	GFX_Init();
 
 	INPUT_Init();
 

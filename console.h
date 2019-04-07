@@ -18,5 +18,4 @@ void CONSOLE_print(char* text);
 
 void parse_console(char* text_input);
 
-
 #endif
