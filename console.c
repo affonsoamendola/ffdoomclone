@@ -129,6 +129,8 @@ int str_compare(char * str_a, char * str_b)
 
 void parse_token(char * token)
 {
+	printf("TOKEN:%s\n", token);
+
 	if(str_compare("ver", token))
 	{
 		CONSOLE_command_ver();
@@ -153,18 +155,20 @@ void parse_console(char* text_input)
 		*(token + i) = '\0';
 	}
 
-	while(*(text_input + parser_location) != '\0')
+	while(*(text_input + parser_location) == ' ')
 	{
-		while(*(text_input + parser_location) != ' ' && *(text_input+parser_location) != '\0')
-		{
-			*(token + token_location) = *(text_input + parser_location);
-			token_location++;
-			parser_location++;
-		}
-
-		token_location = 0;
-		parse_token(token);
+		parser_location ++;
 	}
+	
+	while(*(text_input + parser_location) != ' ' && *(text_input+parser_location) != '\0')
+	{
+		*(token + token_location) = *(text_input + parser_location);
+		token_location++;
+		parser_location++;
+	}
+
+	token_location = 0;
+	parse_token(token);
 }
 
 

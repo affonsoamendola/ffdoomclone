@@ -11,7 +11,6 @@ LIST_ELEMENT;
 
 typedef LIST_ELEMENT LIST;
 
-
 LIST_ELEMENT * allocate_list_element();
 
 LIST * create_list();

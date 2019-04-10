@@ -59,7 +59,7 @@ void INPUT_Handle_Console()
 			}
 			else if(event.key.keysym.sym == SDLK_BACKSPACE && console_buffer_cursor_pos > 0)
 			{
-				*(console_buffer + console_buffer_cursor_pos - 1) = ' ';
+				*(console_buffer + console_buffer_cursor_pos - 1) = '\0';
 				console_buffer_cursor_pos -= 1;
 			}
 			else if(event.key.keysym.sym == 32)
