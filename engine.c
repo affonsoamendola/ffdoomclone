@@ -5,7 +5,9 @@
 
 #include "input.h"
 #include "console.h"
+#include "console_commands.h"
 #include "gfx.h"
+#include "world.h"
 
 #include "engine.h"
 
@@ -38,7 +40,9 @@ void ENGINE_Init()
 
 	INPUT_Init();
 
-	CONSOLE_command_intro();
+	WORLD_Init();
+
+	COMMAND_intro();
 
 	e_running = true;
 }

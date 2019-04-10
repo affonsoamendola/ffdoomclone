@@ -1,10 +1,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "engine.h"
 
 #include "console.h"
+#include "console_commands.h"
 
 bool console_open = false;
 
@@ -60,6 +62,8 @@ void CONSOLE_print(char* text)
 {
 	int location_pointer = 0;
 
+	printf("%s\0", text);
+
 	while(*(text + location_pointer) != '\0')
 	{
 		if(*(text + location_pointer) >= 32 && *(text + location_pointer) <= 126)
@@ -92,67 +96,80 @@ void CONSOLE_Init()
 	}
 }
 
-void CONSOLE_command_ver()
+bool command_check(char * command, char** token, int token_number)
 {
-	CONSOLE_print("\nRT76800");	
-	CONSOLE_print("\nVersion ");
-	CONSOLE_print(ENGINE_version());
+	if(strcmp(command, *(token + token_number)) == 0 )
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
-void CONSOLE_command_intro()
+char* get_token_value(char** token, int index)
 {
-	CONSOLE_print("\nFofonso's Raytracing Engine\n");
-	CONSOLE_print("\nCodename RT76800");
-	CONSOLE_print("\nCopyright Affonso Amendola, 2019");	
-	CONSOLE_print("\nVersion ");
-	CONSOLE_print(ENGINE_version());
-	CONSOLE_print("\n\nBe Excellent to Each Other");
-	CONSOLE_print("\n----------------------------------------");
+	return *(token + index);
 }
 
-int str_compare(char * str_a, char * str_b)
+void parse_token(char** token)
 {
-	int counter = 0;
+	if(command_check("ver", token, 0))
+	{
+		COMMAND_ver();
+	}
 
-	while(*(str_a + counter) != '\0')
-	{	
-		if(*(str_a + counter) != *(str_b + counter))
+	if(command_check("intro", token, 0))
+	{
+		COMMAND_intro();
+	}
+
+	if(command_check("obj", token, 0))
+	{
+		if(command_check("\0", token, 1))
 		{
-			return 0;
+			COMMAND_obj();
 		}
+		else
+		{
+			if(command_check("vertex", token, 1))
+			{
+				COMMAND_obj_add_vertex(	atoi(get_token_value(token, 2)),
+										atof(get_token_value(token, 3)),
+										atof(get_token_value(token, 4)),
+										atof(get_token_value(token, 5)));
 
-		counter++;
-	}
+			}
 
-	return 1;
-}
-
-void parse_token(char * token)
-{
-	printf("TOKEN:%s\n", token);
-
-	if(str_compare("ver", token))
-	{
-		CONSOLE_command_ver();
-	}
-
-	if(str_compare("intro", token))
-	{
-		CONSOLE_command_intro();
+			if(command_check("get", token, 1))
+			{
+				COMMAND_obj_get_vertex( atoi(get_token_value(token, 2)),
+										atoi(get_token_value(token, 3)));
+			}
+		}
 	}
 }
 
 void parse_console(char* text_input)
 {
-	char* token;
+	char** token;
+	
 	int parser_location = 0;
 	int token_location = 0;
 
-	token = malloc(sizeof(char)*256);
+	int current_token = 0;
 
-	for(int i = 0; i < 256; i ++)
+	token = malloc(sizeof(char*)*8);
+
+	for(int i = 0; i < 8; i++)
 	{
-		*(token + i) = '\0';
+		*(token + i) = malloc(sizeof(char)*32);
+		
+		for(int j = 0; j < 32; j ++)
+		{
+			*(*(token + i) + j) = '\0';
+		}
 	}
 
 	while(*(text_input + parser_location) == ' ')
@@ -160,14 +177,30 @@ void parse_console(char* text_input)
 		parser_location ++;
 	}
 	
-	while(*(text_input + parser_location) != ' ' && *(text_input+parser_location) != '\0')
+	while(*(text_input+parser_location) != '\0')
 	{
-		*(token + token_location) = *(text_input + parser_location);
+		if(*(text_input+parser_location) == ' ')
+		{
+			current_token++;
+			token_location = 0;
+
+			while(*(text_input+parser_location) == ' ')
+			{
+				parser_location++;
+			}
+
+			if(*(text_input+parser_location) == '\0')
+			{
+				break;
+			}
+		}
+
+		*(*(token + current_token) + token_location) = *(text_input + parser_location);
+
 		token_location++;
 		parser_location++;
 	}
 
-	token_location = 0;
 	parse_token(token);
 }
 
