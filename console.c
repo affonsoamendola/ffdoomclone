@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "engine.h"
+#include "world.h"
 
 #include "console.h"
 #include "console_commands.h"
@@ -117,36 +118,34 @@ void parse_token(char** token)
 {
 	if(command_check("ver", token, 0))
 	{
+
 		COMMAND_ver();
 	}
 
 	if(command_check("intro", token, 0))
 	{
+
 		COMMAND_intro();
 	}
 
-	if(command_check("obj", token, 0))
+	if(command_check("loadlevel", token, 0))
 	{
-		if(command_check("\0", token, 1))
+		level_load(get_token_value(token, 1));
+	}
+
+	if(command_check("sector", token, 0))
+	{
+		if(command_check("show", token, 1))
 		{
-			COMMAND_obj();
+			COMMAND_sector_show(atoi(get_token_value(token, 2)));
 		}
-		else
+	}
+
+	if(command_check("vertex", token, 0))
+	{
+		if(command_check("list", token, 1))
 		{
-			if(command_check("vertex", token, 1))
-			{
-				COMMAND_obj_add_vertex(	atoi(get_token_value(token, 2)),
-										atof(get_token_value(token, 3)),
-										atof(get_token_value(token, 4)),
-										atof(get_token_value(token, 5)));
-
-			}
-
-			if(command_check("get", token, 1))
-			{
-				COMMAND_obj_get_vertex( atoi(get_token_value(token, 2)),
-										atoi(get_token_value(token, 3)));
-			}
+			COMMAND_vertex_list();
 		}
 	}
 }

@@ -16,6 +16,8 @@ VECTOR3 sub_v3(VECTOR3 vector_a, VECTOR3 vector_b);
 
 VECTOR3 scale_v3(VECTOR3 vector, float scalar);
 
+VECTOR3 element_scale_v3(VECTOR3 vector, VECTOR3 scale);
+
 float dot_v3(VECTOR3 vector_a, VECTOR3 vector_b);
 VECTOR3 cross_v3(VECTOR3 vector_a, VECTOR3 vector_b);
 

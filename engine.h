@@ -7,6 +7,9 @@
 #define ENGINE_VERSION "0.01"
 #define PIXEL_SCALE 3
 
+#define SCREEN_RES_X 320
+#define SCREEN_RES_Y 240
+
 typedef int bool;
 
 void ENGINE_Init();

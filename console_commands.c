@@ -5,11 +5,13 @@
 
 #include "engine.h"
 
+#include "world.h"
 #include "console.h"
 #include "vector3.h"
-#include "object.h"
 
 char buffer[128];
+
+extern LEVEL loaded_level;
 
 void COMMAND_ver()
 {
@@ -30,44 +32,25 @@ void COMMAND_intro()
 	CONSOLE_print("\n----------------------------------------");
 }
 
-void COMMAND_obj()
+void COMMAND_sector_show(int sector_index)
 {
-
-	object();
-}
-
-void COMMAND_obj_add_vertex(int object_index, float vx, float vy, float vz)
-{
-
-	object_add_vertex(get_object(object_index), vector3(vx, vy, vz));
-}
-
-void COMMAND_obj_get_vertex(int object_index, int vertex_index)
-{
-	OBJECT * object;
-
-	object = get_object(object_index);
-
-	CONSOLE_print("\nOBJECT INDEX ");
-	sprintf(buffer, "%d", object_index);
-	CONSOLE_print(buffer);
-
-	if(vertex_index <= object->n_verts)
+	if(sector_index >= 0 && sector_index < loaded_level.s_num)
 	{
-		CONSOLE_print("\nX : ");
-		sprintf(buffer, "%f", (*(get_object(object_index)->verts + vertex_index)).x);
-		CONSOLE_print(buffer);
+		CONSOLE_print("\n");
 
-		CONSOLE_print("\nY : ");
-		sprintf(buffer, "%f", (*(get_object(object_index)->verts + vertex_index)).y);
-		CONSOLE_print(buffer);
-
-		CONSOLE_print("\nZ : ");
-		sprintf(buffer, "%f", (*(get_object(object_index)->verts + vertex_index)).y);
-		CONSOLE_print(buffer);
+		for(int v = 0; v < (loaded_level.sectors+sector_index)->v_num; v++)
+		{
+			sprintf(buffer, "%u ", *(((loaded_level.sectors+sector_index)->v+v)));
+			CONSOLE_print(buffer);
+		}
 	}
-	else
+}
+
+void COMMAND_vertex_list()
+{
+	for(int v = 0; v < loaded_level.v_num; v++)
 	{
-		CONSOLE_print("\nTHIS OBJECT DOES NOT HAVE THAT MANY VERTEXES");
+		sprintf(buffer, "\n%f %f", (loaded_level.vertexes + v)->x, (loaded_level.vertexes + v)->y);
+		CONSOLE_print(buffer);
 	}
 }

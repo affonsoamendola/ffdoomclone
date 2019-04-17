@@ -25,7 +25,7 @@ void ENGINE_Init()
 
 	printf("SDL Initted.\n");
 
-	screen = SDL_SetVideoMode(320 * PIXEL_SCALE, 240 * PIXEL_SCALE, 16, SDL_SWSURFACE);
+	screen = SDL_SetVideoMode(SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE, 16, SDL_SWSURFACE);
 
 	if(screen == NULL)
 	{

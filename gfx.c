@@ -90,7 +90,84 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
     	}
     }    
 }
+/*
+void GFX_draw_vert_line(SDL_Surface *surface, int x, int y1, int y2, unsigned int pixel)
+{
+	int temp;
 
+	if(y1 > y2)
+	{
+		temp = y1;
+		y1 = y2;
+		y2 = temp;
+	}
+
+	for(int y = y1; y <= y2; y++)
+	{
+		GFX_set_pixel(surface, x, y, pixel);
+	}
+}
+
+void GFX_draw_hor_line(SDL_Surface *surface, int x1, int x2, int y, unsigned int pixel)
+{
+	int temp;
+
+	if(x1 > x2)
+	{
+		temp = x1;
+		x1 = x2;
+		x2 = temp;
+	}
+
+	for(int x = x1; x <= x2; x++)
+	{
+		GFX_set_pixel(surface, x, y, pixel);
+	}
+}
+
+void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixel)
+{
+	float slope;
+
+	POINT2 temp;
+
+	float current_error = 0.0f;
+
+	float y;
+
+	if(p1.x > p2.x)
+	{
+		temp = p1;
+		p1 = p2;
+		p2 = temp;
+	}
+
+	y = p1.y;
+
+	if(p1.x == p2.x)
+	{
+		GFX_draw_vert_line(surface, p1.x, p1.y, p2.y, pixel);
+	}
+
+	if(p1.y == p2.y)
+	{
+		GFX_draw_hor_line(surface, p1.x, p2.x, p1.y, pixel);
+	}
+
+	slope = (float)(p2.y - p1.y)/(float)(p2.x - p1.x);
+
+	for(int x = p1.x; x <= p2.x; x++)
+	{
+		GFX_set_pixel(surface, x, y, pixel);
+		current_error += slope;
+		if(fabs(current_error) >= 0.5f)
+		{
+			y = y + (current_error >= 0) * 1 + (current_error < 0) * (-1);
+			current_error -= 1.0f;
+		}
+	}
+}
+*/
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 {
 	for(int i = start.x; i <= end.x; i++)

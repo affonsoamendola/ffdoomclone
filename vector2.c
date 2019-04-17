@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "vector2.h"
 
 VECTOR2 vector2(float x, float y)
@@ -58,4 +60,12 @@ float dot_v2(VECTOR2 vector_a, VECTOR2 vector_b)
 float cross_v2(VECTOR2 vector_a, VECTOR2 vector_b)
 {
 	return (vector_a.x * vector_b.y) - (vector_a.y * vector_b.x);
+}
+
+VECTOR2 rot_v2(VECTOR2 vector, float ang_rad)
+{
+	VECTOR2 new_vector;
+
+	new_vector.x = vector.x * cos(ang_rad) - vector.y * sin(ang_rad);
+	new_vector.y = vector.x * sin(ang_rad) + vector.y * cos(ang_rad);
 }

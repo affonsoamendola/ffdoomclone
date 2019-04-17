@@ -44,6 +44,17 @@ VECTOR3 sub_v3(VECTOR3 vector_a, VECTOR3 vector_b)
 	return new_vector;
 }
 
+VECTOR3 element_scale_v3(VECTOR3 vector, VECTOR3 scale)
+{
+	VECTOR3 new_vector;
+
+	new_vector.x = vector.x * scale.x;
+	new_vector.y = vector.y * scale.y;
+	new_vector.z = vector.z * scale.z;
+
+	return new_vector;
+}
+
 VECTOR3 scale_v3(VECTOR3 vector, float scalar)
 {
 	VECTOR3 new_vector;

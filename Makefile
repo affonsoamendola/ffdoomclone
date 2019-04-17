@@ -1,12 +1,12 @@
 GAMENAME = rt76800
 CC = gcc
 RM = rm -rf
-INCLUDE = 
+INCLUDE = /usr/include/SDL
 
 all: build
 	
 build:
-	$(CC) -o $(GAMENAME) $$(sdl-config --cflags --libs) *.c
+	$(CC) -o $(GAMENAME) -I$(INCLUDE) -lSDL -lm *.c
 
 run:
 	./$(GAMENAME)
