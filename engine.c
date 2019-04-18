@@ -8,11 +8,18 @@
 #include "console_commands.h"
 #include "gfx.h"
 #include "world.h"
+#include "time.h"
+#include "list.h"
 
 #include "engine.h"
 
 SDL_Surface* screen = NULL;
 bool e_running = false;
+
+clock_t current_frame_start;
+clock_t last_frame_end;
+
+float current_fps = 0;
 
 void ENGINE_Init()
 {
@@ -55,16 +62,33 @@ void ENGINE_Quit()
 	exit(0);
 }
 
+float ENGINE_delta_time()
+{
+	clock_t current_time;
+
+	current_time = clock();
+
+	return (float)(current_time - current_frame_start) / (float)CLOCKS_PER_SEC;
+}
+
 void ENGINE_Loop()
 {
+	
+	current_frame_start = clock();
+
 	GFX_Render();
 	INPUT_Handle();
+
+	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
+	
 }
 
 int main(int argc, char** argv)
 {
 	ENGINE_Init();
-	
+
+	VECTOR2 test;
+
 	while(e_running == true)
 	{
 		ENGINE_Loop();

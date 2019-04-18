@@ -2,10 +2,15 @@
 #include <stdlib.h>
 
 #include "engine.h"
+
 #include "SDL.h"
+#include "console.h"
+#include "time.h"
+#include "vector2.h"
+#include "math.h"
+#include "player.h"
 
 #include "input.h"
-#include "console.h"
 
 extern bool e_running;
 
@@ -16,6 +21,25 @@ SDL_Event event;
 
 char lower_case_symbols[20] = {'`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '[', ']', ';', '\'', ',', '.', '/'};
 char upper_case_symbols[20] = {'~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '{', '}', ':', '\"', '<', '>', '?'};
+
+extern clock_t current_frame_start;
+
+extern VECTOR2 player_pos;
+
+extern float player_walk_speed;
+extern float player_walk_turn_speed;
+
+extern float player_run_speed;
+extern float player_run_turn_speed;
+
+extern float player_speed;
+extern float player_turn_speed;
+extern float player_facing;
+extern float player_angle_cos;
+extern float player_angle_sin;
+
+bool show_fps = 0;
+bool show_map = 0;
 
 char get_upper_case_symbol(char lower_case)
 {
@@ -40,6 +64,7 @@ void clear_console_buffer()
 
 char* get_console_buffer()
 {
+
 	return console_buffer;
 }
 
@@ -108,12 +133,69 @@ void INPUT_Handle_Console()
 
 void INPUT_Handle()
 {
+	float delta_time;
+
+	delta_time = (float)(clock() - current_frame_start)/(float)CLOCKS_PER_SEC;
+
 	if(get_console_open())
 	{
 		INPUT_Handle_Console();
 	}
 	else
 	{
+		unsigned char * keystate = SDL_GetKeyState(NULL); 
+
+		if(keystate[SDLK_LSHIFT])
+		{
+			player_speed = player_run_speed;
+			player_turn_speed = player_run_turn_speed;
+		}
+		else
+		{
+			player_speed = player_walk_speed;
+			player_turn_speed = player_walk_turn_speed;
+		}
+
+		if(keystate[SDLK_UP])
+		{
+			player_move(scale_v2(rot_v2(vector2(0, 1), -player_facing), player_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_DOWN])
+		{
+			player_move(scale_v2(rot_v2(vector2(0, -1), -player_facing), player_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_RIGHT])
+		{
+			player_move(scale_v2(rot_v2(vector2(1, 0), -player_facing), player_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_LEFT])
+		{
+			player_move(scale_v2(rot_v2(vector2(-1, 0), -player_facing), player_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_DELETE])
+		{
+			player_facing = player_facing - player_turn_speed * ENGINE_delta_time();
+
+			if(player_facing >= 2*PI) player_facing -= 2*PI;
+
+			player_angle_cos = cos(player_facing);
+			player_angle_sin = sin(player_facing);
+		}
+		
+		if(keystate[SDLK_PAGEDOWN])
+		{
+			player_facing = player_facing + player_turn_speed * ENGINE_delta_time();
+
+			if(player_facing >= 2*PI) player_facing -= 2*PI;
+
+			player_angle_cos = cos(player_facing);
+			player_angle_sin = sin(player_facing);
+		}
+			
 		while(SDL_PollEvent(&event) != 0)
 		{
 			if(event.type == SDL_QUIT)
@@ -125,6 +207,14 @@ void INPUT_Handle()
 				if(event.key.keysym.sym == '`')
 				{
 					set_console_open(!get_console_open());
+				}
+				else if(event.key.keysym.sym == 'p')
+				{
+					show_fps = !show_fps;
+				}
+				else if(event.key.keysym.sym == 'm')
+				{
+					show_map = !show_map;
 				}
 			}
 		}

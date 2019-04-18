@@ -36,14 +36,19 @@ void COMMAND_sector_show(int sector_index)
 {
 	if(sector_index >= 0 && sector_index < loaded_level.s_num)
 	{
-		CONSOLE_print("\n");
+		CONSOLE_print("\nx  y  is_portal neighbor_sector_id");
 
-		for(int v = 0; v < (loaded_level.sectors+sector_index)->v_num; v++)
+		for(int e = 0; e < (loaded_level.sectors+sector_index)->e_num; e++)
 		{
-			sprintf(buffer, "%u ", *(((loaded_level.sectors+sector_index)->v+v)));
+			EDGE current_edge;
+
+			current_edge = *(((loaded_level.sectors+sector_index)->e+e));
+
+			sprintf(buffer, "\n%u  %u  %u         %u", current_edge.v_start, current_edge.v_end, current_edge.is_portal, current_edge.neighbor_sector_id);
 			CONSOLE_print(buffer);
 		}
 	}
+	CONSOLE_print("\n");
 }
 
 void COMMAND_vertex_list()

@@ -18,6 +18,7 @@ LIST * create_list();
 void append_list(LIST * target_list, void * content);
 
 void * get_list_at(LIST * source_list, int index);
+void * pop_list(LIST * source_list);
 
 int len_list(LIST * source_list);
 

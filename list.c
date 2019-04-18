@@ -44,6 +44,18 @@ void append_list(LIST * target_list, void * content)
 	new_list_element->content = content;
 }
 
+void * pop_list(LIST * source_list)
+{
+	LIST_ELEMENT * first_element;
+
+	first_element = source_list->next_element;
+
+	first_element->next_element->prev_element = first_element->prev_element;
+	source_list->next_element = first_element->next_element;
+
+	return first_element->content;
+}
+
 void * get_list_at(LIST * source_list, int index)
 {
 	int i;

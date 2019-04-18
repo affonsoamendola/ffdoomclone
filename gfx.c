@@ -2,16 +2,51 @@
 #include <stdlib.h>
 
 #include "engine.h"
+
 #include "input.h"
 #include "console.h"
 #include "SDL.h"
 #include "point2.h"
+#include "math.h"
+#include "world.h"
+#include "vector2.h"
+#include "utility.h"
+#include "list.h"
 
 #include "gfx.h"
 
 extern SDL_Surface * screen;
 
+extern float current_fps;
+
+extern bool show_fps;
+extern bool show_map;
+
+extern LEVEL loaded_level;
+
+extern VECTOR2 player_pos;
+extern float player_pos_height;
+extern int current_player_sector;
+
+extern float player_facing;
+
+extern float player_angle_cos;
+extern float player_angle_sin;
+
+float map_scale = 2.0f;
+
+char buffer[128];
+
 char * default_font_location;
+
+float nearz = 1e-4f;
+float nearside = 1e-5f;
+
+float farz = 5.0f;
+float farside = 80.0f;
+
+float hfov = 0.73f * SCREEN_RES_X;
+float vfov = 0.2f * SCREEN_RES_Y;
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 {
@@ -90,7 +125,7 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
     	}
     }    
 }
-/*
+
 void GFX_draw_vert_line(SDL_Surface *surface, int x, int y1, int y2, unsigned int pixel)
 {
 	int temp;
@@ -167,7 +202,7 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 		}
 	}
 }
-*/
+
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 {
 	for(int i = start.x; i <= end.x; i++)
@@ -181,6 +216,7 @@ void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 
 void GFX_clear_screen()
 {
+
 	GFX_fill_rectangle(point2(0,0) , point2(319, 239), SDL_MapRGB(screen->format, 0, 0, 0));
 }
 
@@ -196,10 +232,24 @@ void GFX_Render()
 	}
 
 	GFX_clear_screen();
+
+	GFX_render_3d();
+
+	if(show_map)
+	{
+		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0));
+		GFX_draw_map();
+	}
 	
 	if(get_console_open())
 	{
 		GFX_draw_console();	
+	}
+
+	if(show_fps)
+	{
+		sprintf(buffer, "%f", current_fps);
+		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
 	}
 
 	if(SDL_MUSTLOCK(screen))
@@ -207,7 +257,7 @@ void GFX_Render()
 		SDL_UnlockSurface(screen);
 	}
 
-	SDL_UpdateRect(screen, 0, 0, 320 * PIXEL_SCALE, 240 * PIXEL_SCALE);
+	SDL_UpdateRect(screen, 0, 0, SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE);
 }
 
 void GFX_load_font(const char * location)
@@ -263,6 +313,7 @@ void GFX_draw_string(POINT2 position, char* string, unsigned int pixel)
 
 void GFX_Init()
 {
+
 	GFX_load_font("8x8Font.fnt");
 }
 
@@ -276,4 +327,291 @@ void GFX_draw_console()
 		GFX_draw_string(point2(0, 72 - y * 8), get_console_history(y), SDL_MapRGB(screen->format, 200, 200, 200));
 		GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(screen->format, 255, 255, 255));
 	}
+}
+
+void GFX_draw_map()
+{
+	int last_v;
+	unsigned int color;
+
+	VECTOR2 last_v_vector;
+	VECTOR2 current_v_vector;
+
+	POINT2 current_line_start;
+	POINT2 current_line_end;
+
+	for(int s = 0; s < loaded_level.s_num; s++)
+	{
+		for(int e = 0; e < (loaded_level.sectors+s)->e_num; e++)
+		{
+			EDGE current_edge = *((loaded_level.sectors+s)->e + e);
+			
+			last_v_vector = *(loaded_level.vertexes + current_edge.v_start);
+			current_v_vector = *(loaded_level.vertexes + current_edge.v_end);
+
+			last_v_vector = sub_v2(last_v_vector, player_pos);
+			current_v_vector = sub_v2(current_v_vector, player_pos);
+
+			current_line_start = point2((int)(last_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*map_scale));
+			current_line_end = point2((int)(current_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*map_scale));
+
+			if(current_edge.is_portal)
+			{
+				color = SDL_MapRGB(screen->format, 60, 60, 60);
+			}
+			else
+			{
+				color = SDL_MapRGB(screen->format, 180, 180, 180);
+			}
+
+			GFX_draw_line(screen, current_line_start, current_line_end, color);
+		}
+	}
+}
+
+COLOR GFX_Color(int r, int g, int b)
+{
+	COLOR new_color;
+
+	new_color.r = clamp_int(r, 255, 0);
+	new_color.g = clamp_int(g, 255, 0);
+	new_color.b = clamp_int(b, 255, 0);
+
+	return new_color;
+}
+
+COLOR GFX_Color_scale(COLOR color, float factor)
+{
+	COLOR new_color;
+
+	new_color = GFX_Color(	(int)((float)color.r * factor),
+							(int)((float)color.g * factor),
+							(int)((float)color.b * factor)    );
+
+	return new_color;
+}
+
+unsigned int GFX_Map_Color(COLOR color)
+{
+	return SDL_MapRGB(screen->format, color.r, color.g, color.b);
+}
+
+void GFX_render_3d()
+{
+	SECTOR * current_sector;
+	EDGE * current_edge;
+	VECTOR2 transformed_pos_0;
+	VECTOR2 transformed_pos_1;
+
+	LIST * pending_portals;
+
+	int current_sector_id;
+
+	int start_screen_x;
+	int end_screen_x;
+
+	int y_undrawn_top[SCREEN_RES_X], y_undrawn_bot[SCREEN_RES_X];
+
+	for(int x = 0; x < SCREEN_RES_X; x++)
+	{
+		y_undrawn_top[x] = 0;
+		y_undrawn_bot[x] = SCREEN_RES_Y-1; 
+	} 
+
+	start_screen_x = 0;
+	end_screen_x = SCREEN_RES_X - 1;
+
+	current_sector_id = current_player_sector;
+
+	pending_portals = create_list();
+
+	//Get current sector
+	current_sector = loaded_level.sectors + current_sector_id;
+
+	struct item { SECTOR * sector; int start_screen_x, end_screen_x;};
+
+	struct item first_render = {current_sector, start_screen_x, end_screen_x};
+
+	printf("\nSTARTING FRAME\n");
+
+	do
+	{
+		if(len_list(pending_portals) > 0)
+		{
+			struct item * current_render = (struct item *)pop_list(pending_portals);
+
+			current_sector = current_render->sector;
+
+			start_screen_x = current_render->start_screen_x;
+			end_screen_x = current_render->end_screen_x;
+
+			free (current_render);
+		}
+
+		for(int e = 0; e < current_sector->e_num; e++)
+		{
+			current_edge = current_sector->e + e;
+
+			VECTOR2 edge_v0 = get_vertex_at(current_edge->v_start);
+			VECTOR2 edge_v1 = get_vertex_at(current_edge->v_end);
+
+			//Transform current edges to player point of view (player at 0,0)
+			transformed_pos_0 = sub_v2(edge_v0, player_pos);
+			transformed_pos_1 = sub_v2(edge_v1, player_pos);
+			
+			transformed_pos_0 = rot_v2(transformed_pos_0, player_facing);
+			transformed_pos_1 = rot_v2(transformed_pos_1, player_facing);
+			
+			//If completely behind player, continue from loop
+			if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) 
+			{
+				continue;
+			}
+
+			//If partially behind player, intersect with player view area
+			if(transformed_pos_0.y <= 0 || transformed_pos_1.y <= 0)
+			{	
+				VECTOR2 intersect_0;
+				VECTOR2 intersect_1;
+
+				intersect_0 = intersect_v2(transformed_pos_0, transformed_pos_1, vector2(-nearside, nearz), vector2(-farside, farz));
+				intersect_1 = intersect_v2(transformed_pos_0, transformed_pos_1, vector2( nearside, nearz), vector2( farside, farz));
+
+				if(transformed_pos_0.y < nearz)
+				{
+					if(intersect_0.y > 0.0f)
+						transformed_pos_0 = intersect_0;
+					else
+						transformed_pos_0 = intersect_1;
+				}
+
+				if(transformed_pos_1.y < nearz)
+				{
+					if(intersect_0.y > 0.0f)
+						transformed_pos_1 = intersect_0;
+					else
+						transformed_pos_1 = intersect_1;
+				}
+			}
+
+			//Do projection scales
+
+			float xscale0 = hfov / transformed_pos_0.y;
+			float yscale0 = vfov / transformed_pos_0.y;
+
+			float xscale1 = hfov / transformed_pos_1.y;
+			float yscale1 = vfov / transformed_pos_1.y;
+			
+			//Transform to pixel locations (and project)
+			int x0 = (int)(transformed_pos_0.x * xscale0) + SCREEN_RES_X/2;
+			int x1 = (int)(transformed_pos_1.x * xscale1) + SCREEN_RES_X/2;
+			
+			//If outside screen, get out
+			if(x1 >= x0 || x0 < start_screen_x || x1 > end_screen_x) 
+			{
+				continue;
+			}	
+
+			//Get relative ceil and floor heights
+			float yceil = current_sector->ceiling_height - player_pos_height;
+			float yfloor = current_sector->floor_height - player_pos_height;
+
+			//Project and get pixel position, like above
+			int y0ceiling = SCREEN_RES_Y/2 - (int)(yceil * yscale0);
+			int y0floor = SCREEN_RES_Y/2 - (int)(yfloor * yscale0);
+
+			int y1ceiling = SCREEN_RES_Y/2 - (int)(yceil * yscale1);
+			int y1floor = SCREEN_RES_Y/2 - (int)(yfloor * yscale1);
+
+			SECTOR * neighbor_sector;
+
+			float nyceil;
+			float nyfloor;
+
+			int ny0ceiling;
+			int ny0floor;
+
+			int ny1ceiling;
+			int ny1floor;
+
+			if(current_edge->is_portal)
+			{
+				neighbor_sector = loaded_level.sectors + current_edge->neighbor_sector_id;
+
+				nyceil = neighbor_sector->ceiling_height - player_pos_height;
+				nyfloor = neighbor_sector->floor_height - player_pos_height;
+
+				//Do the same for neighboring sectors
+				ny0ceiling = SCREEN_RES_Y/2 - (int)(nyceil * yscale0);
+				ny0floor = SCREEN_RES_Y/2 - (int)(nyfloor * yscale0);
+
+				ny1ceiling = SCREEN_RES_Y/2 - (int)(nyceil * yscale1);
+				ny1floor = SCREEN_RES_Y/2 - (int)(nyfloor * yscale1);
+			}
+
+			int x_begin;
+			int x_end;
+
+			x_begin = max_int(x1, start_screen_x);
+			x_end = min_int(x0, end_screen_x);
+
+			for(int x = x_begin; x <= x_end; x++)
+			{
+				int screen_y_ceil = (x - x0) * (y1ceiling - y0ceiling) / (x1 - x0) + y0ceiling;
+				int screen_y_floor = (x - x0) * (y1floor - y0floor) / (x1 - x0) + y0floor;
+
+				float depth = ((x - x0) * (yscale1 - yscale0) / (x1 - x0) + yscale0) / 75.0f;
+
+				printf("x = %i depth = %f\n", x, depth);
+
+				screen_y_ceil = clamp_int(screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
+				screen_y_floor = clamp_int(screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
+
+				GFX_draw_vert_line(screen, x, y_undrawn_top[x], screen_y_ceil, GFX_Map_Color(GFX_Color(0, 0, 100)));
+				GFX_draw_vert_line(screen, x, screen_y_floor, y_undrawn_bot[x], GFX_Map_Color(GFX_Color(100, 40, 0)));
+				
+				if(current_edge->is_portal)
+				{
+					int n_screen_y_ceil = (x - x0) * (ny1ceiling - ny0ceiling) / (x1 - x0) + ny0ceiling;
+					int n_screen_y_floor = (x - x0) * (ny1floor - ny0floor) / (x1 - x0) + ny0floor;
+
+					n_screen_y_ceil = clamp_int(n_screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
+					n_screen_y_floor = clamp_int(n_screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
+
+					if(n_screen_y_ceil > screen_y_ceil)
+					{
+						GFX_draw_vert_line(screen, x, screen_y_ceil, n_screen_y_ceil, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 255, 255), depth)));
+					}
+
+					y_undrawn_top[x] = clamp_int(max_int(screen_y_ceil, n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
+
+					if(n_screen_y_floor < screen_y_floor)
+					{
+						GFX_draw_vert_line(screen, x, screen_y_floor, n_screen_y_floor, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 255, 255), depth)));
+					}
+
+					y_undrawn_bot[x] = clamp_int(min_int(screen_y_floor, n_screen_y_floor), y_undrawn_bot[x], 0);
+
+					GFX_draw_vert_line(screen, x, y_undrawn_top[x], y_undrawn_bot[x], GFX_Map_Color(GFX_Color_scale(GFX_Color(200, 0, 0), depth)));
+				}
+				else
+				{
+					GFX_draw_vert_line(screen, x, screen_y_ceil, screen_y_floor, GFX_Map_Color(GFX_Color_scale(GFX_Color(200, 200, 200), depth)));
+				}
+			}
+
+			if(current_edge->is_portal)
+			{
+				struct item * pending_portal;
+				pending_portal = malloc(sizeof(struct item));
+
+				pending_portal->sector = loaded_level.sectors + current_edge->neighbor_sector_id;
+				pending_portal->start_screen_x = x_begin;
+				pending_portal->end_screen_x = x_end;
+
+				append_list(pending_portals, pending_portal);
+			}
+		}
+	}
+	while(len_list(pending_portals) > 0);
 }
