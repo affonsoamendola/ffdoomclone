@@ -163,37 +163,54 @@ void INPUT_Handle()
 		
 		if(keystate[SDLK_DOWN])
 		{
+
 			player_move(scale_v2(rot_v2(vector2(0, -1), -player_facing), player_speed * ENGINE_delta_time()));
+
+			
 		}
 		
 		if(keystate[SDLK_RIGHT])
 		{
-			player_move(scale_v2(rot_v2(vector2(1, 0), -player_facing), player_speed * ENGINE_delta_time()));
+			if(keystate[SDLK_LALT])
+			{
+				player_move(scale_v2(rot_v2(vector2(1, 0), -player_facing), player_speed * ENGINE_delta_time()));
+			}
+			else
+			{
+				player_facing = player_facing + player_turn_speed * ENGINE_delta_time();
+
+				if(player_facing >= 2*PI) player_facing -= 2*PI;
+
+				player_angle_cos = cos(player_facing);
+				player_angle_sin = sin(player_facing);
+			}
 		}
 		
 		if(keystate[SDLK_LEFT])
 		{
-			player_move(scale_v2(rot_v2(vector2(-1, 0), -player_facing), player_speed * ENGINE_delta_time()));
+			if(keystate[SDLK_LALT])
+			{
+				player_move(scale_v2(rot_v2(vector2(-1, 0), -player_facing), player_speed * ENGINE_delta_time()));
+			}
+			else
+			{
+				player_facing = player_facing - player_turn_speed * ENGINE_delta_time();
+
+				if(player_facing >= 2*PI) player_facing -= 2*PI;
+
+				player_angle_cos = cos(player_facing);
+				player_angle_sin = sin(player_facing);
+			}
 		}
 		
 		if(keystate[SDLK_DELETE])
 		{
-			player_facing = player_facing - player_turn_speed * ENGINE_delta_time();
-
-			if(player_facing >= 2*PI) player_facing -= 2*PI;
-
-			player_angle_cos = cos(player_facing);
-			player_angle_sin = sin(player_facing);
+			
 		}
 		
 		if(keystate[SDLK_PAGEDOWN])
 		{
-			player_facing = player_facing + player_turn_speed * ENGINE_delta_time();
-
-			if(player_facing >= 2*PI) player_facing -= 2*PI;
-
-			player_angle_cos = cos(player_facing);
-			player_angle_sin = sin(player_facing);
+			
 		}
 			
 		while(SDL_PollEvent(&event) != 0)

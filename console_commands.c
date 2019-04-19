@@ -23,8 +23,8 @@ void COMMAND_ver()
 void COMMAND_intro()
 {
 	CONSOLE_print("\n----------------------------------------");
-	CONSOLE_print("\nFofonso's Raytracing Engine\n");
-	CONSOLE_print("\nCodename RT76800");
+	CONSOLE_print("\nFofonso's DoomClone Engine\n");
+	CONSOLE_print("\nCodename DN F3D");
 	CONSOLE_print("\nCopyright Affonso Amendola, 2019");	
 	CONSOLE_print("\nVersion ");
 	CONSOLE_print(ENGINE_version());

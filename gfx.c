@@ -15,6 +15,9 @@
 
 #include "gfx.h"
 
+#define TEXTURE_SIZE_X 128
+#define TEXTURE_SIZE_Y 128
+
 extern SDL_Surface * screen;
 
 extern float current_fps;
@@ -33,7 +36,7 @@ extern float player_facing;
 extern float player_angle_cos;
 extern float player_angle_sin;
 
-float map_scale = 2.0f;
+float map_scale = 20.0f;
 
 char buffer[128];
 
@@ -43,10 +46,20 @@ float nearz = 1e-4f;
 float nearside = 1e-5f;
 
 float farz = 5.0f;
-float farside = 80.0f;
+float farside = 20.0f;
 
+float depth_lighting_max_distance = 6.0f;
+ 
 float hfov = 0.73f * SCREEN_RES_X;
 float vfov = 0.2f * SCREEN_RES_Y;
+
+SDL_Surface * texture;
+
+
+void GFX_load_texture(char * location)
+{
+	texture = SDL_LoadBMP(location);
+}
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 {
@@ -203,6 +216,35 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 	}
 }
 
+void GFX_draw_texture_vert_line(SDL_Surface *surface, 
+								SDL_Surface *texture, 
+								int screen_x, int screen_y1, int screen_y2, 
+								float relative_x, int screen_space_wall_y1, int screen_space_wall_y2)
+{
+	//This is very confusing, I need to rewrite this, BADLY
+
+	int temp;
+
+	if(screen_y1 > screen_y2)
+	{
+		temp = screen_y1;
+		screen_y1 = screen_y2;
+		screen_y2 = temp;
+	}
+
+	for(int screen_y = screen_y1; screen_y <= screen_y2; screen_y++)
+	{
+		float relative_y = (float)(screen_y - screen_space_wall_y1) /
+						   (float)(screen_space_wall_y2 - screen_space_wall_y1);
+
+		int texture_space_y = (int)(relative_y * (TEXTURE_SIZE_Y - 1));
+
+		GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(texture, 
+																((TEXTURE_SIZE_X - 1) - relative_x * (TEXTURE_SIZE_X-1)), 
+																texture_space_y));
+	}
+}
+
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 {
 	for(int i = start.x; i <= end.x; i++)
@@ -313,8 +355,11 @@ void GFX_draw_string(POINT2 position, char* string, unsigned int pixel)
 
 void GFX_Init()
 {
-
 	GFX_load_font("8x8Font.fnt");
+
+	GFX_load_texture("dopefish.bmp");
+
+	SDL_LockSurface(texture);
 }
 
 void GFX_draw_console()
@@ -432,8 +477,6 @@ void GFX_render_3d()
 
 	struct item first_render = {current_sector, start_screen_x, end_screen_x};
 
-	printf("\nSTARTING FRAME\n");
-
 	do
 	{
 		if(len_list(pending_portals) > 0)
@@ -461,6 +504,9 @@ void GFX_render_3d()
 			
 			transformed_pos_0 = rot_v2(transformed_pos_0, player_facing);
 			transformed_pos_1 = rot_v2(transformed_pos_1, player_facing);
+
+			VECTOR2 ni_pos_0 = transformed_pos_0;
+			VECTOR2 ni_pos_1 = transformed_pos_1;
 			
 			//If completely behind player, continue from loop
 			if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) 
@@ -503,8 +549,12 @@ void GFX_render_3d()
 			float yscale1 = vfov / transformed_pos_1.y;
 			
 			//Transform to pixel locations (and project)
-			int x0 = (int)(transformed_pos_0.x * xscale0) + SCREEN_RES_X/2;
-			int x1 = (int)(transformed_pos_1.x * xscale1) + SCREEN_RES_X/2;
+
+			float proj_x0 = transformed_pos_0.x * xscale0;
+			float proj_x1 = transformed_pos_1.x * xscale1;
+
+			int x0 = (int)(proj_x0) + SCREEN_RES_X/2;
+			int x1 = (int)(proj_x1) + SCREEN_RES_X/2;
 			
 			//If outside screen, get out
 			if(x1 >= x0 || x0 < start_screen_x || x1 > end_screen_x) 
@@ -516,12 +566,19 @@ void GFX_render_3d()
 			float yceil = current_sector->ceiling_height - player_pos_height;
 			float yfloor = current_sector->floor_height - player_pos_height;
 
-			//Project and get pixel position, like above
-			int y0ceiling = SCREEN_RES_Y/2 - (int)(yceil * yscale0);
-			int y0floor = SCREEN_RES_Y/2 - (int)(yfloor * yscale0);
+			//Project and get pixel position, like above.
 
-			int y1ceiling = SCREEN_RES_Y/2 - (int)(yceil * yscale1);
-			int y1floor = SCREEN_RES_Y/2 - (int)(yfloor * yscale1);
+			float proj_y0_ceiling = yceil * yscale0;
+			float proj_y0_floor = yfloor * yscale0;
+
+			float proj_y1_ceiling = yceil * yscale1;
+			float proj_y1_floor = yfloor * yscale1;
+
+			int y0ceiling = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
+			int y0floor = SCREEN_RES_Y/2 - (int)(proj_y0_floor);
+
+			int y1ceiling = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
+			int y1floor = SCREEN_RES_Y/2 - (int)(proj_y1_floor);
 
 			SECTOR * neighbor_sector;
 
@@ -557,46 +614,63 @@ void GFX_render_3d()
 
 			for(int x = x_begin; x <= x_end; x++)
 			{
-				int screen_y_ceil = (x - x0) * (y1ceiling - y0ceiling) / (x1 - x0) + y0ceiling;
-				int screen_y_floor = (x - x0) * (y1floor - y0floor) / (x1 - x0) + y0floor;
+				float relative_x = (float)(x-x0)/(float)(x1-x0);
 
-				float depth = ((x - x0) * (yscale1 - yscale0) / (x1 - x0) + yscale0) / 75.0f;
+				int screen_y_ceil = relative_x * (y1ceiling - y0ceiling) + y0ceiling;
+				int screen_y_floor = relative_x * (y1floor - y0floor) + y0floor;
 
-				printf("x = %i depth = %f\n", x, depth);
+				int c_screen_y_ceil = clamp_int(screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
+				int c_screen_y_floor = clamp_int(screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
 
-				screen_y_ceil = clamp_int(screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
-				screen_y_floor = clamp_int(screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
+				float depth_wall = relative_x * (ni_pos_1.y - ni_pos_0.y) + ni_pos_0.y;
 
-				GFX_draw_vert_line(screen, x, y_undrawn_top[x], screen_y_ceil, GFX_Map_Color(GFX_Color(0, 0, 100)));
-				GFX_draw_vert_line(screen, x, screen_y_floor, y_undrawn_bot[x], GFX_Map_Color(GFX_Color(100, 40, 0)));
+				float depth_wall_factor = (depth_lighting_max_distance - depth_wall)/depth_lighting_max_distance;
+
+				for(int y = y_undrawn_top[x]; y < c_screen_y_ceil; y ++)
+				{
+					float depth_ceiling = -(yceil*vfov)/(y - SCREEN_RES_Y/2);
+
+					float depth_ceiling_factor = (depth_lighting_max_distance - depth_ceiling)/depth_lighting_max_distance;
+
+					GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 0, 100), depth_ceiling_factor)));
+				}
+
+
+				for(int y = c_screen_y_floor; y < y_undrawn_bot[x]+1; y ++)
+				{
+					float depth_floor = -(yfloor*vfov)/(y - SCREEN_RES_Y/2);
+
+					float depth_floor_factor = (depth_lighting_max_distance - depth_floor)/depth_lighting_max_distance;
+
+					GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color_scale(GFX_Color(100, 40, 0), depth_floor_factor)));
+				}
 				
 				if(current_edge->is_portal)
 				{
-					int n_screen_y_ceil = (x - x0) * (ny1ceiling - ny0ceiling) / (x1 - x0) + ny0ceiling;
-					int n_screen_y_floor = (x - x0) * (ny1floor - ny0floor) / (x1 - x0) + ny0floor;
+					int n_screen_y_ceil = relative_x * (ny1ceiling - ny0ceiling) + ny0ceiling;
+					int n_screen_y_floor = relative_x * (ny1floor - ny0floor) + ny0floor;
 
-					n_screen_y_ceil = clamp_int(n_screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
-					n_screen_y_floor = clamp_int(n_screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
+					int c_n_screen_y_ceil = clamp_int(n_screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
+					int c_n_screen_y_floor = clamp_int(n_screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
 
-					if(n_screen_y_ceil > screen_y_ceil)
+					if(c_n_screen_y_ceil > c_screen_y_ceil)
 					{
-						GFX_draw_vert_line(screen, x, screen_y_ceil, n_screen_y_ceil, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 255, 255), depth)));
+						GFX_draw_texture_vert_line(screen, texture, x, c_screen_y_ceil, c_n_screen_y_ceil, relative_x, screen_y_ceil, n_screen_y_ceil);
+						//GFX_draw_vert_line(screen, x, c_screen_y_ceil, c_n_screen_y_ceil, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 255, 255), depth_wall_factor)));
 					}
 
-					y_undrawn_top[x] = clamp_int(max_int(screen_y_ceil, n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
+					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
 
-					if(n_screen_y_floor < screen_y_floor)
+					if(c_n_screen_y_floor < c_screen_y_floor)
 					{
-						GFX_draw_vert_line(screen, x, screen_y_floor, n_screen_y_floor, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 255, 255), depth)));
+						GFX_draw_texture_vert_line(screen, texture, x, c_screen_y_floor, c_n_screen_y_floor, relative_x, n_screen_y_floor, screen_y_floor);
 					}
 
-					y_undrawn_bot[x] = clamp_int(min_int(screen_y_floor, n_screen_y_floor), y_undrawn_bot[x], 0);
-
-					GFX_draw_vert_line(screen, x, y_undrawn_top[x], y_undrawn_bot[x], GFX_Map_Color(GFX_Color_scale(GFX_Color(200, 0, 0), depth)));
+					y_undrawn_bot[x] = clamp_int(min_int(c_screen_y_floor, c_n_screen_y_floor), y_undrawn_bot[x], 0);
 				}
 				else
 				{
-					GFX_draw_vert_line(screen, x, screen_y_ceil, screen_y_floor, GFX_Map_Color(GFX_Color_scale(GFX_Color(200, 200, 200), depth)));
+					GFX_draw_texture_vert_line(screen, texture, x, c_screen_y_ceil, c_screen_y_floor, relative_x, screen_y_ceil, screen_y_floor);
 				}
 			}
 
