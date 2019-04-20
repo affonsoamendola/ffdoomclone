@@ -20,7 +20,7 @@ float player_angle_sin = 0.0f;
 float player_walk_speed = 2.0f;
 float player_run_speed = 4.0f;
 
-float player_walk_turn_speed = 1.0f;
+float player_walk_turn_speed = 2.0f;
 float player_run_turn_speed = 3.0f;
 
 float player_speed = 1.0f;

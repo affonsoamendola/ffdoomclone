@@ -245,6 +245,41 @@ void GFX_draw_texture_vert_line(SDL_Surface *surface,
 	}
 }
 
+void GFX_set_pixel_from_texture(SDL_Surface *surface,
+								SDL_Surface *texture,
+								int screen_x, int screen_y,
+								int text_x, int text_y)
+{
+
+	
+
+	while(text_x >= TEXTURE_SIZE_X-1)
+	{
+		text_x -= TEXTURE_SIZE_X-1;
+	}
+
+	while(text_y >= TEXTURE_SIZE_Y-1)
+	{
+		text_y -= TEXTURE_SIZE_Y-1;
+	}
+
+	while(text_x < 0)
+	{
+		text_x += TEXTURE_SIZE_X-1;
+	}
+
+	while(text_y < 0)
+	{
+		text_y += TEXTURE_SIZE_Y-1;
+	}
+
+
+
+	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	texture, 
+																text_x, 
+																text_y));
+}
+
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 {
 	for(int i = start.x; i <= end.x; i++)
@@ -441,6 +476,23 @@ unsigned int GFX_Map_Color(COLOR color)
 	return SDL_MapRGB(screen->format, color.r, color.g, color.b);
 }
 
+VECTOR2 convert_ss_to_ws(POINT2 screen_space, int height)
+{
+	VECTOR2 world_space;
+
+	world_space.y = -(height*vfov)/(screen_space.y - SCREEN_RES_Y/2);
+	world_space.x = ((float)(screen_space.x - SCREEN_RES_X/2)*world_space.y)/hfov;
+
+	world_space = rot_v2(world_space, -player_facing);
+	world_space = sum_v2(world_space, player_pos);
+
+	return world_space;
+}
+
+int calculate_text_y()
+{
+}
+
 void GFX_render_3d()
 {
 	SECTOR * current_sector;
@@ -547,14 +599,26 @@ void GFX_render_3d()
 
 			float xscale1 = hfov / transformed_pos_1.y;
 			float yscale1 = vfov / transformed_pos_1.y;
+
+			float ni_xscale0 = hfov / ni_pos_0.y;
+			float ni_yscale0 = vfov / ni_pos_0.y;
+
+			float ni_xscale1 = hfov / ni_pos_1.y;
+			float ni_yscale1 = vfov / ni_pos_1.y;
 			
 			//Transform to pixel locations (and project)
 
 			float proj_x0 = transformed_pos_0.x * xscale0;
 			float proj_x1 = transformed_pos_1.x * xscale1;
 
+			float ni_proj_x0 = ni_pos_0.x * ni_xscale0;
+			float ni_proj_x1 = ni_pos_1.x * ni_xscale1;
+
 			int x0 = (int)(proj_x0) + SCREEN_RES_X/2;
 			int x1 = (int)(proj_x1) + SCREEN_RES_X/2;
+
+			int ni_x0 = (int)(ni_proj_x0) + SCREEN_RES_X/2;
+			int ni_x1 = (int)(ni_proj_x1) + SCREEN_RES_X/2;
 			
 			//If outside screen, get out
 			if(x1 >= x0 || x0 < start_screen_x || x1 > end_screen_x) 
@@ -626,23 +690,20 @@ void GFX_render_3d()
 
 				float depth_wall_factor = (depth_lighting_max_distance - depth_wall)/depth_lighting_max_distance;
 
+				VECTOR2 world_space;
+				
 				for(int y = y_undrawn_top[x]; y < c_screen_y_ceil; y ++)
 				{
-					float depth_ceiling = -(yceil*vfov)/(y - SCREEN_RES_Y/2);
+					world_space = convert_ss_to_ws(point2(x, y), yceil);
 
-					float depth_ceiling_factor = (depth_lighting_max_distance - depth_ceiling)/depth_lighting_max_distance;
-
-					GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 0, 100), depth_ceiling_factor)));
+					GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x*128), (int)(world_space.y*128));
 				}
-
 
 				for(int y = c_screen_y_floor; y < y_undrawn_bot[x]+1; y ++)
 				{
-					float depth_floor = -(yfloor*vfov)/(y - SCREEN_RES_Y/2);
+					world_space = convert_ss_to_ws(point2(x, y), yfloor);
 
-					float depth_floor_factor = (depth_lighting_max_distance - depth_floor)/depth_lighting_max_distance;
-
-					GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color_scale(GFX_Color(100, 40, 0), depth_floor_factor)));
+					GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x*128), (int)(world_space.y*128));
 				}
 				
 				if(current_edge->is_portal)
@@ -655,8 +716,7 @@ void GFX_render_3d()
 
 					if(c_n_screen_y_ceil > c_screen_y_ceil)
 					{
-						GFX_draw_texture_vert_line(screen, texture, x, c_screen_y_ceil, c_n_screen_y_ceil, relative_x, screen_y_ceil, n_screen_y_ceil);
-						//GFX_draw_vert_line(screen, x, c_screen_y_ceil, c_n_screen_y_ceil, GFX_Map_Color(GFX_Color_scale(GFX_Color(0, 255, 255), depth_wall_factor)));
+						GFX_draw_texture_vert_line(screen, texture, x, c_screen_y_ceil, c_n_screen_y_ceil, relative_x, screen_y_ceil, n_screen_y_ceil);		
 					}
 
 					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
@@ -670,7 +730,13 @@ void GFX_render_3d()
 				}
 				else
 				{
-					GFX_draw_texture_vert_line(screen, texture, x, c_screen_y_ceil, c_screen_y_floor, relative_x, screen_y_ceil, screen_y_floor);
+					int text_x = (float)(x - x0)/(float)(x1 - x0) * (TEXTURE_SIZE_X-1);
+				
+					for(int y = c_screen_y_ceil; y < c_screen_y_floor; y ++)
+					{
+						int text_y = (float)(y - screen_y_floor)/(float)(screen_y_ceil - screen_y_floor) * (TEXTURE_SIZE_Y-1);
+						GFX_set_pixel_from_texture(screen, texture, x, y, text_x, text_y);
+					}
 				}
 			}
 
