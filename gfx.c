@@ -18,6 +18,9 @@
 #define TEXTURE_SIZE_X 128
 #define TEXTURE_SIZE_Y 128
 
+#define SKYBOX_SIZE_X 640
+#define SKYBOX_SIZE_Y 120
+
 extern SDL_Surface * screen;
 
 extern float current_fps;
@@ -284,12 +287,13 @@ void GFX_draw_texture_vert_line(SDL_Surface *surface,
 void GFX_set_pixel_from_texture(SDL_Surface *surface,
 								SDL_Surface *texture,
 								int screen_x, int screen_y,
-								int text_x, int text_y)
+								int text_x, int text_y,
+								int text_size_x, int text_size_y)
 {
 
 	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	texture, 
-																abs(text_x % TEXTURE_SIZE_X), 
-																abs(text_y % TEXTURE_SIZE_Y)));
+																abs(text_x % text_size_x), 
+																abs(text_y % text_size_y)));
 }
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
@@ -717,23 +721,12 @@ void GFX_render_3d()
 				{
 					//world_space = convert_ss_to_ws(point2(x, y), yceil);
 					//GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x * 128.), (int)(world_space.y * 128.));
-					float angle_x = get_view_angle_from_ss(x);
-
-					angle_x = player_facing + angle_x;
-
-					while(angle_x > 2*PI)
-					{
-						angle_x -= 2*PI;
-					}
-
-					while(angle_x < 0)
-					{
-						angle_x += 2*PI;
-					}
-
+				
+					int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+					
 					GFX_set_pixel_from_texture(	screen, skybox, x, y, 
-												(int)(((angle_x)/(2*PI) * 128.)), 
-												(int)(((float)y / 160.) * 128.));
+												x + offset, y,
+												SKYBOX_SIZE_X, SKYBOX_SIZE_Y);
 
 				}
 
@@ -741,7 +734,9 @@ void GFX_render_3d()
 				{
 					world_space = convert_ss_to_ws(point2(x, y), yfloor);
 					
-					GFX_set_pixel_from_texture(screen, wall, x, y, (int)(world_space.x * 128.), (int)(world_space.y * 128.));
+					GFX_set_pixel_from_texture(	screen, wall, x, y, 
+											   	(int)(world_space.x * 128.), (int)(world_space.y * 128.),
+											   	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
 				}
 				
 				if(current_edge->is_portal)
@@ -757,7 +752,9 @@ void GFX_render_3d()
 						for(int y = c_screen_y_ceil; y < c_n_screen_y_ceil; y ++)
 						{
 							int text_y = (float)(y - screen_y_ceil)/(float)(n_screen_y_ceil- screen_y_ceil) * (TEXTURE_SIZE_Y-1);
-							GFX_set_pixel_from_texture(screen, wall, x, y, text_x, text_y);
+							GFX_set_pixel_from_texture(	screen, wall, x, y, 
+														text_x, text_y,
+											 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
 						}
 					}
 
@@ -768,7 +765,9 @@ void GFX_render_3d()
 						for(int y = c_n_screen_y_floor; y < c_screen_y_floor; y ++)
 						{
 							int text_y = (float)(y - n_screen_y_floor)/(float)(screen_y_floor - n_screen_y_floor) * (TEXTURE_SIZE_Y-1);
-							GFX_set_pixel_from_texture(screen, wall, x, y, text_x, text_y);
+							GFX_set_pixel_from_texture(	screen, wall, x, y, 
+														text_x, text_y,
+											 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
 						}
 					}
 
@@ -779,7 +778,9 @@ void GFX_render_3d()
 					for(int y = c_screen_y_ceil; y < c_screen_y_floor; y ++)
 					{
 						int text_y = (float)(y - screen_y_floor)/(float)(screen_y_ceil - screen_y_floor) * (TEXTURE_SIZE_Y-1);
-						GFX_set_pixel_from_texture(screen, wall, x, y, text_x, text_y);
+						GFX_set_pixel_from_texture(	screen, wall, x, y, 
+													text_x, text_y,
+										 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
 					}
 				}
 			}

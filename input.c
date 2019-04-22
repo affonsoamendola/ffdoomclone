@@ -180,7 +180,8 @@ void INPUT_Handle()
 			{
 				player_facing = player_facing + player_turn_speed * ENGINE_delta_time();
 
-				if(player_facing >= 2*PI) player_facing -= 2*PI;
+				if(player_facing >= 2.*PI) player_facing -= 2*PI;
+				if(player_facing < 0.) player_facing += 2*PI;
 
 				//player_angle_cos = cos(player_facing);
 				//player_angle_sin = sin(player_facing);
@@ -198,6 +199,7 @@ void INPUT_Handle()
 				player_facing = player_facing - player_turn_speed * ENGINE_delta_time();
 
 				if(player_facing >= 2*PI) player_facing -= 2*PI;
+				if(player_facing < 0.) player_facing += 2*PI;
 
 				//player_angle_cos = cos(player_facing);
 				//player_angle_sin = sin(player_facing);
