@@ -1,9 +1,10 @@
 #include "vector2.h"
 #include "world.h"
+#include "engine.h"
 
 #include "player.h"
 
-#define PLAYER_START_HEIGHT 2.0f
+#define PLAYER_START_HEIGHT 0.5f
 #define PLAYER_START_SPEED 1.0f
 
 VECTOR2 player_pos = {0.5f, 0.0f};
@@ -12,10 +13,9 @@ float player_height = PLAYER_START_HEIGHT;
 
 float player_pos_height = PLAYER_START_HEIGHT;
 
-float player_facing = 0.0f;
+float player_facing = 0.00001;
 
-float player_angle_cos = 1.0f;
-float player_angle_sin = 0.0f;
+int player_noclip = 1;
 
 float player_walk_speed = 2.0f;
 float player_run_speed = 4.0f;
@@ -49,7 +49,7 @@ void player_move(VECTOR2 amount)
 
 		if(intersect_box_v2(player_pos, to_pos, edge_vertex_0, edge_vertex_1))
 		{
-			if(point_side_v2(to_pos, edge_vertex_0, edge_vertex_1) < 0)
+			if(point_side_v2(to_pos, edge_vertex_0, edge_vertex_1) > 0)
 			{
 				if(current_edge->is_portal)
 				{
@@ -59,7 +59,8 @@ void player_move(VECTOR2 amount)
 				}
 				else
 				{
-					allow_move = 0;
+					if(player_noclip == 0)
+						allow_move = 0;
 				}
 			}
 		}
@@ -69,6 +70,6 @@ void player_move(VECTOR2 amount)
 	{
 		player_pos = to_pos;
 	
-		player_pos_height = current_sector->floor_height + player_height;
+		//player_pos_height = current_sector->floor_height + player_height;
 	}
 }

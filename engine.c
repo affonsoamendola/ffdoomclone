@@ -80,11 +80,11 @@ void ENGINE_Loop()
 	INPUT_Handle();
 
 	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
-	
 }
 
 int main(int argc, char** argv)
 {
+
 	ENGINE_Init();
 
 	VECTOR2 test;
@@ -95,6 +95,7 @@ int main(int argc, char** argv)
 	}
 
 	ENGINE_Quit();
+	
 }
 
 char* ENGINE_version()

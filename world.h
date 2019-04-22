@@ -17,6 +17,7 @@ EDGE;
 
 typedef struct SECTOR_
 {
+	int sector_id;
 	int e_num;
 	float ceiling_height;
 	float floor_height;

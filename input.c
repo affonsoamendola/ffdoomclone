@@ -32,6 +32,7 @@ extern float player_walk_turn_speed;
 extern float player_run_speed;
 extern float player_run_turn_speed;
 
+extern float player_pos_height;
 extern float player_speed;
 extern float player_turn_speed;
 extern float player_facing;
@@ -181,8 +182,8 @@ void INPUT_Handle()
 
 				if(player_facing >= 2*PI) player_facing -= 2*PI;
 
-				player_angle_cos = cos(player_facing);
-				player_angle_sin = sin(player_facing);
+				//player_angle_cos = cos(player_facing);
+				//player_angle_sin = sin(player_facing);
 			}
 		}
 		
@@ -198,19 +199,19 @@ void INPUT_Handle()
 
 				if(player_facing >= 2*PI) player_facing -= 2*PI;
 
-				player_angle_cos = cos(player_facing);
-				player_angle_sin = sin(player_facing);
+				//player_angle_cos = cos(player_facing);
+				//player_angle_sin = sin(player_facing);
 			}
 		}
 		
-		if(keystate[SDLK_DELETE])
+		if(keystate[SDLK_PAGEUP])
 		{
-			
+			player_pos_height += player_speed * ENGINE_delta_time();
 		}
 		
 		if(keystate[SDLK_PAGEDOWN])
 		{
-			
+			player_pos_height -= player_speed * ENGINE_delta_time();
 		}
 			
 		while(SDL_PollEvent(&event) != 0)

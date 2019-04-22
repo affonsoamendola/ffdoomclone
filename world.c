@@ -89,6 +89,7 @@ void level_load(const char * file_location)
 
 		fscanf(level_file, "%u", &sector_size);
 
+		current_sector->sector_id = s;
 		current_sector->e_num = sector_size;
 		current_sector->e = malloc(sector_size * sizeof(EDGE));
 
