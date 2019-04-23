@@ -112,6 +112,13 @@ void level_load(const char * file_location)
 
 			new_edge.v_start = *(sector_vertexes + e);
 
+			fscanf(level_file, "%u", &(new_edge.text_param.id));
+			fscanf(level_file, "%u", &(new_edge.text_param.parallax));
+			fscanf(level_file, "%u", &(new_edge.text_param.u_offset));
+			fscanf(level_file, "%u", &(new_edge.text_param.v_offset));
+			fscanf(level_file, "%f", &(new_edge.text_param.u_scale));
+			fscanf(level_file, "%f", &(new_edge.text_param.v_scale));
+
 			end_vertex = e + 1;
 
 			if(end_vertex >= sector_size)
@@ -149,6 +156,20 @@ void level_load(const char * file_location)
 
 			*(current_sector->e + e) = new_edge;
 		}
+
+		fscanf(level_file, "%u", &(current_sector->text_param_ceil.id));
+		fscanf(level_file, "%u", &(current_sector->text_param_ceil.parallax));
+		fscanf(level_file, "%u", &(current_sector->text_param_ceil.u_offset));
+		fscanf(level_file, "%u", &(current_sector->text_param_ceil.v_offset));
+		fscanf(level_file, "%f", &(current_sector->text_param_ceil.u_scale));
+		fscanf(level_file, "%f", &(current_sector->text_param_ceil.v_scale));
+
+		fscanf(level_file, "%u", &(current_sector->text_param_floor.id));
+		fscanf(level_file, "%u", &(current_sector->text_param_floor.parallax));
+		fscanf(level_file, "%u", &(current_sector->text_param_floor.u_offset));
+		fscanf(level_file, "%u", &(current_sector->text_param_floor.v_offset));
+		fscanf(level_file, "%f", &(current_sector->text_param_floor.u_scale));
+		fscanf(level_file, "%f", &(current_sector->text_param_floor.v_scale));
 	}
 
 	fclose(level_file);

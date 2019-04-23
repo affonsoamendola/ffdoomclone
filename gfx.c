@@ -291,9 +291,44 @@ void GFX_set_pixel_from_texture(SDL_Surface *surface,
 								int text_size_x, int text_size_y)
 {
 
+	if(text_x < 0) text_x = (text_x % text_size_x) + text_size_x;
+	if(text_y < 0) text_y = (text_y % text_size_y) + text_size_y;
+
 	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	texture, 
 																abs(text_x % text_size_x), 
 																abs(text_y % text_size_y)));
+}
+
+void GFX_set_pixel_from_texture_new(SDL_Surface *surface,
+									GFX_TEXTURE_PARAM texture,
+									int screen_x, int screen_y,
+									int text_x, int text_y)
+{
+	int u;
+	int v;
+
+	int text_size_x = TEXTURE_SIZE_X;
+	int text_size_y = TEXTURE_SIZE_Y;
+
+	if(texture.parallax == 1)
+	{
+		text_size_x = SKYBOX_SIZE_X;
+		text_size_y = SKYBOX_SIZE_Y;
+	}
+
+	u = (text_x / texture.u_scale) - texture.u_offset;
+	v = (text_y / texture.v_scale) - texture.v_offset;
+	
+	if(u >= text_size_x) u = u % text_size_x;
+	if(v >= text_size_y) v = v % text_size_y;
+
+	if(u < 0) u = (u % text_size_x) + text_size_x;
+	if(v < 0) v = (v % text_size_y) + text_size_y;
+
+	//TODO SDL_Surface * GFX_get_texture_from_id(int id)
+	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	wall, 
+																u, 
+																v));
 }
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
@@ -529,7 +564,7 @@ void GFX_render_3d()
 	for(int x = 0; x < SCREEN_RES_X; x++)
 	{
 		y_undrawn_top[x] = 0;
-		y_undrawn_bot[x] = SCREEN_RES_Y-1; 
+		y_undrawn_bot[x] = SCREEN_RES_Y; 
 	} 
 
 	start_screen_x = 0;
@@ -578,7 +613,7 @@ void GFX_render_3d()
 			VECTOR2 ni_pos_1 = transformed_pos_1;
 
 			float t_u0 = 0.;
-			float t_u1 = (float)(TEXTURE_SIZE_X-1);
+			float t_u1 = (float)(TEXTURE_SIZE_X);
 
 			//If completely behind player, continue from loop
 			if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) 
@@ -626,8 +661,9 @@ void GFX_render_3d()
 						transformed_pos_1 = i1;	
 				}
 
-				t_u0 = (transformed_pos_0.x - ni_pos_0.x) * (TEXTURE_SIZE_X-1)/(ni_pos_1.x - ni_pos_0.x);
-				t_u1 = (transformed_pos_1.x - ni_pos_0.x) * (TEXTURE_SIZE_X-1)/(ni_pos_1.x - ni_pos_0.x);			
+				t_u0 = (transformed_pos_0.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);
+				t_u1 = (transformed_pos_1.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);			
+		
 			}
 
 			//Do projection scales
@@ -717,6 +753,8 @@ void GFX_render_3d()
 	
 				VECTOR2 world_space;
 
+				//Draw Ceiling
+
 				for(int y = y_undrawn_top[x]; y < c_screen_y_ceil; y ++)
 				{
 					//world_space = convert_ss_to_ws(point2(x, y), yceil);
@@ -729,6 +767,8 @@ void GFX_render_3d()
 												SKYBOX_SIZE_X, SKYBOX_SIZE_Y);
 
 				}
+
+				//Draw Floor
 
 				for(int y = c_screen_y_floor; y < y_undrawn_bot[x]+1; y ++)
 				{
@@ -747,8 +787,12 @@ void GFX_render_3d()
 					int c_n_screen_y_ceil = clamp_int(n_screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
 					int c_n_screen_y_floor = clamp_int(n_screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
 
+					//If wall between 2 sectors ceiling is visible
+
 					if(c_n_screen_y_ceil > c_screen_y_ceil)
 					{
+
+						//Draw wall
 						for(int y = c_screen_y_ceil; y < c_n_screen_y_ceil; y ++)
 						{
 							int text_y = (float)(y - screen_y_ceil)/(float)(n_screen_y_ceil- screen_y_ceil) * (TEXTURE_SIZE_Y-1);
@@ -760,8 +804,12 @@ void GFX_render_3d()
 
 					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
 
+					//If wall between 2 sectors floor is visible
+
 					if(c_n_screen_y_floor < c_screen_y_floor)
 					{
+						//Draw wall
+
 						for(int y = c_n_screen_y_floor; y < c_screen_y_floor; y ++)
 						{
 							int text_y = (float)(y - n_screen_y_floor)/(float)(screen_y_floor - n_screen_y_floor) * (TEXTURE_SIZE_Y-1);
@@ -775,13 +823,19 @@ void GFX_render_3d()
 				}
 				else
 				{
+					//Draw a normal wall
+
 					for(int y = c_screen_y_ceil; y < c_screen_y_floor; y ++)
 					{
-						int text_y = (float)(y - screen_y_floor)/(float)(screen_y_ceil - screen_y_floor) * (TEXTURE_SIZE_Y-1);
-						GFX_set_pixel_from_texture(	screen, wall, x, y, 
+						int text_y = (float)(y - screen_y_ceil)/(float)(screen_y_floor - screen_y_ceil) * (TEXTURE_SIZE_Y);
+						/*GFX_set_pixel_from_texture(	screen, wall, x, y, 
 													text_x, text_y,
-										 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
-					}
+										 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);*/
+						GFX_set_pixel_from_texture_new(	screen,
+														current_edge->text_param,
+														x, y,
+														text_x, text_y);
+					}					 		  		
 				}
 			}
 

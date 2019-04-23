@@ -2,6 +2,7 @@
 #define GFX_H
 
 #include "point2.h"
+#include "SDL.h"
 
 typedef struct COLOR_
 {
@@ -10,6 +11,20 @@ typedef struct COLOR_
 	int b;
 }
 COLOR;
+
+typedef struct GFX_TEXTURE_PARAM_
+{
+	int id;
+
+	int parallax;
+
+	int u_offset;
+	int v_offset;
+
+	float u_scale;
+	float v_scale;
+}
+GFX_TEXTURE_PARAM;
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y);
 void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel);
