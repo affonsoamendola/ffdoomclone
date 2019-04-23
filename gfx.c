@@ -64,6 +64,12 @@ float camera_parameters_y;
 //float hfov = 0.73f * SCREEN_RES_X;
 //float vfov = 0.2f * SCREEN_RES_Y;
 
+//GFX_TEXTURE wall;
+//GFX_TEXTURE skybox;
+
+GFX_TEXTURE loaded_textures[128];
+
+/*
 SDL_Surface * wall;
 SDL_Surface * skybox;
 
@@ -77,8 +83,24 @@ void GFX_load_texture_skybox(char * location)
 {
 	skybox = SDL_LoadBMP(location);
 
-
 	SDL_LockSurface(skybox);
+}
+*/
+void GFX_load_texture(char* location, int tex_id)
+{
+	GFX_TEXTURE new_texture;
+
+	SDL_Surface * tex_surface;
+
+	tex_surface = SDL_LoadBMP(location);
+
+	if(tex_surface == NULL)
+		printf("Could not load texture id %i, (File: %s), Error: %s\n", tex_id, location, SDL_GetError());
+
+	loaded_textures[tex_id].surface = tex_surface;
+
+	loaded_textures[tex_id].size_x = tex_surface->w;
+	loaded_textures[tex_id].size_y = tex_surface->h;
 }
 
 void GFX_Init()
@@ -96,8 +118,11 @@ void GFX_Init()
 
 	GFX_load_font("8x8Font.fnt");
 
-	GFX_load_texture_wall("dopefish.bmp");
-	GFX_load_texture_skybox("skybox.bmp");	
+	GFX_load_texture("dopefish.bmp", 0);
+	GFX_load_texture("skybox.bmp", 1);
+
+//	GFX_load_texture_wall("dopefish.bmp");
+//	GFX_load_texture_skybox("skybox.bmp");	
 }
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
@@ -307,14 +332,8 @@ void GFX_set_pixel_from_texture_new(SDL_Surface *surface,
 	int u;
 	int v;
 
-	int text_size_x = TEXTURE_SIZE_X;
-	int text_size_y = TEXTURE_SIZE_Y;
-
-	if(texture.parallax == 1)
-	{
-		text_size_x = SKYBOX_SIZE_X;
-		text_size_y = SKYBOX_SIZE_Y;
-	}
+	int text_size_x = loaded_textures[texture.id].size_x;
+	int text_size_y = loaded_textures[texture.id].size_y;
 
 	u = (text_x / texture.u_scale) - texture.u_offset;
 	v = (text_y / texture.v_scale) - texture.v_offset;
@@ -325,8 +344,10 @@ void GFX_set_pixel_from_texture_new(SDL_Surface *surface,
 	if(u < 0) u = (u % text_size_x) + text_size_x;
 	if(v < 0) v = (v % text_size_y) + text_size_y;
 
-	//TODO SDL_Surface * GFX_get_texture_from_id(int id)
-	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	wall, 
+	u = clamp_int(u, text_size_x-1, 0);
+	v = clamp_int(v, text_size_y-1, 0);
+
+	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	loaded_textures[texture.id].surface, 
 																u, 
 																v));
 }
@@ -616,10 +637,7 @@ void GFX_render_3d()
 			float t_u1 = (float)(TEXTURE_SIZE_X);
 
 			//If completely behind player, continue from loop
-			if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) 
-			{
-				continue;
-			}
+			if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) continue;
 	
 			//If partially behind player, intersect with player view area
 			if(transformed_pos_0.y <= 0 || transformed_pos_1.y)
@@ -663,12 +681,9 @@ void GFX_render_3d()
 
 				t_u0 = (transformed_pos_0.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);
 				t_u1 = (transformed_pos_1.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);			
-		
 			}
 
 			//Do projection scales
-
-
 			float xscale0 = camera_parameters_x / transformed_pos_0.y;
 			float yscale0 = camera_parameters_y / transformed_pos_0.y;
 
@@ -684,10 +699,7 @@ void GFX_render_3d()
 			int x1 = (int)(proj_x1) + SCREEN_RES_X/2;
 
 			//If outside screen, get out
-			if(x0 >= x1 || x1 < start_screen_x || x0 > end_screen_x) 
-			{
-				continue;
-			}	
+			if(x0 >= x1 || x1 < start_screen_x || x0 > end_screen_x) continue;
 
 			//Get relative ceil and floor heights
 			float yceil = current_sector->ceiling_height - player_pos_height;
@@ -752,32 +764,50 @@ void GFX_render_3d()
 				int text_x = (int)((t_u0*((x1-x)*transformed_pos_1.y) + t_u1*((x-x0)*transformed_pos_0.y)) / ((x1-x)*transformed_pos_1.y + (x-x0)*transformed_pos_0.y));
 	
 				VECTOR2 world_space;
+				
+				GFX_draw_visplane(	x, y_undrawn_top[x], c_screen_y_ceil,
+									1, yceil, 
+									current_sector->text_param_ceil);
+
+				GFX_draw_visplane(	x, c_screen_y_floor-1, y_undrawn_bot[x]-1,
+									0, yfloor, 
+									current_sector->text_param_floor);
 
 				//Draw Ceiling
-
+			
+				/*
 				for(int y = y_undrawn_top[x]; y < c_screen_y_ceil; y ++)
 				{
-					//world_space = convert_ss_to_ws(point2(x, y), yceil);
-					//GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x * 128.), (int)(world_space.y * 128.));
-				
-					int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
 					
-					GFX_set_pixel_from_texture(	screen, skybox, x, y, 
-												x + offset, y,
-												SKYBOX_SIZE_X, SKYBOX_SIZE_Y);
+					world_space = convert_ss_to_ws(point2(x, y), yceil);
+					GFX_set_pixel_from_texture_new(	screen,
+													current_sector->text_param_floor,
+													x, y,
+													(int)(world_space.x * 128.), (int)(world_space.y * 128.));
+					
 
-				}
+					//GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x * 128.), (int)(world_space.y * 128.));
+					/*
+					int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+
+					GFX_set_pixel_from_texture_new(	screen,
+													current_sector->text_param_ceil,
+													x, y,
+													x + offset, y);
+					*/
+				//}
 
 				//Draw Floor
-
+				/*
 				for(int y = c_screen_y_floor; y < y_undrawn_bot[x]+1; y ++)
 				{
 					world_space = convert_ss_to_ws(point2(x, y), yfloor);
-					
-					GFX_set_pixel_from_texture(	screen, wall, x, y, 
-											   	(int)(world_space.x * 128.), (int)(world_space.y * 128.),
-											   	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
+					GFX_set_pixel_from_texture_new(	screen,
+													current_sector->text_param_floor,
+													x, y,
+													(int)(world_space.x * 128.), (int)(world_space.y * 128.));
 				}
+				*/
 				
 				if(current_edge->is_portal)
 				{
@@ -791,32 +821,25 @@ void GFX_render_3d()
 
 					if(c_n_screen_y_ceil > c_screen_y_ceil)
 					{
-
 						//Draw wall
-						for(int y = c_screen_y_ceil; y < c_n_screen_y_ceil; y ++)
-						{
-							int text_y = (float)(y - screen_y_ceil)/(float)(n_screen_y_ceil- screen_y_ceil) * (TEXTURE_SIZE_Y-1);
-							GFX_set_pixel_from_texture(	screen, wall, x, y, 
-														text_x, text_y,
-											 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
-						}
+						GFX_draw_wall(	x, 
+										c_screen_y_ceil, screen_y_ceil, 
+										c_n_screen_y_ceil+1, n_screen_y_ceil+1, 
+										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+										current_edge->text_param); 
 					}
 
 					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
 
 					//If wall between 2 sectors floor is visible
-
 					if(c_n_screen_y_floor < c_screen_y_floor)
 					{
 						//Draw wall
-
-						for(int y = c_n_screen_y_floor; y < c_screen_y_floor; y ++)
-						{
-							int text_y = (float)(y - n_screen_y_floor)/(float)(screen_y_floor - n_screen_y_floor) * (TEXTURE_SIZE_Y-1);
-							GFX_set_pixel_from_texture(	screen, wall, x, y, 
-														text_x, text_y,
-											 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);
-						}
+						GFX_draw_wall(	x, 
+										c_n_screen_y_floor, n_screen_y_floor, 
+										c_screen_y_floor+1, screen_y_floor+1, 
+										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+										current_edge->text_param); 
 					}
 
 					y_undrawn_bot[x] = clamp_int(min_int(c_screen_y_floor, c_n_screen_y_floor), y_undrawn_bot[x], 0);
@@ -824,18 +847,11 @@ void GFX_render_3d()
 				else
 				{
 					//Draw a normal wall
-
-					for(int y = c_screen_y_ceil; y < c_screen_y_floor; y ++)
-					{
-						int text_y = (float)(y - screen_y_ceil)/(float)(screen_y_floor - screen_y_ceil) * (TEXTURE_SIZE_Y);
-						/*GFX_set_pixel_from_texture(	screen, wall, x, y, 
-													text_x, text_y,
-										 		  	TEXTURE_SIZE_X, TEXTURE_SIZE_Y);*/
-						GFX_set_pixel_from_texture_new(	screen,
-														current_edge->text_param,
-														x, y,
-														text_x, text_y);
-					}					 		  		
+					GFX_draw_wall(	x, 
+									c_screen_y_ceil, screen_y_ceil, 
+									c_screen_y_floor+2, screen_y_floor+2, 
+									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+									current_edge->text_param);  		
 				}
 			}
 
@@ -854,4 +870,69 @@ void GFX_render_3d()
 		}
 	}
 	while(len_list(pending_portals) > 0);
+}
+
+void GFX_draw_wall(	int screen_x, 
+					int top_visible, int top_invisible,
+					int bot_visible, int bot_invisible,
+					int x0, int x1, int u0, int u1, float z0, float z1,
+					GFX_TEXTURE_PARAM texture_parameters)
+{
+	int text_x = (int)((u0*((x1-screen_x)*z1) + u1*((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
+
+	for(int screen_y = top_visible; screen_y < bot_visible; screen_y++)
+	{
+		if(texture_parameters.parallax)
+		{
+			int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+			GFX_set_pixel_from_texture_new(	screen,
+											texture_parameters,
+											screen_x, screen_y,
+											screen_x + offset, screen_y);
+		}
+		else
+		{
+			int text_y = (float)(screen_y - top_invisible)/(float)(bot_invisible - top_invisible) * (TEXTURE_SIZE_Y);
+
+			GFX_set_pixel_from_texture_new(	screen,
+											texture_parameters,
+											screen_x, screen_y,
+											text_x, text_y);
+		}
+	}	
+}
+
+void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
+						int is_ceiling, float visplane_height, 
+						GFX_TEXTURE_PARAM texture_parameters)
+{
+	VECTOR2 world_space;
+	int is_visible = 1;
+
+	if(is_ceiling && visplane_height < 0.) is_visible = 0;
+	if((!is_ceiling) && visplane_height > 0.) is_visible = 0;
+
+	if(is_visible)
+	{
+		for(int screen_y = visible_top; screen_y < visible_bot; screen_y++)
+		{
+			if(texture_parameters.parallax)
+			{
+				int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+				GFX_set_pixel_from_texture_new(	screen,
+												texture_parameters,
+												screen_x, screen_y,
+												screen_x + offset, screen_y);
+			}
+			else
+			{
+				world_space = convert_ss_to_ws(point2(screen_x, screen_y), visplane_height);
+				GFX_set_pixel_from_texture_new(	screen,
+												texture_parameters,
+												screen_x, screen_y,
+												(int)(world_space.x * 128.), (int)(world_space.y * 128.));
+		
+			}
+		}
+	}
 }
