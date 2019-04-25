@@ -41,6 +41,8 @@ extern float player_angle_sin;
 
 float map_scale = 20.0f;
 
+float z_buffer[SCREEN_RES_X * SCREEN_RES_Y];
+
 char buffer[128];
 
 char * default_font_location;
@@ -61,31 +63,8 @@ float vfov;
 float camera_parameters_x;
 float camera_parameters_y;
 
-//float hfov = 0.73f * SCREEN_RES_X;
-//float vfov = 0.2f * SCREEN_RES_Y;
-
-//GFX_TEXTURE wall;
-//GFX_TEXTURE skybox;
-
 GFX_TEXTURE loaded_textures[128];
 
-/*
-SDL_Surface * wall;
-SDL_Surface * skybox;
-
-void GFX_load_texture_wall(char * location)
-{
-	wall = SDL_LoadBMP(location);
-
-	SDL_LockSurface(wall);
-}
-void GFX_load_texture_skybox(char * location)
-{
-	skybox = SDL_LoadBMP(location);
-
-	SDL_LockSurface(skybox);
-}
-*/
 void GFX_load_texture(char* location, int tex_id)
 {
 	GFX_TEXTURE new_texture;
@@ -103,6 +82,27 @@ void GFX_load_texture(char* location, int tex_id)
 	loaded_textures[tex_id].size_y = tex_surface->h;
 }
 
+void set_z_buffer(int x, int y, float value)
+{
+	*(z_buffer + x + y*SCREEN_RES_X) = value;
+}
+
+float get_z_buffer(int x, int y)
+{
+	return *(z_buffer + x + y*SCREEN_RES_X);
+}
+
+void clear_z_buffer()
+{
+	for(int x = 0; x < SCREEN_RES_X; x++)
+	{
+		for(int y = 0; y < SCREEN_RES_Y; y++)
+		{
+			set_z_buffer(x, y, yon_z);
+		}
+	}
+}
+
 void GFX_Init()
 {
 	hither_x = tan(hfov) * hither_z;
@@ -116,14 +116,15 @@ void GFX_Init()
 	camera_parameters_x = ((hither_z * (float)SCREEN_RES_X/2) / hither_x);
 	camera_parameters_y = ((hither_z * (float)SCREEN_RES_Y/2) / hither_y);
 
+	//clear_z_buffer();
+
 	GFX_load_font("8x8Font.fnt");
 
 	GFX_load_texture("dopefish.bmp", 0);
 	GFX_load_texture("skybox.bmp", 1);
-
-//	GFX_load_texture_wall("dopefish.bmp");
-//	GFX_load_texture_skybox("skybox.bmp");	
 }
+
+
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 {
@@ -162,45 +163,48 @@ unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 
 void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
 {
-    int bpp = surface->format->BytesPerPixel;
-
-    unsigned char *p_base = (unsigned char *)surface->pixels + (y*PIXEL_SCALE)*surface->pitch + (x*PIXEL_SCALE)*bpp;
-    unsigned char *p;
-
-    for(int i = 0; i < PIXEL_SCALE; i ++)
-    {
-    	for(int j = 0; j < PIXEL_SCALE; j ++)
-    	{
-
-    		p = p_base + i * bpp + j * 320 * PIXEL_SCALE * bpp;
-
-    		switch(bpp) {
-		    case 1:
-		        *p = pixel;
-		        break;
-
-		    case 2:
-		        *(unsigned short int *)p = pixel;
-		        break;
-
-		    case 3:
-		        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
-		            p[0] = (pixel >> 16) & 0xff;
-		            p[1] = (pixel >> 8) & 0xff;
-		            p[2] = pixel & 0xff;
-		        } else {
-		            p[0] = pixel & 0xff;
-		            p[1] = (pixel >> 8) & 0xff;
-		            p[2] = (pixel >> 16) & 0xff;
-		        }
-		        break;
-
-		    case 4:
-		        *(unsigned int *)p = pixel;
-		        break;
-		    }
-    	}
-    }    
+	if(x >= 0 && x < SCREEN_RES_X && y >= 0 && y < SCREEN_RES_Y)
+	{	
+	    int bpp = surface->format->BytesPerPixel;
+	
+	    unsigned char *p_base = (unsigned char *)surface->pixels + (y*PIXEL_SCALE)*surface->pitch + (x*PIXEL_SCALE)*bpp;
+	    unsigned char *p;
+	
+	    for(int i = 0; i < PIXEL_SCALE; i ++)
+	    {
+	    	for(int j = 0; j < PIXEL_SCALE; j ++)
+	    	{
+	
+	    		p = p_base + i * bpp + j * 320 * PIXEL_SCALE * bpp;
+	
+	    		switch(bpp) {
+			    case 1:
+			        *p = pixel;
+			        break;
+	
+			    case 2:
+			        *(unsigned short int *)p = pixel;
+			        break;
+	
+			    case 3:
+			        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+			            p[0] = (pixel >> 16) & 0xff;
+			            p[1] = (pixel >> 8) & 0xff;
+			            p[2] = pixel & 0xff;
+			        } else {
+			            p[0] = pixel & 0xff;
+			            p[1] = (pixel >> 8) & 0xff;
+			            p[2] = (pixel >> 16) & 0xff;
+			        }
+			        break;
+	
+			    case 4:
+			        *(unsigned int *)p = pixel;
+			        break;
+			    }
+	    	}
+	    }    
+	}
 }
 
 void GFX_draw_vert_line(SDL_Surface *surface, int x, int y1, int y2, unsigned int pixel)
@@ -384,6 +388,8 @@ void GFX_Render()
 
 	GFX_render_3d();
 
+	GFX_draw_sprite(vector2(0., 2.), vector2(0.5, 1.) , 0.2);
+
 	if(show_map)
 	{
 		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0));
@@ -536,6 +542,7 @@ COLOR GFX_Color_scale(COLOR color, float factor)
 
 unsigned int GFX_Map_Color(COLOR color)
 {
+
 	return SDL_MapRGB(screen->format, color.r, color.g, color.b);
 }
 
@@ -550,6 +557,76 @@ VECTOR2 convert_ss_to_ws(POINT2 screen_space, float height)
 	world_space = sum_v2(world_space, player_pos);
 
 	return world_space;
+}
+
+POINT2 convert_ws_to_ss(VECTOR2 world_space, float height)
+{
+	VECTOR2 transformed_pos;
+	float transformed_height;
+
+	POINT2 screen_space;
+
+	transformed_pos = sub_v2(world_space, player_pos);
+	transformed_pos = rot_v2(transformed_pos, player_facing);
+
+	transformed_height = height - player_pos_height;
+
+	float xscale = camera_parameters_x / transformed_pos.y;
+	float yscale = camera_parameters_y / transformed_pos.y;
+
+	float proj_x = transformed_pos.x * xscale;
+	float proj_height = transformed_height * yscale;
+
+	int x = (int)(proj_x) + SCREEN_RES_X/2;
+	int y = SCREEN_RES_Y/2 - (int)(proj_height);
+
+	screen_space.x = x;
+	screen_space.y = y;
+
+	return screen_space;
+}
+
+void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
+{
+	VECTOR2 transformed_pos;
+	float sprite_height;
+
+	transformed_pos = sub_v2(sprite_position, player_pos);
+	transformed_pos = rot_v2(transformed_pos, player_facing);
+
+	float transformed_height = height - player_pos_height;
+
+	float xscale = camera_parameters_x / transformed_pos.y;
+	float yscale = camera_parameters_y / transformed_pos.y;
+
+	float proj_x = transformed_pos.x * xscale;
+	float proj_height = transformed_height * yscale;
+
+	float proj_sprite_size_x = sprite_size.x * xscale;
+	float proj_sprite_size_y = sprite_size.y * yscale;
+
+	int ss_sprite_x = (int)(proj_x) + SCREEN_RES_X/2;
+	int ss_sprite_y = SCREEN_RES_Y/2 - (int)(proj_height);
+	int ss_sprite_size_x = (int)proj_sprite_size_x;
+	int ss_sprite_size_y = (int)proj_sprite_size_y;
+
+	int screen_x0 = ss_sprite_x - ss_sprite_size_x/2;
+	int screen_x1 = ss_sprite_x + ss_sprite_size_x/2;
+
+	int screen_y0 = ss_sprite_y - ss_sprite_size_y;
+	int screen_y1 = ss_sprite_y;
+
+	if(	screen_x0 >= 0 && screen_x1 < SCREEN_RES_X &&
+		screen_y0 >= 0 && screen_y1 < SCREEN_RES_Y)
+	{
+		for(int x = screen_x0; x < screen_x1; x++)
+		{
+			for(int y = screen_y0; y < screen_y1; y++)
+			{
+				GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color(170, 0, 0)));
+			}
+		}
+	}
 }
 
 float get_view_plane_pos_x(int ssx)
@@ -773,42 +850,6 @@ void GFX_render_3d()
 									0, yfloor, 
 									current_sector->text_param_floor);
 
-				//Draw Ceiling
-			
-				/*
-				for(int y = y_undrawn_top[x]; y < c_screen_y_ceil; y ++)
-				{
-					
-					world_space = convert_ss_to_ws(point2(x, y), yceil);
-					GFX_set_pixel_from_texture_new(	screen,
-													current_sector->text_param_floor,
-													x, y,
-													(int)(world_space.x * 128.), (int)(world_space.y * 128.));
-					
-
-					//GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x * 128.), (int)(world_space.y * 128.));
-					/*
-					int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
-
-					GFX_set_pixel_from_texture_new(	screen,
-													current_sector->text_param_ceil,
-													x, y,
-													x + offset, y);
-					*/
-				//}
-
-				//Draw Floor
-				/*
-				for(int y = c_screen_y_floor; y < y_undrawn_bot[x]+1; y ++)
-				{
-					world_space = convert_ss_to_ws(point2(x, y), yfloor);
-					GFX_set_pixel_from_texture_new(	screen,
-													current_sector->text_param_floor,
-													x, y,
-													(int)(world_space.x * 128.), (int)(world_space.y * 128.));
-				}
-				*/
-				
 				if(current_edge->is_portal)
 				{
 					int n_screen_y_ceil = relative_x * (ny1ceiling - ny0ceiling) + ny0ceiling;
@@ -851,7 +892,15 @@ void GFX_render_3d()
 									c_screen_y_ceil, screen_y_ceil, 
 									c_screen_y_floor+2, screen_y_floor+2, 
 									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-									current_edge->text_param);  		
+									current_edge->text_param);
+
+					for(int y = c_screen_y_ceil; y < c_screen_y_floor+2; y++)
+					{
+						float z = relative_x * (transformed_pos_1.y - transformed_pos_0.y) + transformed_pos_0.y;
+						if(x == 1)
+							printf("%f\n", z);
+					}
+
 				}
 			}
 
@@ -880,6 +929,8 @@ void GFX_draw_wall(	int screen_x,
 {
 	int text_x = (int)((u0*((x1-screen_x)*z1) + u1*((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
 
+	float z = ((((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
+
 	for(int screen_y = top_visible; screen_y < bot_visible; screen_y++)
 	{
 		if(texture_parameters.parallax)
@@ -898,6 +949,9 @@ void GFX_draw_wall(	int screen_x,
 											texture_parameters,
 											screen_x, screen_y,
 											text_x, text_y);
+
+			printf("%i %i\n", screen_x, screen_y);
+			set_z_buffer(screen_x, screen_y, z);
 		}
 	}	
 }

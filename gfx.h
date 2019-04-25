@@ -2,6 +2,7 @@
 #define GFX_H
 
 #include "point2.h"
+#include "vector2.h"
 #include "SDL.h"
 
 typedef struct COLOR_
@@ -48,6 +49,8 @@ void GFX_draw_string(POINT2 position, char* string, unsigned int pixel);
 
 void GFX_draw_console();
 void GFX_draw_map();
+
+void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 
 void GFX_draw_wall(	int screen_x, 
 					int c_height_visible, int c_height_invisible,
