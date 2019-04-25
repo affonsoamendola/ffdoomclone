@@ -21,9 +21,6 @@
 #define SKYBOX_SIZE_X 640
 #define SKYBOX_SIZE_Y 120
 
-#define IS_CEILING 1
-#define IS_FLOOR 0
-
 extern SDL_Surface * screen;
 
 extern float current_fps;
@@ -639,18 +636,6 @@ void GFX_render_3d()
 			float t_u0 = 0.;
 			float t_u1 = (float)(TEXTURE_SIZE_X);
 
-			float ceil_height0 = current_edge->v_start_ceiling_height;
-			float ceil_height1 = current_edge->v_end_ceiling_height;
-
-			float floor_height0 = current_edge->v_start_floor_height;
-			float floor_height1 = current_edge->v_end_floor_height;
-
-			float ni_ceil_height0 = current_edge->v_start_ceiling_height;
-			float ni_ceil_height1 = current_edge->v_end_ceiling_height;
-
-			float ni_floor_height0 = current_edge->v_start_floor_height;
-			float ni_floor_height1 = current_edge->v_end_floor_height;
-
 			//If completely behind player, continue from loop
 			if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) continue;
 	
@@ -694,17 +679,8 @@ void GFX_render_3d()
 						transformed_pos_1 = i1;	
 				}
 
-				float x_ratio0 = (transformed_pos_0.x - ni_pos_0.x)/(ni_pos_1.x - ni_pos_0.x);
-				float x_ratio1 = (transformed_pos_1.x - ni_pos_0.x)/(ni_pos_1.x - ni_pos_0.x);
-
-				t_u0 = x_ratio0 * TEXTURE_SIZE_X;
-				t_u1 = x_ratio1 * TEXTURE_SIZE_X;	
-				
-				floor_height0 = x_ratio0 * (floor_height1 - floor_height0) + floor_height0;
-				floor_height1 = x_ratio1 * (floor_height1 - floor_height0) + floor_height0;	
-
-				ceil_height0 = x_ratio0 * (ceil_height1 - ceil_height0) + ceil_height0;
-				ceil_height1 = x_ratio1 * (ceil_height1 - ceil_height0) + ceil_height0;		
+				t_u0 = (transformed_pos_0.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);
+				t_u1 = (transformed_pos_1.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);			
 			}
 
 			//Do projection scales
@@ -726,66 +702,20 @@ void GFX_render_3d()
 			if(x0 >= x1 || x1 < start_screen_x || x0 > end_screen_x) continue;
 
 			//Get relative ceil and floor heights
-			float yceil0 = ceil_height0 - player_pos_height;
-			float yfloor0 = floor_height0 - player_pos_height;
-
-			float yceil1 = ceil_height1 - player_pos_height;
-			float yfloor1 = floor_height1 - player_pos_height;
-
-			float ni_yceil0 = ni_ceil_height0 - player_pos_height;
-			float ni_yfloor0 = ni_floor_height0 - player_pos_height;
-
-			float ni_yceil1 = ni_ceil_height1 - player_pos_height;
-			float ni_yfloor1 = ni_floor_height1 - player_pos_height;
-
+			float yceil = current_sector->ceiling_height - player_pos_height;
+			float yfloor = current_sector->floor_height - player_pos_height;
 
 			//Project and get pixel position, like above.
-			float tex_proj_y0_ceiling;
-			float tex_proj_y0_floor;
-			float proj_y0_ceiling;
-			float proj_y0_floor;
 
-			float tex_proj_y1_ceiling;
-			float tex_proj_y1_floor;
-			float proj_y1_ceiling;
-			float proj_y1_floor;
+			float proj_y0_ceiling = yceil * yscale0;
+			float proj_y0_floor = yfloor * yscale0;
 
-			//This chooses the smallest of the two heights to be the base for the texture,
-			//Since i dont want the texture stretched with the floor heights.
-			if(yceil0 > yceil1)
-			{
-				tex_proj_y0_ceiling = ni_yceil0 * yscale0;
-				tex_proj_y1_ceiling = ni_yceil0 * yscale1;
-			}
-			else
-			{
-				tex_proj_y0_ceiling = ni_yceil1 * yscale0;
-				tex_proj_y1_ceiling = ni_yceil1 * yscale1;
-			}
+			float proj_y1_ceiling = yceil * yscale1;
+			float proj_y1_floor = yfloor * yscale1;
 
-			if(yfloor0 < yfloor1)
-			{
-				tex_proj_y0_floor = ni_yfloor0 * yscale0;
-				tex_proj_y1_floor = ni_yfloor0 * yscale1;
-			}
-			else
-			{
-				tex_proj_y0_floor = ni_yfloor1 * yscale0;
-				tex_proj_y1_floor = ni_yfloor1 * yscale1;
-			}
-
-			proj_y0_ceiling = yceil0 * yscale0;
-			proj_y1_ceiling = yceil1 * yscale1;
-			proj_y0_floor = yfloor0 * yscale0;
-			proj_y1_floor = yfloor1 * yscale1;
-
-			int tex_y0ceiling = SCREEN_RES_Y/2 - (int)(tex_proj_y0_ceiling);
-			int tex_y0floor = SCREEN_RES_Y/2 - (int)(tex_proj_y0_floor);
 			int y0ceiling = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
 			int y0floor = SCREEN_RES_Y/2 - (int)(proj_y0_floor);
 
-			int tex_y1ceiling = SCREEN_RES_Y/2 - (int)(tex_proj_y1_ceiling);
-			int tex_y1floor = SCREEN_RES_Y/2 - (int)(tex_proj_y1_floor);
 			int y1ceiling = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
 			int y1floor = SCREEN_RES_Y/2 - (int)(proj_y1_floor);
 
@@ -804,8 +734,8 @@ void GFX_render_3d()
 			{
 				neighbor_sector = loaded_level.sectors + current_edge->neighbor_sector_id;
 
-				nyceil = neighbor_sector->e->v_start_ceiling_height - player_pos_height;
-				nyfloor = neighbor_sector->e->v_start_floor_height - player_pos_height;
+				nyceil = neighbor_sector->ceiling_height - player_pos_height;
+				nyfloor = neighbor_sector->floor_height - player_pos_height;
 			}
 
 			//Do the same for neighboring sectors
@@ -827,8 +757,6 @@ void GFX_render_3d()
 
 				int screen_y_ceil = relative_x * (y1ceiling - y0ceiling) + y0ceiling;
 				int screen_y_floor = relative_x * (y1floor - y0floor) + y0floor;
-				int tex_screen_y_ceil = relative_x * (tex_y1ceiling - tex_y0ceiling) + tex_y0ceiling;
-				int tex_screen_y_floor = relative_x * (tex_y1floor - tex_y0floor) + tex_y0floor;
 
 				int c_screen_y_ceil = clamp_int(screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
 				int c_screen_y_floor = clamp_int(screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
@@ -836,22 +764,53 @@ void GFX_render_3d()
 				int text_x = (int)((t_u0*((x1-x)*transformed_pos_1.y) + t_u1*((x-x0)*transformed_pos_0.y)) / ((x1-x)*transformed_pos_1.y + (x-x0)*transformed_pos_0.y));
 	
 				VECTOR2 world_space;
+				
+				GFX_draw_visplane(	x, y_undrawn_top[x], c_screen_y_ceil,
+									1, yceil, 
+									current_sector->text_param_ceil);
+
+				GFX_draw_visplane(	x, c_screen_y_floor-1, y_undrawn_bot[x]-1,
+									0, yfloor, 
+									current_sector->text_param_floor);
 
 				//Draw Ceiling
+			
 				/*
-				GFX_draw_visplane(	x, y_undrawn_top[x], c_screen_y_ceil,
-									IS_CEILING, yceil0 - 0.02, 
-									current_sector->text_param_ceil);
+				for(int y = y_undrawn_top[x]; y < c_screen_y_ceil; y ++)
+				{
+					
+					world_space = convert_ss_to_ws(point2(x, y), yceil);
+					GFX_set_pixel_from_texture_new(	screen,
+													current_sector->text_param_floor,
+													x, y,
+													(int)(world_space.x * 128.), (int)(world_space.y * 128.));
+					
+
+					//GFX_set_pixel_from_texture(screen, texture, x, y, (int)(world_space.x * 128.), (int)(world_space.y * 128.));
+					/*
+					int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+
+					GFX_set_pixel_from_texture_new(	screen,
+													current_sector->text_param_ceil,
+													x, y,
+													x + offset, y);
+					*/
+				//}
+
 				//Draw Floor
-
-				GFX_draw_visplane(	x, c_screen_y_floor, y_undrawn_bot[x],
-									IS_FLOOR, yfloor0 + 0.02, 
-									current_sector->text_param_floor);
+				/*
+				for(int y = c_screen_y_floor; y < y_undrawn_bot[x]+1; y ++)
+				{
+					world_space = convert_ss_to_ws(point2(x, y), yfloor);
+					GFX_set_pixel_from_texture_new(	screen,
+													current_sector->text_param_floor,
+													x, y,
+													(int)(world_space.x * 128.), (int)(world_space.y * 128.));
+				}
 				*/
-
+				
 				if(current_edge->is_portal)
 				{
-					/*
 					int n_screen_y_ceil = relative_x * (ny1ceiling - ny0ceiling) + ny0ceiling;
 					int n_screen_y_floor = relative_x * (ny1floor - ny0floor) + ny0floor;
 
@@ -865,7 +824,7 @@ void GFX_render_3d()
 						//Draw wall
 						GFX_draw_wall(	x, 
 										c_screen_y_ceil, screen_y_ceil, 
-										c_n_screen_y_ceil, n_screen_y_ceil, 
+										c_n_screen_y_ceil+1, n_screen_y_ceil+1, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 										current_edge->text_param); 
 					}
@@ -878,20 +837,19 @@ void GFX_render_3d()
 						//Draw wall
 						GFX_draw_wall(	x, 
 										c_n_screen_y_floor, n_screen_y_floor, 
-										c_screen_y_floor, screen_y_floor, 
+										c_screen_y_floor+1, screen_y_floor+1, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 										current_edge->text_param); 
 					}
 
 					y_undrawn_bot[x] = clamp_int(min_int(c_screen_y_floor, c_n_screen_y_floor), y_undrawn_bot[x], 0);
-					*/
 				}
 				else
 				{
 					//Draw a normal wall
 					GFX_draw_wall(	x, 
-									c_screen_y_ceil, tex_screen_y_ceil, 
-									c_screen_y_floor, tex_screen_y_floor, 
+									c_screen_y_ceil, screen_y_ceil, 
+									c_screen_y_floor+2, screen_y_floor+2, 
 									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 									current_edge->text_param);  		
 				}

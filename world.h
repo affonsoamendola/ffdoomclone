@@ -7,12 +7,7 @@
 typedef struct EDGE_
 {
 	int v_start;
-	float v_start_floor_height;
-	float v_start_ceiling_height;
-
 	int v_end;
-	float v_end_floor_height;
-	float v_end_ceiling_height;
 
 	GFX_TEXTURE_PARAM text_param;
 
@@ -25,6 +20,9 @@ typedef struct SECTOR_
 {
 	int sector_id;
 	int e_num;
+
+	float ceiling_height;
+	float floor_height;
 
 	GFX_TEXTURE_PARAM text_param_ceil;
 	GFX_TEXTURE_PARAM text_param_floor;

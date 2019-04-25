@@ -92,6 +92,9 @@ void level_load(const char * file_location)
 		current_sector->sector_id = s;
 		current_sector->e_num = sector_size;
 		current_sector->e = malloc(sector_size * sizeof(EDGE));
+
+		fscanf(level_file, "%f", &(current_sector->floor_height));
+		fscanf(level_file, "%f", &(current_sector->ceiling_height));
 		
 		int * sector_vertexes;
 
@@ -102,27 +105,12 @@ void level_load(const char * file_location)
 			fscanf(level_file, "%u", sector_vertexes + v);
 		}
 
-		float floor_heights[sector_size];
-		float ceiling_heights[sector_size];
-
-		for(int v = 0; v < sector_size; v++)
-		{
-			fscanf(level_file, "%f", floor_heights + v);
-		}
-
-		for(int v = 0; v < sector_size; v++)
-		{
-			fscanf(level_file, "%f", ceiling_heights + v);
-		}
-
 		for(int e = 0; e < sector_size; e++)
 		{
 			EDGE new_edge;
 			int end_vertex;
 
 			new_edge.v_start = *(sector_vertexes + e);
-			new_edge.v_start_floor_height = floor_heights[e];
-			new_edge.v_start_ceiling_height = ceiling_heights[e];
 
 			fscanf(level_file, "%u", &(new_edge.text_param.id));
 			fscanf(level_file, "%u", &(new_edge.text_param.parallax));
@@ -139,8 +127,6 @@ void level_load(const char * file_location)
 			}
 
 			new_edge.v_end = *(sector_vertexes + end_vertex);
-			new_edge.v_end_floor_height = floor_heights[end_vertex];
-			new_edge.v_end_ceiling_height = ceiling_heights[end_vertex];
 
 			new_edge.is_portal = false;
 
