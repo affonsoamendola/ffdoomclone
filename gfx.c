@@ -21,6 +21,8 @@
 #define SKYBOX_SIZE_X 640
 #define SKYBOX_SIZE_Y 120
 
+#define TEX_ID_SIZE 64
+
 extern SDL_Surface * screen;
 
 extern float current_fps;
@@ -41,17 +43,17 @@ extern float player_angle_sin;
 
 float map_scale = 20.0f;
 
-float z_buffer[SCREEN_RES_X * SCREEN_RES_Y];
-
 char buffer[128];
 
 char * default_font_location;
+
+float * z_buffer;
 
 float hither_z = 1e-4f;
 float hither_x;
 float hither_y;
 
-float yon_z = 10.0f;
+float yon_z = 16.0f;
 float yon_x;
 float yon_y;
 
@@ -63,7 +65,7 @@ float vfov;
 float camera_parameters_x;
 float camera_parameters_y;
 
-GFX_TEXTURE loaded_textures[128];
+GFX_TEXTURE loaded_textures[TEX_ID_SIZE];
 
 void GFX_load_texture(char* location, int tex_id)
 {
@@ -82,14 +84,19 @@ void GFX_load_texture(char* location, int tex_id)
 	loaded_textures[tex_id].size_y = tex_surface->h;
 }
 
+void GFX_unload_texture(int tex_id)
+{
+	SDL_FreeSurface(loaded_textures[tex_id].surface);
+}
+
 void set_z_buffer(int x, int y, float value)
 {
-	*(z_buffer + x + y*SCREEN_RES_X) = value;
+	z_buffer[x + (y*SCREEN_RES_X)] = value;
 }
 
 float get_z_buffer(int x, int y)
 {
-	return *(z_buffer + x + y*SCREEN_RES_X);
+	return z_buffer[x + y*SCREEN_RES_X];
 }
 
 void clear_z_buffer()
@@ -105,6 +112,9 @@ void clear_z_buffer()
 
 void GFX_Init()
 {
+	z_buffer = (float *)malloc(sizeof(float) * SCREEN_RES_X * SCREEN_RES_Y);
+	clear_z_buffer();
+
 	hither_x = tan(hfov) * hither_z;
 	hither_y = (hither_x * SCREEN_RES_Y)/SCREEN_RES_X;
 
@@ -115,16 +125,23 @@ void GFX_Init()
 
 	camera_parameters_x = ((hither_z * (float)SCREEN_RES_X/2) / hither_x);
 	camera_parameters_y = ((hither_z * (float)SCREEN_RES_Y/2) / hither_y);
-
-	//clear_z_buffer();
-
+	
 	GFX_load_font("8x8Font.fnt");
 
 	GFX_load_texture("dopefish.bmp", 0);
 	GFX_load_texture("skybox.bmp", 1);
+	GFX_load_texture("terminator.bmp", 2);
 }
 
+void GFX_Quit()
+{
+	free(z_buffer);
 
+	for(int i = 0; i < TEX_ID_SIZE; i++)
+	{
+		GFX_unload_texture(i);
+	}
+}
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 {
@@ -589,6 +606,18 @@ POINT2 convert_ws_to_ss(VECTOR2 world_space, float height)
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 {
 	VECTOR2 transformed_pos;
+	GFX_TEXTURE_PARAM texture;
+
+	texture.id = 2;
+
+	texture.parallax = 0;
+
+	texture.u_offset = 0;
+	texture.v_offset = 0;
+
+	texture.u_scale = 1.;
+	texture.v_scale = 1.;
+
 	float sprite_height;
 
 	transformed_pos = sub_v2(sprite_position, player_pos);
@@ -616,15 +645,29 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 	int screen_y0 = ss_sprite_y - ss_sprite_size_y;
 	int screen_y1 = ss_sprite_y;
 
-	if(	screen_x0 >= 0 && screen_x1 < SCREEN_RES_X &&
-		screen_y0 >= 0 && screen_y1 < SCREEN_RES_Y)
+	int c_screen_x0 = clamp_int(screen_x0, SCREEN_RES_X, 0);
+	int c_screen_x1 = clamp_int(screen_x1, SCREEN_RES_X, 0);
+
+	int c_screen_y0 = clamp_int(screen_y0, SCREEN_RES_Y, 0);
+	int c_screen_y1 = clamp_int(screen_y1, SCREEN_RES_Y, 0);
+
+	for(int x = c_screen_x0; x < c_screen_x1; x++)
 	{
-		for(int x = screen_x0; x < screen_x1; x++)
+		for(int y = c_screen_y0; y < c_screen_y1; y++)
 		{
-			for(int y = screen_y0; y < screen_y1; y++)
+			if(transformed_pos.y < get_z_buffer(x, y))
 			{
-				GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color(170, 0, 0)));
+				GFX_set_pixel_from_texture_new(	screen, texture, x, y,
+												(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
+												(int)((float)(y-screen_y0)/(float)(screen_y1-screen_y0) * 256));
+				
+
 			}
+				/*GFX_set_pixel_from_texture_new(SDL_Surface *surface,
+									GFX_TEXTURE_PARAM texture,
+									int screen_x, int screen_y,
+									int text_x, int text_y)*/
+				//GFX_set_pixel(screen, x, y, GFX_Map_Color(GFX_Color(170, 0, 0)));
 		}
 	}
 }
@@ -658,6 +701,8 @@ void GFX_render_3d()
 	int end_screen_x;
 
 	int y_undrawn_top[SCREEN_RES_X], y_undrawn_bot[SCREEN_RES_X];
+
+	clear_z_buffer();
 
 	for(int x = 0; x < SCREEN_RES_X; x++)
 	{
@@ -828,7 +873,7 @@ void GFX_render_3d()
 			x_begin = max_int(x0, start_screen_x);
 			x_end = min_int(x1, end_screen_x);
 
-			for(int x = x_begin; x <= x_end; x++)
+			for(int x = x_begin; x < x_end; x++)
 			{
 				float relative_x = (float)(x-x0)/(float)(x1-x0);
 
@@ -843,11 +888,11 @@ void GFX_render_3d()
 				VECTOR2 world_space;
 				
 				GFX_draw_visplane(	x, y_undrawn_top[x], c_screen_y_ceil,
-									1, yceil, 
+									1, yceil - 0.02, 
 									current_sector->text_param_ceil);
 
-				GFX_draw_visplane(	x, c_screen_y_floor-1, y_undrawn_bot[x]-1,
-									0, yfloor, 
+				GFX_draw_visplane(	x, c_screen_y_floor, y_undrawn_bot[x],
+									0, yfloor + 0.02, 
 									current_sector->text_param_floor);
 
 				if(current_edge->is_portal)
@@ -865,7 +910,7 @@ void GFX_render_3d()
 						//Draw wall
 						GFX_draw_wall(	x, 
 										c_screen_y_ceil, screen_y_ceil, 
-										c_n_screen_y_ceil+1, n_screen_y_ceil+1, 
+										c_n_screen_y_ceil, n_screen_y_ceil, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 										current_edge->text_param); 
 					}
@@ -878,7 +923,7 @@ void GFX_render_3d()
 						//Draw wall
 						GFX_draw_wall(	x, 
 										c_n_screen_y_floor, n_screen_y_floor, 
-										c_screen_y_floor+1, screen_y_floor+1, 
+										c_screen_y_floor, screen_y_floor, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 										current_edge->text_param); 
 					}
@@ -890,17 +935,9 @@ void GFX_render_3d()
 					//Draw a normal wall
 					GFX_draw_wall(	x, 
 									c_screen_y_ceil, screen_y_ceil, 
-									c_screen_y_floor+2, screen_y_floor+2, 
+									c_screen_y_floor, screen_y_floor, 
 									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 									current_edge->text_param);
-
-					for(int y = c_screen_y_ceil; y < c_screen_y_floor+2; y++)
-					{
-						float z = relative_x * (transformed_pos_1.y - transformed_pos_0.y) + transformed_pos_0.y;
-						if(x == 1)
-							printf("%f\n", z);
-					}
-
 				}
 			}
 
@@ -929,7 +966,7 @@ void GFX_draw_wall(	int screen_x,
 {
 	int text_x = (int)((u0*((x1-screen_x)*z1) + u1*((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
 
-	float z = ((((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
+	float z = (z1 - z0) * ((((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0)) + z0;
 
 	for(int screen_y = top_visible; screen_y < bot_visible; screen_y++)
 	{
@@ -950,7 +987,6 @@ void GFX_draw_wall(	int screen_x,
 											screen_x, screen_y,
 											text_x, text_y);
 
-			printf("%i %i\n", screen_x, screen_y);
 			set_z_buffer(screen_x, screen_y, z);
 		}
 	}	

@@ -58,6 +58,12 @@ void ENGINE_Quit()
 {
 	printf("Quitting SDL...\n");
 
+	SDL_FreeSurface(screen);
+
+
+	CONSOLE_Quit();
+	INPUT_Quit();
+	GFX_Quit();
 	SDL_Quit();
 	exit(0);
 }
@@ -95,7 +101,6 @@ int main(int argc, char** argv)
 	}
 
 	ENGINE_Quit();
-	
 }
 
 char* ENGINE_version()

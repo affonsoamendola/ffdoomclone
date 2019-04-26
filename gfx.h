@@ -39,6 +39,9 @@ GFX_TEXTURE;
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y);
 void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel);
 
+float get_z_buffer(int x, int y);
+void set_z_buffer(int x, int y, float value);
+
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel);
 
 void GFX_load_font(const char * location);
@@ -66,5 +69,6 @@ void GFX_render_3d();
 
 void GFX_Render();
 void GFX_Init();
+void GFX_Quit(); 
 
 #endif

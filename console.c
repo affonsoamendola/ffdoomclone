@@ -50,7 +50,7 @@ void CONSOLE_scroll(int lines)
 			*(console_history + j) = *(console_history + j - 1);
 		}
 
-		*(console_history) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
+		*(console_history) = malloc(CONSOLE_CHAR_LIMIT);
 
 		for(int j = 0; j < CONSOLE_CHAR_LIMIT; j++)
 		{
@@ -96,6 +96,17 @@ void CONSOLE_Init()
 		}
 	}
 }
+
+void CONSOLE_Quit()
+{
+	for(int i = 0; i < HISTORY_SIZE; i ++)
+	{
+		free(console_history[i]);
+	}
+
+	free(console_history);
+}
+
 
 bool command_check(char * command, char** token, int token_number)
 {

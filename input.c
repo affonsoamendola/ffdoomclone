@@ -249,3 +249,8 @@ void INPUT_Init()
 
 	console_buffer_cursor_pos = 0;
 }
+
+void INPUT_Quit()
+{
+	free(console_buffer);
+}

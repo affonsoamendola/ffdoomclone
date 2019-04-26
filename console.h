@@ -12,6 +12,7 @@ bool get_console_open();
 char* get_console_history(int history_index);
 
 void CONSOLE_Init();
+void CONSOLE_Quit();
 
 void CONSOLE_scroll(int lines);
 void CONSOLE_print(char* text);
