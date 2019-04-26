@@ -3,9 +3,10 @@
 
 #include "engine.h"
 
-#include "input.h"
+#include "input.h "
 #include "console.h"
 #include "SDL.h"
+#include "SDL_image.h"
 #include "point2.h"
 #include "math.h"
 #include "world.h"
@@ -73,7 +74,7 @@ void GFX_load_texture(char* location, int tex_id)
 
 	SDL_Surface * tex_surface;
 
-	tex_surface = SDL_LoadBMP(location);
+	tex_surface = IMG_Load(location);
 
 	if(tex_surface == NULL)
 		printf("Could not load texture id %i, (File: %s), Error: %s\n", tex_id, location, SDL_GetError());
@@ -128,9 +129,9 @@ void GFX_Init()
 	
 	GFX_load_font("8x8Font.fnt");
 
-	GFX_load_texture("dopefish.bmp", 0);
-	GFX_load_texture("skybox.bmp", 1);
-	GFX_load_texture("terminator.bmp", 2);
+	GFX_load_texture("dopefish.png", 0);
+	GFX_load_texture("skybox.png", 1);
+	GFX_load_texture("terminator.png", 2);
 }
 
 void GFX_Quit()
@@ -146,8 +147,8 @@ void GFX_Quit()
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 {
     int bpp = surface->format->BytesPerPixel;
-    
-    unsigned char *p = (unsigned char *)surface->pixels + y*surface->pitch + x*bpp;
+   
+   	unsigned char *p = (unsigned char *)surface->pixels + y*surface->pitch + x*bpp;
 
     switch(bpp) {
 	    case 1:
@@ -161,16 +162,21 @@ unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 	    case 3:
 	        if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
 	        {
-	            return p[0] << 16 | p[1] << 8 | p[2];
+	            return p[0] | p[1] << 8 | p[2] << 16;
 	        }
 	        else
 	        {
-	            return p[0] | p[1] << 8 | p[2] << 16;
+	            return p[0] << 16 | p[1] << 8 | p[2];
 	        }
 	        break;
 
 	    case 4:
-	        return *(unsigned int *)p;
+	    	if(x == 0 && y == 0)
+	    		printf("%u %u %u %u\n", p[0], p[1], p[2], p[3]);
+	    	return p[0] | p[1] << 8 | p[2] << 16 | p[3] << 32;
+	       	//return p[3] | p[2] << 8 | p[1] << 16 | p[0] << 32;
+	       
+	       //return *(unsigned int *)p;
 	        break;
 
 	    default:
@@ -192,8 +198,8 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
 	    	for(int j = 0; j < PIXEL_SCALE; j ++)
 	    	{
 	
-	    		p = p_base + i * bpp + j * 320 * PIXEL_SCALE * bpp;
-	
+	    		p = p_base + i * bpp + j * SCREEN_RES_X * PIXEL_SCALE * bpp;
+				
 	    		switch(bpp) {
 			    case 1:
 			        *p = pixel;

@@ -6,7 +6,7 @@ INCLUDE = /usr/include/SDL
 all: build
 	
 build:
-	$(CC) -g -o $(GAMENAME) -I$(INCLUDE) -lSDL -lm *.c
+	$(CC)  *.c -g -o $(GAMENAME) -I$(INCLUDE) -lSDL -lSDL_image -lm
 
 run:
 	./$(GAMENAME)

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "SDL.h"
+#include "SDL_image.h"
 
 #include "input.h"
 #include "console.h"
@@ -29,10 +30,17 @@ void ENGINE_Init()
 		printf("Could not initialize SDL: %s\n", SDL_GetError());
 		exit(-1);
 	}
-
 	printf("SDL Initted.\n");
 
-	screen = SDL_SetVideoMode(SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE, 16, SDL_SWSURFACE);
+	printf("Initting SDL_Image...\n");
+	if((IMG_Init(IMG_INIT_JPG|IMG_INIT_PNG)==-1))
+	{
+		printf("Could not initialize SDL_Image: %s\n", SDL_GetError());
+		exit(-1);
+	}
+	printf("SDL_Image Initted.\n");
+
+	screen = SDL_SetVideoMode(SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE, 32, SDL_SWSURFACE);
 
 	if(screen == NULL)
 	{
@@ -60,10 +68,10 @@ void ENGINE_Quit()
 
 	SDL_FreeSurface(screen);
 
-
 	CONSOLE_Quit();
 	INPUT_Quit();
 	GFX_Quit();
+	IMG_Quit();
 	SDL_Quit();
 	exit(0);
 }
