@@ -3,7 +3,7 @@
 
 #include "engine.h"
 
-#include "input.h "
+#include "input.h"
 #include "console.h"
 #include "SDL.h"
 #include "SDL_image.h"
@@ -162,29 +162,24 @@ unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 	    case 3:
 	        if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
 	        {
-	            return p[0] | p[1] << 8 | p[2] << 16;
+	        	return p[0] << 16 | p[1] << 8 | p[2];
 	        }
 	        else
-	        {
-	            return p[0] << 16 | p[1] << 8 | p[2];
+	        { 
+	        	return p[0] | p[1] << 8 | p[2] << 16;
 	        }
 	        break;
 
 	    case 4:
-	    	if(x == 0 && y == 0)
-	    		printf("%u %u %u %u\n", p[0], p[1], p[2], p[3]);
-	    	return p[0] | p[1] << 8 | p[2] << 16 | p[3] << 32;
-	       	//return p[3] | p[2] << 8 | p[1] << 16 | p[0] << 32;
-	       
-	       //return *(unsigned int *)p;
-	        break;
+     		return *(unsigned int *)p;
+	       	break;
 
 	    default:
 	        return 0;
     }
 }
 
-void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
+void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int transparency)
 {
 	if(x >= 0 && x < SCREEN_RES_X && y >= 0 && y < SCREEN_RES_Y)
 	{	
@@ -197,7 +192,6 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
 	    {
 	    	for(int j = 0; j < PIXEL_SCALE; j ++)
 	    	{
-	
 	    		p = p_base + i * bpp + j * SCREEN_RES_X * PIXEL_SCALE * bpp;
 				
 	    		switch(bpp) {
@@ -222,7 +216,24 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel)
 			        break;
 	
 			    case 4:
-			        *(unsigned int *)p = pixel;
+			    	if(transparency)
+			    	{
+			    		if(!(((pixel & 0xff) == 255) && (((pixel >> 16) & 0xff) == 255)))
+						{
+							p[2] = pixel & 0xff;
+				            p[1] = (pixel >> 8) & 0xff;
+				            p[0] = (pixel >> 16) & 0xff;
+						}	
+			    	}
+			    	else
+			    	{
+			    		p[2] = pixel & 0xff;
+			            p[1] = (pixel >> 8) & 0xff;
+			            p[0] = (pixel >> 16) & 0xff;
+			    	}
+			    	
+		            //p[3] = (pixel >> 24) & 0xff;
+			        //*(unsigned int *)p = pixel;
 			        break;
 			    }
 	    	}
@@ -243,7 +254,7 @@ void GFX_draw_vert_line(SDL_Surface *surface, int x, int y1, int y2, unsigned in
 
 	for(int y = y1; y <= y2; y++)
 	{
-		GFX_set_pixel(surface, x, y, pixel);
+		GFX_set_pixel(surface, x, y, pixel, 1);
 	}
 }
 
@@ -260,7 +271,7 @@ void GFX_draw_hor_line(SDL_Surface *surface, int x1, int x2, int y, unsigned int
 
 	for(int x = x1; x <= x2; x++)
 	{
-		GFX_set_pixel(surface, x, y, pixel);
+		GFX_set_pixel(surface, x, y, pixel, 1);
 	}
 }
 
@@ -297,7 +308,7 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 
 	for(int x = p1.x; x <= p2.x; x++)
 	{
-		GFX_set_pixel(surface, x, y, pixel);
+		GFX_set_pixel(surface, x, y, pixel, 1);
 		current_error += slope;
 		if(fabs(current_error) >= 0.5f)
 		{
@@ -306,7 +317,7 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 		}
 	}
 }
-
+/*
 void GFX_draw_texture_vert_line(SDL_Surface *surface, 
 								SDL_Surface *texture, 
 								int screen_x, int screen_y1, int screen_y2, 
@@ -335,6 +346,7 @@ void GFX_draw_texture_vert_line(SDL_Surface *surface,
 																texture_space_y));
 	}
 }
+*/
 
 void GFX_set_pixel_from_texture(SDL_Surface *surface,
 								SDL_Surface *texture,
@@ -348,7 +360,7 @@ void GFX_set_pixel_from_texture(SDL_Surface *surface,
 
 	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	texture, 
 																abs(text_x % text_size_x), 
-																abs(text_y % text_size_y)));
+																abs(text_y % text_size_y)), 1);
 }
 
 void GFX_set_pixel_from_texture_new(SDL_Surface *surface,
@@ -376,7 +388,7 @@ void GFX_set_pixel_from_texture_new(SDL_Surface *surface,
 
 	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	loaded_textures[texture.id].surface, 
 																u, 
-																v));
+																v), 1);
 }
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
@@ -385,7 +397,7 @@ void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
 	{
 		for(int j = start.y; j <= end.y; j++)
 		{
-			GFX_set_pixel(screen, i, j, pixel);
+			GFX_set_pixel(screen, i, j, pixel, 1);
 		}
 	}
 }
@@ -415,7 +427,7 @@ void GFX_Render()
 
 	if(show_map)
 	{
-		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0));
+		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0), 1);
 		GFX_draw_map();
 	}
 	
@@ -470,7 +482,7 @@ void GFX_draw_char(POINT2 position, char character, unsigned int pixel)
 
 			if(bit_mask & *(default_font_location + line + corrected_char_index * 8))
 			{
-				GFX_set_pixel(screen, position.x + column, position.y + line, pixel);
+				GFX_set_pixel(screen, position.x + column, position.y + line, pixel, 1);
 			}
 		}
 	}

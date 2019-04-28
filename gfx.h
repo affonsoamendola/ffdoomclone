@@ -7,9 +7,9 @@
 
 typedef struct COLOR_
 {
-	int r;
-	int g;
-	int b;
+	char r;
+	char g;
+	char b;
 }
 COLOR;
 
@@ -37,7 +37,7 @@ typedef struct GFX_TEXTURE_
 GFX_TEXTURE;
 
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y);
-void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel);
+void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int transparency);
 
 float get_z_buffer(int x, int y);
 void set_z_buffer(int x, int y, float value);
