@@ -49,3 +49,12 @@ POINT2 scale_p2(POINT2 point, float scalar)
 
 	return new_point;
 }
+
+void swap_p2(POINT2* a, POINT2* b)
+{
+	POINT2 temp;
+
+	temp = *a;
+	*a = *b;
+	*b = temp;
+}

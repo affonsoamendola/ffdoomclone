@@ -8,6 +8,7 @@
 #include "engine.h"
 
 #include "vector2.h"
+#include "point2.h"
 
 VECTOR2 vector2(float x, float y)
 {
@@ -17,6 +18,16 @@ VECTOR2 vector2(float x, float y)
 	new_vector.y = y;
 
 	return new_vector;	
+}
+
+VECTOR2 p2v2(POINT2 point)
+{
+	VECTOR2 vector;
+
+	vector.x = (float)point.x;
+	vector.y = (float)point.y;
+
+	return vector;
 }
 
 VECTOR2 sum_v2(VECTOR2 vector_a, VECTOR2 vector_b)
@@ -116,4 +127,13 @@ int intersect_box_v2(VECTOR2 box_a_start, VECTOR2 box_a_end, VECTOR2 box_b_start
 		return 1;
 	else
 		return 0;
+}
+
+void swap_v2(VECTOR2* a, VECTOR2* b)
+{
+	VECTOR2 temp;
+
+	temp = *a;
+	*a = *b;
+	*b = temp;
 }

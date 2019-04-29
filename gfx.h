@@ -55,6 +55,15 @@ void GFX_draw_map();
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 
+void GFX_texture_tri(	VECTOR2 pos0, VECTOR2 uv0, float height0,
+						VECTOR2 pos1, VECTOR2 uv1, float height1,
+						VECTOR2 pos2, VECTOR2 uv2, float height2);
+						
+void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0, 
+						VECTOR2 pos1, VECTOR2 uv1, float height1,
+						VECTOR2 pos2, VECTOR2 uv2, float height2, 
+						VECTOR2 pos3, VECTOR2 uv3, float height3);
+
 void GFX_draw_wall(	int screen_x, 
 					int c_height_visible, int c_height_invisible,
 					int f_height_visible, int f_height_invisible,
