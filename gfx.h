@@ -55,6 +55,9 @@ void GFX_draw_map();
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 
+int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
+					VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights);
+
 void GFX_texture_tri(	VECTOR2 pos0, VECTOR2 uv0, float height0,
 						VECTOR2 pos1, VECTOR2 uv1, float height1,
 						VECTOR2 pos2, VECTOR2 uv2, float height2);

@@ -98,10 +98,7 @@ void ENGINE_Loop()
 
 int main(int argc, char** argv)
 {
-
 	ENGINE_Init();
-
-	VECTOR2 test;
 
 	while(e_running == true)
 	{

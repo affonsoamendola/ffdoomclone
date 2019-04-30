@@ -864,9 +864,12 @@ void GFX_texture_tri(	VECTOR2 pos0, VECTOR2 uv0, float height0,
 	}
 }
 
-VECTOR2 * GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
-						VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights)
+int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
+					VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights)
 {
+	//Clips a triangle with the hither z clipping plane, and gives the uvs and heights of every new vertex.
+	//Also returns 3 or 4, depending ou how many vertexes got returned
+
 	int poly_size = 0;
 	for(int i = 0; i < 3; i ++)
 	{
@@ -880,7 +883,7 @@ VECTOR2 * GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
 			clipped_heights[poly_size] = heights[next_element];
 			poly_size += 1;
 		}
-		else if(vertexes[i].y) < hither_z && vertexes[next_element].y >= hither_z)
+		else if(vertexes[i].y < hither_z && vertexes[next_element].y >= hither_z)
 		{	
 			float relative_x;
 			VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
@@ -898,7 +901,7 @@ VECTOR2 * GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
 
 			poly_size += 2;
 		}
-		else if(vertexes[i].y) >= hither_z && vertexes[next_element].y < hither_z)
+		else if(vertexes[i].y >= hither_z && vertexes[next_element].y < hither_z)
 		{
 			float relative_x;
 			VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
@@ -912,6 +915,8 @@ VECTOR2 * GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
 			poly_size += 1;
 		}
 	}
+
+	return poly_size;
 }
 
 void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0, 
@@ -919,7 +924,6 @@ void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0,
 						VECTOR2 pos2, VECTOR2 uv2, float height2, 
 						VECTOR2 pos3, VECTOR2 uv3, float height3)
 {
-	
 }
 
 float get_view_plane_pos_x(int ssx)
