@@ -17,6 +17,9 @@
 SDL_Surface* screen = NULL;
 bool e_running = false;
 
+bool edit_mode = false;
+bool game_mode = true;
+
 clock_t current_frame_start;
 clock_t last_frame_end;
 
@@ -87,11 +90,19 @@ float ENGINE_delta_time()
 
 void ENGINE_Loop()
 {
-	
 	current_frame_start = clock();
 
-	GFX_Render();
-	INPUT_Handle();
+	if(game_mode)
+	{
+		GFX_Render();
+		INPUT_Handle();
+	}
+	else
+	{
+		GFX_Draw_Editor();
+		INPUT_Handle_Editor();
+	}
+	
 
 	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
 }

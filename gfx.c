@@ -68,6 +68,8 @@ float camera_parameters_y;
 
 GFX_TEXTURE loaded_textures[TEX_ID_SIZE];
 
+GFX_TEXTURE_PARAM default_texture;
+
 void GFX_load_texture(char* location, int tex_id)
 {
 	GFX_TEXTURE new_texture;
@@ -132,6 +134,15 @@ void GFX_Init()
 	GFX_load_texture("dopefish.png", 0);
 	GFX_load_texture("skybox.png", 1);
 	GFX_load_texture("terminator.png", 2);
+
+	default_texture.id = 0.;
+	default_texture.parallax = 0.;
+
+	default_texture.u_offset = 0.;
+	default_texture.v_offset = 0.;
+
+	default_texture.u_scale = 1.;
+	default_texture.v_scale = 1.;
 }
 
 void GFX_Quit()
@@ -314,56 +325,11 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 		}
 	}
 }
-/*
-void GFX_draw_texture_vert_line(SDL_Surface *surface, 
-								SDL_Surface *texture, 
-								int screen_x, int screen_y1, int screen_y2, 
-								float relative_x, int screen_space_wall_y1, int screen_space_wall_y2)
-{
-	//This is very confusing, I need to rewrite this, BADLY
-
-	int temp;
-
-	if(screen_y1 > screen_y2)
-	{
-		temp = screen_y1;
-		screen_y1 = screen_y2;
-		screen_y2 = temp;
-	}
-
-	for(int screen_y = screen_y1; screen_y <= screen_y2; screen_y++)
-	{
-		float relative_y = (float)(screen_y - screen_space_wall_y1) /
-						   (float)(screen_space_wall_y2 - screen_space_wall_y1);
-
-		int texture_space_y = (int)(relative_y * (TEXTURE_SIZE_Y - 1));
-
-		GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(texture, 
-																((TEXTURE_SIZE_X - 1) - relative_x * (TEXTURE_SIZE_X-1)), 
-																texture_space_y));
-	}
-}
-*/
 
 void GFX_set_pixel_from_texture(SDL_Surface *surface,
-								SDL_Surface *texture,
+								GFX_TEXTURE_PARAM texture,
 								int screen_x, int screen_y,
-								int text_x, int text_y,
-								int text_size_x, int text_size_y)
-{
-
-	if(text_x < 0) text_x = (text_x % text_size_x) + text_size_x;
-	if(text_y < 0) text_y = (text_y % text_size_y) + text_size_y;
-
-	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	texture, 
-																abs(text_x % text_size_x), 
-																abs(text_y % text_size_y)), 1);
-}
-
-void GFX_set_pixel_from_texture_new(SDL_Surface *surface,
-									GFX_TEXTURE_PARAM texture,
-									int screen_x, int screen_y,
-									int text_x, int text_y)
+								int text_x, int text_y)
 {
 	int u;
 	int v;
@@ -420,10 +386,10 @@ void GFX_Render()
 
 	GFX_render_3d();
 
-	GFX_project_sprite(	vector2(-1, 0.5), vector2(0,1), 0., 
-						vector2(-1, 3), vector2(0,0), 0.1,
-						vector2(0.5, 2), vector2(1,0), 0.1,
-						vector2(0.5, 0.5), vector2(1,1), 0);
+	GFX_draw_sprite_wall (	vector2(1., 1.), vector2(2., 2.),
+							0., 1.,
+							default_texture);
+
 	if(show_map)
 	{
 		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0), 1);
@@ -620,6 +586,34 @@ POINT2 convert_ws_to_ss(VECTOR2 world_space, float height)
 	return screen_space;
 }
 
+void convert_ws_to_rs(	VECTOR2 world_space, float world_height,
+						VECTOR2 * relative_space, float * relative_height)
+{
+	*relative_space = sub_v2(world_space, player_pos);
+	*relative_space = rot_v2(*relative_space, player_facing);
+
+	*relative_height = world_height - player_pos_height;
+}
+
+POINT2 convert_rs_to_ss(VECTOR2 relative_space, float relative_height)
+{
+	POINT2 screen_space;
+
+	float xscale = camera_parameters_x / relative_space.y;
+	float yscale = camera_parameters_y / relative_space.y;
+
+	float proj_x = relative_space.x * xscale;
+	float proj_height = relative_height * yscale;
+
+	int x = (int)(proj_x) + SCREEN_RES_X/2;
+	int y = SCREEN_RES_Y/2 - (int)(proj_height);
+
+	screen_space.x = x;
+	screen_space.y = y;
+
+	return screen_space;
+}
+
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 {
 	VECTOR2 transformed_pos;
@@ -674,257 +668,376 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 		{
 			if(transformed_pos.y < get_z_buffer(x, y))
 			{
-				GFX_set_pixel_from_texture_new(	screen, texture, x, y,
-												(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
-												(int)((float)(y-screen_y0)/(float)(screen_y1-screen_y0) * 256));
+				GFX_set_pixel_from_texture(	screen, texture, x, y,
+											(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
+											(int)((float)(y-screen_y0)/(float)(screen_y1-screen_y0) * 256));
 			}
 		}
 	}
 }
 
-void sort3y_p2_uv(POINT2 * points, VECTOR2 * uvs)
+/*
 {
-	if(points[0].y > points[1].y)
-	{	
-		swap_p2(&points[0], &points[1]);
-		swap_v2(&uvs[0], &uvs[1]);
-	}
-
-	if(points[1].y > points[2].y)
-	{	
-		swap_p2(&points[1], &points[2]);
-		swap_v2(&uvs[1], &uvs[2]);
-	}
-
-	if(points[0].y > points[1].y)
-	{	
-		swap_p2(&points[0], &points[1]);
-		swap_v2(&uvs[0], &uvs[1]);
-	}
-}
-
-void GFX_texture_tri(	VECTOR2 pos0, VECTOR2 uv0, float height0,
-						VECTOR2 pos1, VECTOR2 uv1, float height1,
-						VECTOR2 pos2, VECTOR2 uv2, float height2)
-{
-	GFX_TEXTURE_PARAM texture;
-
-	texture.id = 0;
-
-	texture.parallax = 0;
-
-	texture.u_offset = 0;
-	texture.v_offset = 0;
-
-	texture.u_scale = 1.;
-	texture.v_scale = 1.;
-
-	POINT2 ss[3];
-	VECTOR2 uv[3];
-
-	ss[0] = convert_ws_to_ss(pos0, height0);
-	ss[1] = convert_ws_to_ss(pos1, height1);
-	ss[2] = convert_ws_to_ss(pos2, height2);
-
-	uv[0] = uv0;
-	uv[1] = uv1;
-	uv[2] = uv2;
-
-	sort3y_p2_uv(ss, uv);
-
-	int Adx, Ady;
-	int Bdx, Bdy;
-	float slopeA, slopeB;
-
-	int Ax0, Ay0, Ax1, Ay1;
-	int Bx0, By0, Bx1, By1;
-
-	float Au0, Av0, Au1, Av1;
-	float Bu0, Bv0, Bu1, Bv1;
-
-	if(point_side_v2(p2v2(ss[1]), p2v2(ss[2]), p2v2(ss[0])) == 1)
+	void sort3y_p2_uv(POINT2 * points, VECTOR2 * uvs)
 	{
-		Ax0 = ss[0].x; Ax1 = ss[2].x;
-		Ay0 = ss[0].y; Ay1 = ss[2].y;
-
-		Bx0 = ss[0].x; Bx1 = ss[1].x;
-		By0 = ss[0].y; By1 = ss[1].y;
-		//////////////
-		Au0 = uv[0].x; Au1 = uv[2].x;
-		Av0 = uv[0].y; Av1 = uv[2].y;
-
-		Bu0 = uv[0].x; Bu1 = uv[1].x;
-		Bv0 = uv[0].y; Bv1 = uv[1].y;
-	}
-	else
-	{
-		Ax0 = ss[0].x; Ax1 = ss[1].x;
-		Ay0 = ss[0].y; Ay1 = ss[1].y;
-
-		Bx0 = ss[0].x; Bx1 = ss[2].x;
-		By0 = ss[0].y; By1 = ss[2].y;
-		//////////////
-		Au0 = uv[0].x; Au1 = uv[1].x;
-		Av0 = uv[0].y; Av1 = uv[1].y;
-
-		Bu0 = uv[0].x; Bu1 = uv[2].x;
-		Bv0 = uv[0].y; Bv1 = uv[2].y;
-	}
-
-	Adx = Ax1 - Ax0;
-	Ady = Ay1 - Ay0;
-
-	Bdx = Bx1 - Bx0;
-	Bdy = By1 - By0;
-
-	slopeA = (float)(Adx)/(float)(Ady);
-	slopeB = (float)(Bdx)/(float)(Bdy);
-
-	int start_y;
-	int end_y;
-
-	start_y = max_int(ss[0].y, 0);
-	end_y = min_int(ss[2].y, SCREEN_RES_Y);
-
-	for(int y = ss[0].y; y < ss[2].y; y++)
-	{
-		if(y == ss[1].y)
-		{
-			if(point_side_v2(p2v2(ss[1]), p2v2(ss[2]), p2v2(ss[0])) == 1)
-			{
-				Ax0 = ss[0].x; Ax1 = ss[2].x;
-				Ay0 = ss[0].y; Ay1 = ss[2].y;
-
-				Bx0 = ss[1].x; Bx1 = ss[2].x;
-				By0 = ss[1].y; By1 = ss[2].y;
-				//////////////
-				Au0 = uv[0].x; Au1 = uv[2].x;
-				Av0 = uv[0].y; Av1 = uv[2].y;
-
-				Bu0 = uv[1].x; Bu1 = uv[2].x;
-				Bv0 = uv[1].y; Bv1 = uv[2].y;
-			}
-			else
-			{
-				Ax0 = ss[1].x; Ax1 = ss[2].x;
-				Ay0 = ss[1].y; Ay1 = ss[2].y;
-
-				Bx0 = ss[0].x; Bx1 = ss[2].x;
-				By0 = ss[0].y; By1 = ss[2].y;
-				//////////////
-				Au0 = uv[1].x; Au1 = uv[2].x;
-				Av0 = uv[1].y; Av1 = uv[2].y;
-
-				Bu0 = uv[0].x; Bu1 = uv[2].x;
-				Bv0 = uv[0].y; Bv1 = uv[2].y;
-			}
-				
-			Adx = Ax1 - Ax0;
-			Ady = Ay1 - Ay0;
-
-			Bdx = Bx1 - Bx0;
-			Bdy = By1 - By0;
-
-			slopeA = (float)(Adx)/(float)(Ady);
-			slopeB = (float)(Bdx)/(float)(Bdy);
-		}
-
-		float Arelative_y = (float)(y-Ay0)/(float)(Ady);
-		float Brelative_y = (float)(y-By0)/(float)(Bdy);
-
-		int x_start = (int)(slopeA * (float)(y - Ay0)) + Ax0;
-		int x_end = (int)(slopeB * (float)(y - By0)) + Bx0 + 1;
-
-		float t_step = 1./(float)(x_end - x_start);
-
-		float u_start = Arelative_y * (Au1 - Au0) + Au0;
-		float v_start = Arelative_y * (Av1 - Av0) + Av0;
-
-		float u_end = Brelative_y * (Bu1 - Bu0) + Bu0;
-		float v_end = Brelative_y * (Bv1 - Bv0) + Bv0;
-
-		VECTOR2 uv_step = scale_v2(vector2(u_end - u_start, v_end - v_start), t_step);
-		VECTOR2 current_uv;
-		VECTOR2 start_uv = vector2(u_start, v_start);
-
-		int c_x_start = max_int(x_start, 0);
-		int c_x_end = min_int(x_end, SCREEN_RES_X);
-
-		for(int x = c_x_start; x < c_x_end; x++)
-		{
-			current_uv = sum_v2(start_uv, scale_v2(uv_step, (float)x-x_start));
-
-			//if(y == 100)
-			//	printf("%f %f \n", current_uv.x, current_uv.y);
-			GFX_set_pixel_from_texture_new(	screen, texture, x, y,
-											(int)(current_uv.x * 128.),
-											(int)(current_uv.y * 128.) );
-
-		}		
-	}
-}
-
-int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
-					VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights)
-{
-	//Clips a triangle with the hither z clipping plane, and gives the uvs and heights of every new vertex.
-	//Also returns 3 or 4, depending ou how many vertexes got returned
-
-	int poly_size = 0;
-	for(int i = 0; i < 3; i ++)
-	{
-		int next_element = i + 1;
-		if(next_element >= 3) next_element = 0;
-
-		if(vertexes[i].y >= hither_z && vertexes[next_element].y >= hither_z)
-		{
-			clipped_vertexes[poly_size] = vertexes[next_element];
-			clipped_uvs[poly_size] = uvs[next_element];
-			clipped_heights[poly_size] = heights[next_element];
-			poly_size += 1;
-		}
-		else if(vertexes[i].y < hither_z && vertexes[next_element].y >= hither_z)
+		if(points[0].y > points[1].y)
 		{	
-			float relative_x;
-			VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
-			relative_x = (intersect.x - vertexes[i].x)/(vertexes[next_element].x - vertexes[i].x);
-			VECTOR2 i_uv = sum_v2(scale_v2(sub_v2(uvs[next_element], uvs[i]), relative_x), uvs[i]);
-			float i_height = relative_x * (heights[next_element] - heights[i]) + heights[i];
-
-			clipped_vertexes[poly_size] = intersect;
-			clipped_uvs[poly_size] = i_uv;
-			clipped_heights[poly_size] = i_height;
-
-			clipped_vertexes[poly_size+1] = vertexes[next_element];
-			clipped_uvs[poly_size+1] = uvs[next_element];
-			clipped_heights[poly_size+1] = heights[next_element];
-
-			poly_size += 2;
+			swap_p2(&points[0], &points[1]);
+			swap_v2(&uvs[0], &uvs[1]);
 		}
-		else if(vertexes[i].y >= hither_z && vertexes[next_element].y < hither_z)
-		{
-			float relative_x;
-			VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
-			relative_x = (intersect.x - vertexes[i].x)/(vertexes[next_element].x - vertexes[i].x);
-			VECTOR2 i_uv = sum_v2(scale_v2(sub_v2(uvs[next_element], uvs[i]), relative_x), uvs[i]);
-			float i_height = relative_x * (heights[next_element] - heights[i]) + heights[i];
 
-			clipped_vertexes[poly_size] = intersect;
-			clipped_uvs[poly_size] = i_uv;
-			clipped_heights[poly_size] = i_height;
-			poly_size += 1;
+		if(points[1].y > points[2].y)
+		{	
+			swap_p2(&points[1], &points[2]);
+			swap_v2(&uvs[1], &uvs[2]);
+		}
+
+		if(points[0].y > points[1].y)
+		{	
+			swap_p2(&points[0], &points[1]);
+			swap_v2(&uvs[0], &uvs[1]);
 		}
 	}
 
-	return poly_size;
-}
+	void GFX_texture_tri(	VECTOR2 relative_pos0, VECTOR2 uv0, float height0,
+							VECTOR2 relative_pos1, VECTOR2 uv1, float height1,
+							VECTOR2 relative_pos2, VECTOR2 uv2, float height2)
+	{
+		GFX_TEXTURE_PARAM texture;
 
-void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0, 
-						VECTOR2 pos1, VECTOR2 uv1, float height1,
-						VECTOR2 pos2, VECTOR2 uv2, float height2, 
-						VECTOR2 pos3, VECTOR2 uv3, float height3)
-{
+		texture.id = 0;
+
+		texture.parallax = 0;
+
+		texture.u_offset = 0;
+		texture.v_offset = 0;
+
+		texture.u_scale = 1.;
+		texture.v_scale = 1.;
+
+		POINT2 ss[3];
+		VECTOR2 uv[3];
+
+		float z[3];
+
+		z[0] = relative_pos0.y;
+		z[1] = relative_pos1.y;
+		z[2] = relative_pos2.y;
+
+		ss[0] = convert_rs_to_ss(relative_pos0, height0);
+		ss[1] = convert_rs_to_ss(relative_pos1, height1);
+		ss[2] = convert_rs_to_ss(relative_pos2, height2);
+
+		uv[0] = uv0;
+		uv[1] = uv1;
+		uv[2] = uv2;
+
+		sort3y_p2_uv(ss, uv);
+
+		int Adx, Ady;
+		int Bdx, Bdy;
+		float slopeA, slopeB;
+
+		int Ax0, Ay0, Ax1, Ay1;
+		int Bx0, By0, Bx1, By1;
+
+		float Au0, Av0, Au1, Av1;
+		float Bu0, Bv0, Bu1, Bv1;
+
+		float Az0, Az1;
+		float Bz0, Bz1;
+
+		if(point_side_v2(p2v2(ss[1]), p2v2(ss[2]), p2v2(ss[0])) == 1)
+		{
+			Ax0 = ss[0].x; Ax1 = ss[2].x;
+			Ay0 = ss[0].y; Ay1 = ss[2].y;
+
+			Bx0 = ss[0].x; Bx1 = ss[1].x;
+			By0 = ss[0].y; By1 = ss[1].y;
+			//////////////
+			Au0 = uv[0].x; Au1 = uv[2].x;
+			Av0 = uv[0].y; Av1 = uv[2].y;
+
+			Bu0 = uv[0].x; Bu1 = uv[1].x;
+			Bv0 = uv[0].y; Bv1 = uv[1].y;
+
+			Az0 = z[0]; Az1 = z[2];
+			Bz0 = z[0]; Bz1 = z[1];
+		}
+		else
+		{
+			Ax0 = ss[0].x; Ax1 = ss[1].x;
+			Ay0 = ss[0].y; Ay1 = ss[1].y;
+
+			Bx0 = ss[0].x; Bx1 = ss[2].x;
+			By0 = ss[0].y; By1 = ss[2].y;
+			//////////////
+			Au0 = uv[0].x; Au1 = uv[1].x;
+			Av0 = uv[0].y; Av1 = uv[1].y;
+
+			Bu0 = uv[0].x; Bu1 = uv[2].x;
+			Bv0 = uv[0].y; Bv1 = uv[2].y;
+
+			Az0 = z[0]; Az1 = z[1];
+			Bz0 = z[0]; Bz1 = z[2];
+		}
+
+		Adx = Ax1 - Ax0;
+		Ady = Ay1 - Ay0;
+
+		Bdx = Bx1 - Bx0;
+		Bdy = By1 - By0;
+
+		slopeA = (float)(Adx)/(float)(Ady);
+		slopeB = (float)(Bdx)/(float)(Bdy);
+
+		int start_y;
+		int end_y;
+
+		start_y = clamp_int(ss[0].y, SCREEN_RES_Y, 0);
+		end_y = clamp_int(ss[2].y, SCREEN_RES_Y, 0);
+
+		for(int y = start_y; y < end_y; y++)
+		{
+			if(y == ss[1].y)
+			{
+				if(point_side_v2(p2v2(ss[1]), p2v2(ss[2]), p2v2(ss[0])) == 1)
+				{
+					Ax0 = ss[0].x; Ax1 = ss[2].x;
+					Ay0 = ss[0].y; Ay1 = ss[2].y;
+
+					Bx0 = ss[1].x; Bx1 = ss[2].x;
+					By0 = ss[1].y; By1 = ss[2].y;
+					//////////////
+					Au0 = uv[0].x; Au1 = uv[2].x;
+					Av0 = uv[0].y; Av1 = uv[2].y;
+
+					Bu0 = uv[1].x; Bu1 = uv[2].x;
+					Bv0 = uv[1].y; Bv1 = uv[2].y;
+
+					Az0 = z[0]; Az1 = z[2];
+					Bz0 = z[1]; Bz1 = z[2];
+				}
+				else
+				{
+					Ax0 = ss[1].x; Ax1 = ss[2].x;
+					Ay0 = ss[1].y; Ay1 = ss[2].y;
+
+					Bx0 = ss[0].x; Bx1 = ss[2].x;
+					By0 = ss[0].y; By1 = ss[2].y;
+					//////////////
+					Au0 = uv[1].x; Au1 = uv[2].x;
+					Av0 = uv[1].y; Av1 = uv[2].y;
+
+					Bu0 = uv[0].x; Bu1 = uv[2].x;
+					Bv0 = uv[0].y; Bv1 = uv[2].y;
+
+					Az0 = z[1]; Az1 = z[2];
+					Bz0 = z[0]; Bz1 = z[2];
+				}
+					
+				Adx = Ax1 - Ax0;
+				Ady = Ay1 - Ay0;
+
+				Bdx = Bx1 - Bx0;
+				Bdy = By1 - By0;
+
+				slopeA = (float)(Adx)/(float)(Ady);
+				slopeB = (float)(Bdx)/(float)(Bdy);
+			}
+
+			float Arelative_y = (float)(y-Ay0)/(float)(Ady);
+			float Brelative_y = (float)(y-By0)/(float)(Bdy);
+
+			int x_start = (int)(slopeA * (float)(y - Ay0)) + Ax0;
+			int x_end = (int)(slopeB * (float)(y - By0)) + Bx0;
+
+			float t_step = 1./(float)(x_end - x_start);
+
+			float u_start = Arelative_y * (Au1 - Au0) + Au0;
+			float v_start = Arelative_y * (Av1 - Av0) + Av0;
+			float z_start = Arelative_y * (Az1 - Az0) + Az0;
+			float u_end = Brelative_y * (Bu1 - Bu0) + Bu0;
+			float v_end = Brelative_y * (Bv1 - Bv0) + Bv0;
+			float z_end = Brelative_y * (Bz1 - Bz0) + Bz0;
+
+			VECTOR2 uv_step = scale_v2(vector2(u_end - u_start, v_end - v_start), t_step);
+
+			float z_step = (z_end - z_start) * t_step;
+
+			VECTOR2 current_uv;
+			float current_z;
+
+			VECTOR2 start_uv = vector2(u_start, v_start);
+
+			int c_x_start = clamp_int(x_start, SCREEN_RES_X, 0);
+			int c_x_end = clamp_int(x_end, SCREEN_RES_X, 0);
+
+			for(int x = c_x_start; x < c_x_end; x++)
+			{
+				current_uv = sum_v2(start_uv, scale_v2(uv_step, (float)x-x_start));
+				current_z = z_start + z_step * (x-x_start);
+
+				if(x == 160)
+					printf("%f\n", current_z);
+
+				GFX_set_pixel_from_texture(	screen, texture, x, y,
+											(int)(current_uv.x*current_z * 128.),
+											(int)(current_uv.y*current_z * 128.) );
+
+			}		
+		}
+	}
+
+	int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
+						VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights)
+	{
+		//Clips a triangle with the hither z clipping plane, and gives the uvs and heights of every new vertex.
+		//Also returns 3 or 4, depending ou how many vertexes got returned
+
+		int poly_size = 0;
+		for(int i = 0; i < 3; i ++)
+		{
+			int next_element = i + 1;
+			if(next_element >= 3) next_element = 0;
+
+			if(vertexes[i].y >= hither_z && vertexes[next_element].y >= hither_z)
+			{
+				clipped_vertexes[poly_size] = vertexes[next_element];
+				clipped_uvs[poly_size] = uvs[next_element];
+				clipped_heights[poly_size] = heights[next_element];
+				poly_size += 1;
+			}
+			else if(vertexes[i].y < hither_z && vertexes[next_element].y >= hither_z)
+			{	
+				float relative_x;
+				VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
+				relative_x = (intersect.x - vertexes[i].x)/(vertexes[next_element].x - vertexes[i].x);
+				VECTOR2 i_uv = sum_v2(scale_v2(sub_v2(uvs[next_element], uvs[i]), relative_x), uvs[i]);
+				float i_height = relative_x * (heights[next_element] - heights[i]) + heights[i];
+
+				clipped_vertexes[poly_size] = intersect;
+				clipped_uvs[poly_size] = i_uv;
+				clipped_heights[poly_size] = i_height;
+
+				clipped_vertexes[poly_size+1] = vertexes[next_element];
+				clipped_uvs[poly_size+1] = uvs[next_element];
+				clipped_heights[poly_size+1] = heights[next_element];
+
+				poly_size += 2;
+			}
+			else if(vertexes[i].y >= hither_z && vertexes[next_element].y < hither_z)
+			{
+				float relative_x;
+				VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
+				relative_x = (intersect.x - vertexes[i].x)/(vertexes[next_element].x - vertexes[i].x);
+				VECTOR2 i_uv = sum_v2(scale_v2(sub_v2(uvs[next_element], uvs[i]), relative_x), uvs[i]);
+				float i_height = relative_x * (heights[next_element] - heights[i]) + heights[i];
+
+				clipped_vertexes[poly_size] = intersect;
+				clipped_uvs[poly_size] = i_uv;
+				clipped_heights[poly_size] = i_height;
+				poly_size += 1;
+			}
+		}
+
+		return poly_size;
+	}
+
+	void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0, 
+							VECTOR2 pos1, VECTOR2 uv1, float height1,
+							VECTOR2 pos2, VECTOR2 uv2, float height2, 
+							VECTOR2 pos3, VECTOR2 uv3, float height3)
+	{
+		VECTOR2 tri0_pos[3];
+		VECTOR2 tri0_uv[3];
+		float tri0_height[3];
+		VECTOR2 c_tri0_pos[4];
+		VECTOR2 c_tri0_uv[4];
+		float c_tri0_height[4];
+
+		VECTOR2 tri1_pos[3];
+		VECTOR2 tri1_uv[3];
+		float tri1_height[3];
+		VECTOR2 c_tri1_pos[4];
+		VECTOR2 c_tri1_uv[4];
+		float c_tri1_height[4];
+
+		convert_ws_to_rs(pos0, height0, &(tri0_pos[0]), &(tri0_height[0])); 
+		convert_ws_to_rs(pos1, height1, &(tri0_pos[1]), &(tri0_height[1]));
+		convert_ws_to_rs(pos2, height2, &(tri0_pos[2]), &(tri0_height[2]));
+
+		tri0_uv[0] = uv0;
+		tri0_uv[1] = uv1;
+		tri0_uv[2] = uv2;
+
+		////////////////////////
+
+		convert_ws_to_rs(pos0, height0, &(tri1_pos[0]), &(tri1_height[0])); 
+		convert_ws_to_rs(pos2, height2, &(tri1_pos[1]), &(tri1_height[1]));
+		convert_ws_to_rs(pos3, height3, &(tri1_pos[2]), &(tri1_height[2]));
+
+		tri1_uv[0] = uv0;
+		tri1_uv[1] = uv2;
+		tri1_uv[2] = uv3;
+		
+		if(GFX_clip_tri(tri0_pos, tri0_uv, tri0_height,
+						c_tri0_pos, c_tri0_uv, c_tri0_height) == 3)
+		{
+			GFX_texture_tri(c_tri0_pos[0], c_tri0_uv[0], c_tri0_height[0],
+							c_tri0_pos[1], c_tri0_uv[1], c_tri0_height[1],
+							c_tri0_pos[2], c_tri0_uv[2], c_tri0_height[2]);
+		}
+		else
+		{
+			GFX_texture_tri(c_tri0_pos[0], c_tri0_uv[0], c_tri0_height[0],
+							c_tri0_pos[1], c_tri0_uv[1], c_tri0_height[1],
+							c_tri0_pos[2], c_tri0_uv[2], c_tri0_height[2]);
+
+			GFX_texture_tri(c_tri0_pos[0], c_tri0_uv[0], c_tri0_height[0],
+							c_tri0_pos[2], c_tri0_uv[2], c_tri0_height[2],
+							c_tri0_pos[3], c_tri0_uv[3], c_tri0_height[3]);
+		}
+
+		if(GFX_clip_tri(tri1_pos, tri1_uv, tri1_height,
+						c_tri1_pos, c_tri1_uv, c_tri1_height) == 3)
+		{
+			GFX_texture_tri(c_tri1_pos[0], c_tri1_uv[0], c_tri1_height[0],
+							c_tri1_pos[1], c_tri1_uv[1], c_tri1_height[1],
+							c_tri1_pos[2], c_tri1_uv[2], c_tri1_height[2]);
+		}
+		else
+		{
+			GFX_texture_tri(c_tri1_pos[0], c_tri1_uv[0], c_tri1_height[0],
+							c_tri1_pos[1], c_tri1_uv[1], c_tri1_height[1],
+							c_tri1_pos[2], c_tri1_uv[2], c_tri1_height[2]);
+
+			GFX_texture_tri(c_tri1_pos[0], c_tri1_uv[0], c_tri1_height[0],
+							c_tri1_pos[2], c_tri1_uv[2], c_tri1_height[2],
+							c_tri1_pos[3], c_tri1_uv[3], c_tri1_height[3]);
+		}
+		/*
+		printf("ctri0 0 x%f y%f u%f v%f h%f\n", c_tri0_pos[0].x, c_tri0_pos[0].y,
+							c_tri0_uv[0].x, c_tri0_uv[0].y, c_tri0_height[0]);
+		printf("ctri0 1 x%f y%f u%f v%f h%f\n", c_tri0_pos[1].x, c_tri0_pos[1].y,
+							c_tri0_uv[1].x, c_tri0_uv[1].y, c_tri0_height[1]);
+		printf("ctri0 2 x%f y%f u%f v%f h%f\n", c_tri0_pos[2].x, c_tri0_pos[2].y,
+							c_tri0_uv[2].x, c_tri0_uv[2].y, c_tri0_height[2]);
+		printf("ctri0 3 x%f y%f u%f v%f h%f\n", c_tri0_pos[3].x, c_tri0_pos[3].y,
+							c_tri0_uv[3].x, c_tri0_uv[3].y, c_tri0_height[3]);
+
+		printf("ctri1 0 x%f y%f u%f v%f h%f\n", c_tri1_pos[0].x, c_tri1_pos[0].y,
+							c_tri1_uv[0].x, c_tri1_uv[0].y, c_tri1_height[0]);
+		printf("ctri1 1 x%f y%f u%f v%f h%f\n", c_tri1_pos[1].x, c_tri1_pos[1].y,
+							c_tri1_uv[1].x, c_tri1_uv[1].y, c_tri1_height[1]);
+		printf("ctri1 2 x%f y%f u%f v%f h%f\n", c_tri1_pos[2].x, c_tri1_pos[2].y,
+							c_tri1_uv[2].x, c_tri1_uv[2].y, c_tri1_height[2]);
+		printf("ctri1 3 x%f y%f u%f v%f h%f\n", c_tri1_pos[3].x, c_tri1_pos[3].y,
+							c_tri1_uv[3].x, c_tri1_uv[3].y, c_tri1_height[3]);
+		*//*
+	}
 }
+*/
 
 float get_view_plane_pos_x(int ssx)
 {
@@ -1229,23 +1342,156 @@ void GFX_draw_wall(	int screen_x,
 		if(texture_parameters.parallax)
 		{
 			int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
-			GFX_set_pixel_from_texture_new(	screen,
-											texture_parameters,
-											screen_x, screen_y,
-											screen_x + offset, screen_y);
+			GFX_set_pixel_from_texture(	screen,
+										texture_parameters,
+										screen_x, screen_y,
+										screen_x + offset, screen_y);
 		}
 		else
 		{
 			int text_y = (float)(screen_y - top_invisible)/(float)(bot_invisible - top_invisible) * (TEXTURE_SIZE_Y);
 
-			GFX_set_pixel_from_texture_new(	screen,
-											texture_parameters,
-											screen_x, screen_y,
-											text_x, text_y);
+			GFX_set_pixel_from_texture(	screen,
+										texture_parameters,
+										screen_x, screen_y,
+										text_x, text_y);
 
 			set_z_buffer(screen_x, screen_y, z);
 		}
 	}	
+}
+
+void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
+							float bot_height, float top_height,
+							GFX_TEXTURE_PARAM texture_parameters)
+{
+	//Transform current edges to player point of view (player at 0,0)
+	VECTOR2 transformed_pos_0 = sub_v2(start_pos, player_pos);
+	VECTOR2 transformed_pos_1 = sub_v2(end_pos, player_pos);
+	
+	transformed_pos_0 = rot_v2(transformed_pos_0, player_facing);
+	transformed_pos_1 = rot_v2(transformed_pos_1, player_facing);
+
+	VECTOR2 ni_pos_0 = transformed_pos_0;
+	VECTOR2 ni_pos_1 = transformed_pos_1;
+
+	float t_u0 = 0.;
+	float t_u1 = (float)(TEXTURE_SIZE_X);
+
+	//If completely behind player, continue from loop
+	if(transformed_pos_0.y <= 0 && transformed_pos_1.y <= 0) return;
+
+	//If partially behind player, intersect with player view area
+	if(transformed_pos_0.y <= 0 || transformed_pos_1.y)
+	{
+		if(transformed_pos_0.y <= 0)
+		{	
+			VECTOR2 i0 = intersect_v2(vector2(-hither_x, hither_z), vector2(-yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+			VECTOR2 i1 = intersect_v2(vector2(hither_x, hither_z), vector2(yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+
+			if(i0.y > 0 && i1.y > 0)
+			{
+				if(i0.y < i1.y)
+					transformed_pos_0 = i0;			
+				else
+					transformed_pos_0 = i1;			
+			}
+			else if(i0.y > 0)
+				transformed_pos_0 = i0;
+			else
+				transformed_pos_0 = i1;
+		}
+
+		if(transformed_pos_1.y <= 0)
+		//if(transformed_pos_1.x <= -(hither_x/hither_z)*transformed_pos_1.z)
+		{	
+			VECTOR2 i0 = intersect_v2(vector2(-hither_x, hither_z), vector2(-yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+			VECTOR2 i1 = intersect_v2(vector2(hither_x, hither_z), vector2(yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+				
+			if(i0.y > 0 && i1.y > 0)
+			{
+				if(i0.y < i1.y)
+					transformed_pos_1 = i0;
+				else
+					transformed_pos_1 = i1;
+			}
+			else if(i0.y > 0)
+				transformed_pos_1 = i0;
+			else
+				transformed_pos_1 = i1;	
+		}
+
+		t_u0 = (transformed_pos_0.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);
+		t_u1 = (transformed_pos_1.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);			
+	}
+
+	//Do projection scales
+	float xscale0 = camera_parameters_x / transformed_pos_0.y;
+	float yscale0 = camera_parameters_y / transformed_pos_0.y;
+
+	float xscale1 = camera_parameters_x / transformed_pos_1.y;
+	float yscale1 = camera_parameters_y / transformed_pos_1.y;
+
+	//Transform to pixel locations (and project)
+
+	float proj_x0 = transformed_pos_0.x * xscale0;
+	float proj_x1 = transformed_pos_1.x * xscale1;
+
+	int x0 = (int)(proj_x0) + SCREEN_RES_X/2;
+	int x1 = (int)(proj_x1) + SCREEN_RES_X/2;
+
+	//If outside screen, get out
+	if(x0 >= x1 || x1 < 0 || x0 > SCREEN_RES_X) return;
+
+	//Get relative ceil and floor heights
+	float yceil = top_height - player_pos_height;
+	float yfloor = bot_height - player_pos_height;
+
+	//Project and get pixel position, like above.
+
+	float proj_y0_ceiling = yceil * yscale0;
+	float proj_y0_floor = yfloor * yscale0;
+
+	float proj_y1_ceiling = yceil * yscale1;
+	float proj_y1_floor = yfloor * yscale1;
+
+	int y0ceiling = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
+	int y0floor = SCREEN_RES_Y/2 - (int)(proj_y0_floor);
+
+	int y1ceiling = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
+	int y1floor = SCREEN_RES_Y/2 - (int)(proj_y1_floor);
+
+	int x_begin;
+	int x_end;
+
+	x_begin = max_int(x0, 0);
+	x_end = min_int(x1, SCREEN_RES_X);
+
+	for(int x = x_begin; x < x_end; x++)
+	{
+		float relative_x = (float)(x-x0)/(float)(x1-x0);
+
+		int screen_y_ceil = relative_x * (y1ceiling - y0ceiling) + y0ceiling;
+		int screen_y_floor = relative_x * (y1floor - y0floor) + y0floor;
+
+		int c_screen_y_ceil = clamp_int(screen_y_ceil, SCREEN_RES_Y, 0);
+		int c_screen_y_floor = clamp_int(screen_y_floor, SCREEN_RES_Y, 0);			
+
+		GFX_draw_wall(	x, 
+						c_screen_y_ceil, screen_y_ceil, 
+						c_screen_y_floor, screen_y_floor, 
+						x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+						texture_parameters);
+
+	}
+}
+
+void GFX_draw_sprite_wall_db (	VECTOR2 start_pos, VECTOR2 end_pos,
+								float bot_height, float top_height,
+								GFX_TEXTURE_PARAM texture_parameters)
+{
+	GFX_draw_sprite_wall(start_pos, end_pos, bot_height, top_height, texture_parameters);
+	GFX_draw_sprite_wall(end_pos, start_pos, bot_height, top_height, texture_parameters);
 }
 
 void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
@@ -1265,18 +1511,18 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 			if(texture_parameters.parallax)
 			{
 				int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
-				GFX_set_pixel_from_texture_new(	screen,
-												texture_parameters,
-												screen_x, screen_y,
-												screen_x + offset, screen_y);
+				GFX_set_pixel_from_texture(	screen,
+											texture_parameters,
+											screen_x, screen_y,
+											screen_x + offset, screen_y);
 			}
 			else
 			{
 				world_space = convert_ss_to_ws(point2(screen_x, screen_y), visplane_height);
-				GFX_set_pixel_from_texture_new(	screen,
-												texture_parameters,
-												screen_x, screen_y,
-												(int)(world_space.x * 128.), (int)(world_space.y * 128.));
+				GFX_set_pixel_from_texture(	screen,
+											texture_parameters,
+											screen_x, screen_y,
+											(int)(world_space.x * 128.), (int)(world_space.y * 128.));
 		
 			}
 		}

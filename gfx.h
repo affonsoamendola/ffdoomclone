@@ -54,6 +54,14 @@ void GFX_draw_console();
 void GFX_draw_map();
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
+void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
+							float bot_height, float top_height,
+							GFX_TEXTURE_PARAM texture_parameters);
+
+void GFX_set_pixel_from_texture(SDL_Surface *surface,
+								GFX_TEXTURE_PARAM texture,
+								int screen_x, int screen_y,
+								int text_x, int text_y);
 
 int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
 					VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights);
