@@ -131,7 +131,8 @@ void GFX_Init()
 	
 	GFX_load_font("8x8Font.fnt");
 
-	GFX_load_texture("dopefish.png", 0);
+	GFX_load_texture("ground.png", 3);
+	GFX_load_texture("wall.png", 0);
 	GFX_load_texture("skybox.png", 1);
 	GFX_load_texture("terminator.png", 2);
 
@@ -318,10 +319,16 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 	{
 		GFX_set_pixel(surface, x, y, pixel, 1);
 		current_error += slope;
-		if(fabs(current_error) >= 0.5f)
+		if(current_error >= 0.5f)
 		{
-			y = y + (current_error >= 0) * 1 + (current_error < 0) * (-1);
+			y = y + 1;
 			current_error -= 1.0f;
+		}
+
+		if(current_error <= -0.5f)
+		{
+			y = y - 1;
+			current_error += 1.0f;
 		}
 	}
 }
@@ -371,6 +378,46 @@ void GFX_clear_screen()
 	GFX_fill_rectangle(point2(0,0) , point2(319, 239), SDL_MapRGB(screen->format, 0, 0, 0));
 }
 
+void GFX_Draw_Editor()
+{
+	int last_v;
+	unsigned int color;
+
+	VECTOR2 last_v_vector;
+	VECTOR2 current_v_vector;
+
+	POINT2 current_line_start;
+	POINT2 current_line_end;
+
+	for(int s = 0; s < loaded_level.s_num; s++)
+	{
+		for(int e = 0; e < (loaded_level.sectors+s)->e_num; e++)
+		{
+			EDGE current_edge = *((loaded_level.sectors+s)->e + e);
+			
+			last_v_vector = *(loaded_level.vertexes + current_edge.v_start);
+			current_v_vector = *(loaded_level.vertexes + current_edge.v_end);
+
+			last_v_vector = sub_v2(last_v_vector, editor_center);
+			current_v_vector = sub_v2(current_v_vector, editor_center);
+
+			current_line_start = point2((int)(last_v_vector.x*editor_zoom) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*editor_zoom));
+			current_line_end = point2((int)(current_v_vector.x*editor_zoom) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*editor_zoom));
+
+			if(current_edge.is_portal)
+			{
+				color = SDL_MapRGB(screen->format, 60, 60, 60);
+			}
+			else
+			{
+				color = SDL_MapRGB(screen->format, 180, 180, 180);
+			}
+
+			GFX_draw_line(screen, current_line_start, current_line_end, color);
+		}
+	}
+}
+
 void GFX_Render()
 {
 	if(SDL_MUSTLOCK(screen))
@@ -385,10 +432,6 @@ void GFX_Render()
 	GFX_clear_screen();
 
 	GFX_render_3d();
-
-	GFX_draw_sprite_wall (	vector2(1., 1.), vector2(2., 2.),
-							0., 1.,
-							default_texture);
 
 	if(show_map)
 	{
