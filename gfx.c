@@ -378,46 +378,6 @@ void GFX_clear_screen()
 	GFX_fill_rectangle(point2(0,0) , point2(319, 239), SDL_MapRGB(screen->format, 0, 0, 0));
 }
 
-void GFX_Draw_Editor()
-{
-	int last_v;
-	unsigned int color;
-
-	VECTOR2 last_v_vector;
-	VECTOR2 current_v_vector;
-
-	POINT2 current_line_start;
-	POINT2 current_line_end;
-
-	for(int s = 0; s < loaded_level.s_num; s++)
-	{
-		for(int e = 0; e < (loaded_level.sectors+s)->e_num; e++)
-		{
-			EDGE current_edge = *((loaded_level.sectors+s)->e + e);
-			
-			last_v_vector = *(loaded_level.vertexes + current_edge.v_start);
-			current_v_vector = *(loaded_level.vertexes + current_edge.v_end);
-
-			last_v_vector = sub_v2(last_v_vector, editor_center);
-			current_v_vector = sub_v2(current_v_vector, editor_center);
-
-			current_line_start = point2((int)(last_v_vector.x*editor_zoom) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*editor_zoom));
-			current_line_end = point2((int)(current_v_vector.x*editor_zoom) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*editor_zoom));
-
-			if(current_edge.is_portal)
-			{
-				color = SDL_MapRGB(screen->format, 60, 60, 60);
-			}
-			else
-			{
-				color = SDL_MapRGB(screen->format, 180, 180, 180);
-			}
-
-			GFX_draw_line(screen, current_line_start, current_line_end, color);
-		}
-	}
-}
-
 void GFX_Render()
 {
 	if(SDL_MUSTLOCK(screen))

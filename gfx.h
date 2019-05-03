@@ -50,8 +50,12 @@ void GFX_load_texture(char * location, int id);
 void GFX_draw_char(POINT2 position, char character, unsigned int pixel);
 void GFX_draw_string(POINT2 position, char* string, unsigned int pixel);
 
+void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixel);
+
 void GFX_draw_console();
 void GFX_draw_map();
+
+void GFX_Draw_Editor();
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,

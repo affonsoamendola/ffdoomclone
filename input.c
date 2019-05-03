@@ -241,9 +241,6 @@ void INPUT_Handle()
 	}	
 }
 
-void INPUT_Handle_Editor()
-{}
-
 void INPUT_Init()
 {
 	console_buffer = malloc(CONSOLE_CHAR_LIMIT*sizeof(char));

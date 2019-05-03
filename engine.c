@@ -11,6 +11,7 @@
 #include "world.h"
 #include "time.h"
 #include "list.h"
+#include "editor.h"
 
 #include "engine.h"
 
@@ -100,9 +101,9 @@ void ENGINE_Loop()
 	else
 	{
 		GFX_Draw_Editor();
-		INPUT_Handle_Editor();
+		EDITOR_Loop();
+		EDITOR_Handle_Input();
 	}
-	
 
 	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
 }

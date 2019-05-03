@@ -174,3 +174,42 @@ void level_load(const char * file_location)
 
 	fclose(level_file);
 }
+
+void get_closest_vertex(VECTOR2 pos, VECTOR2 * closest, int * vertex_index, float * distance)
+{
+	VECTOR2 current_vector;
+	float current_distance;
+
+	int closest_vector_i = 0;
+	VECTOR2 closest_vector = loaded_level.vertexes[0];
+	float closest_distance = norm_v2(sub_v2(pos, closest_vector));
+
+	for(int v = 0; v < loaded_level.v_num; v++)
+	{
+		current_vector = loaded_level.vertexes[v];
+
+		current_distance = norm_v2(sub_v2(pos, loaded_level.vertexes[v]));
+
+		if(current_distance < closest_distance)
+		{
+			closest_vector_i = v;
+			closest_vector = current_vector;
+			closest_distance = current_distance;
+		}
+	}
+
+	if(closest != NULL)
+	{
+		*closest = closest_vector;
+	}
+
+	if(vertex_index != NULL)
+	{
+		*vertex_index = closest_vector_i;
+	}
+
+	if(distance != NULL)
+	{
+		*distance = closest_distance;
+	}
+}

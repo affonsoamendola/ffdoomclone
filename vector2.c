@@ -75,6 +75,13 @@ float dot_v2(VECTOR2 vector_a, VECTOR2 vector_b)
 	return (vector_a.x * vector_b.x) + (vector_a.y * vector_b.y);
 }
 
+float norm_v2(VECTOR2 vector)
+{
+	float norm_squared = dot_v2(vector, vector);
+
+	return sqrt(norm_squared);
+}
+
 float cross_v2(VECTOR2 vector_a, VECTOR2 vector_b)
 {
 	return (vector_a.x * vector_b.y) - (vector_a.y * vector_b.x);
