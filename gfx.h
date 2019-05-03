@@ -43,6 +43,7 @@ float get_z_buffer(int x, int y);
 void set_z_buffer(int x, int y, float value);
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel);
+void GFX_clear_screen();
 
 void GFX_load_font(const char * location);
 void GFX_load_texture(char * location, int id);

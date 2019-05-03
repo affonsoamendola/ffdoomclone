@@ -18,8 +18,8 @@
 SDL_Surface* screen = NULL;
 bool e_running = false;
 
-bool edit_mode = false;
-bool game_mode = true;
+bool edit_mode = true;
+bool game_mode = false;
 
 clock_t current_frame_start;
 clock_t last_frame_end;
@@ -98,9 +98,9 @@ void ENGINE_Loop()
 		GFX_Render();
 		INPUT_Handle();
 	}
-	else
+	else if(edit_mode)
 	{
-		GFX_Draw_Editor();
+		EDITOR_Render();
 		EDITOR_Loop();
 		EDITOR_Handle_Input();
 	}
