@@ -90,6 +90,11 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 						int is_ceiling, float visplane_height, 
 						GFX_TEXTURE_PARAM texture_parameters);
 
+
+COLOR GFX_Color(int r, int g, int b);
+COLOR GFX_Color_scale(COLOR color, float factor);
+unsigned int GFX_Map_Color(COLOR color);
+
 void GFX_render_3d();
 
 void GFX_Render();

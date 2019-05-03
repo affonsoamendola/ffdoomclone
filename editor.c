@@ -4,7 +4,7 @@
 
 #include <math.h>
 
-//#include "editor.h"
+#include "editor.h"
 
 #include "vector2.h"
 #include "world.h"
@@ -26,6 +26,8 @@ float cursor_speed = 1.f;
 #define walk_cursor_speed 3.f;
 #define run_cursor_speed 6.f;
 
+#define cursor_color GFX_Color(0, 0, 255)
+
 extern LEVEL loaded_level; 
 extern SDL_Surface * screen;
 
@@ -34,21 +36,37 @@ extern bool show_fps;
 
 char buffer[128];
 
+VECTOR2 top_left_border;
+VECTOR2 bottom_right_border;
+
 void move_cursor(VECTOR2 amount)
 {
 	editor_cursor = sum_v2(editor_cursor, amount);
 	get_closest_vertex(editor_cursor, &closest_vector, &closest_vector_index, &closest_vector_distance);
+
+	printf("CURSOR %f %f\n", editor_cursor.x, editor_cursor.y);
+
+	if(	editor_cursor.x < top_left_border.x || editor_cursor.y >= top_left_border.y ||
+		editor_cursor.x >= bottom_right_border.x || editor_cursor.y < bottom_right_border.y)
+	{
+		//move_view(amount);
+	}
 }
 
 void move_view(VECTOR2 amount)
 {
 	editor_center = sum_v2(editor_center, amount);
-	move_cursor(amount);
+
+	top_left_border = convert_editor_ss_to_ws(point2(0, 0));
+	bottom_right_border = convert_editor_ss_to_ws(point2(SCREEN_RES_X, SCREEN_RES_Y));
+	
+	//move_cursor(amount);
+
+	printf("%f %f %f %f\n", top_left_border.x, top_left_border.y, bottom_right_border.x, bottom_right_border.y);
 }
 
 void create_vertex_at_cursor()
 {
-
 }
 
 VECTOR2 get_closest_grid(VECTOR2 pos)
@@ -75,6 +93,43 @@ void set_zoom(float zoom)
 	editor_zoom = zoom;
 }
 
+POINT2 convert_ws_to_editor_ss(VECTOR2 pos)
+{
+	POINT2 editor_ss;
+
+	editor_ss.x = (pos.x - editor_center.x)*editor_zoom + SCREEN_RES_X/2;
+	editor_ss.y = SCREEN_RES_Y/2 - (pos.y - editor_center.y)*editor_zoom;
+
+	return editor_ss;
+}
+
+VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
+{
+	VECTOR2 ws;
+
+	ws.x = (pos.x - SCREEN_RES_X/2)/editor_zoom + editor_center.x;
+	ws.y = -((pos.y + SCREEN_RES_Y/2)/editor_zoom - editor_center.y);
+
+	return ws;
+}
+
+void draw_cursor()
+{
+	POINT2 cursor_ss;
+
+	cursor_ss = convert_ws_to_editor_ss(editor_cursor);
+
+	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y + 3, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y + 2, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y - 2, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y - 3, GFX_Map_Color(cursor_color), 0);
+
+	GFX_set_pixel(screen, cursor_ss.x + 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(screen, cursor_ss.x + 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(screen, cursor_ss.x - 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(screen, cursor_ss.x - 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+}
+
 void draw_editor_map()
 {
 	int last_v;
@@ -95,11 +150,8 @@ void draw_editor_map()
 			last_v_vector = *(loaded_level.vertexes + current_edge.v_start);
 			current_v_vector = *(loaded_level.vertexes + current_edge.v_end);
 
-			last_v_vector = sub_v2(last_v_vector, editor_center);
-			current_v_vector = sub_v2(current_v_vector, editor_center);
-
-			current_line_start = point2((int)(last_v_vector.x*editor_zoom) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*editor_zoom));
-			current_line_end = point2((int)(current_v_vector.x*editor_zoom) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*editor_zoom));
+			current_line_start = convert_ws_to_editor_ss(last_v_vector);
+			current_line_end = convert_ws_to_editor_ss(current_v_vector);
 
 			if(current_edge.is_portal)
 			{
@@ -129,6 +181,7 @@ void EDITOR_Render()
 	GFX_clear_screen();
 
 	draw_editor_map();
+	draw_cursor();
 
 	if(show_fps)
 	{
@@ -160,24 +213,44 @@ void EDITOR_Handle_Input()
 		cursor_speed = walk_cursor_speed;
 	}
 
-	if(keystate[SDLK_UP])
+	if(keystate[SDLK_w])
 	{
 		move_view(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
 	}
 	
-	if(keystate[SDLK_DOWN])
+	if(keystate[SDLK_s])
 	{
 		move_view(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
 	}
 	
-	if(keystate[SDLK_RIGHT])
+	if(keystate[SDLK_d])
 	{
 		move_view(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
 	}
 	
-	if(keystate[SDLK_LEFT])
+	if(keystate[SDLK_a])
 	{
 		move_view(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
+	}
+
+	if(keystate[SDLK_UP])
+	{
+		move_cursor(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+	}
+	
+	if(keystate[SDLK_DOWN])
+	{
+		move_cursor(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
+	}
+	
+	if(keystate[SDLK_RIGHT])
+	{
+		move_cursor(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
+	}
+	
+	if(keystate[SDLK_LEFT])
+	{
+		move_cursor(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
 	}
 	
 	if(keystate[SDLK_PAGEUP])
@@ -201,4 +274,10 @@ void EDITOR_Handle_Input()
 
 void EDITOR_Loop()
 {
+}
+
+void EDITOR_Init()
+{
+	editor_center = vector2(0., 0.);
+	editor_cursor = vector2(0., 0.);
 }
