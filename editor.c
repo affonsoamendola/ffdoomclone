@@ -34,6 +34,11 @@ extern SDL_Surface * screen;
 extern float current_fps;
 extern bool show_fps;
 
+int grabbed = 0;
+
+int grabbed_vector_index;
+VECTOR2 grabbed_vector;
+
 char buffer[128];
 
 VECTOR2 top_left_border;
@@ -44,12 +49,10 @@ void move_cursor(VECTOR2 amount)
 	editor_cursor = sum_v2(editor_cursor, amount);
 	get_closest_vertex(editor_cursor, &closest_vector, &closest_vector_index, &closest_vector_distance);
 
-	printf("CURSOR %f %f\n", editor_cursor.x, editor_cursor.y);
-
 	if(	editor_cursor.x < top_left_border.x || editor_cursor.y >= top_left_border.y ||
 		editor_cursor.x >= bottom_right_border.x || editor_cursor.y < bottom_right_border.y)
 	{
-		//move_view(amount);
+		move_view(amount);
 	}
 }
 
@@ -59,10 +62,6 @@ void move_view(VECTOR2 amount)
 
 	top_left_border = convert_editor_ss_to_ws(point2(0, 0));
 	bottom_right_border = convert_editor_ss_to_ws(point2(SCREEN_RES_X, SCREEN_RES_Y));
-	
-	//move_cursor(amount);
-
-	printf("%f %f %f %f\n", top_left_border.x, top_left_border.y, bottom_right_border.x, bottom_right_border.y);
 }
 
 void create_vertex_at_cursor()
@@ -108,7 +107,7 @@ VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
 	VECTOR2 ws;
 
 	ws.x = (pos.x - SCREEN_RES_X/2)/editor_zoom + editor_center.x;
-	ws.y = -((pos.y + SCREEN_RES_Y/2)/editor_zoom - editor_center.y);
+	ws.y = -((pos.y - SCREEN_RES_Y/2)/editor_zoom - editor_center.y);
 
 	return ws;
 }
@@ -197,6 +196,25 @@ void EDITOR_Render()
 	SDL_UpdateRect(screen, 0, 0, SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE);
 }
 
+void EDITOR_enter_click()
+{
+}
+
+void grab_vertex()
+{
+	grabbed = 1;
+	
+	grabbed_vector_index = closest_vector_index;
+	grabbed_vector = closest_vector;
+}
+
+void drop_vertex()
+{
+	grabbed = 0;
+
+	loaded_level.vertexes[grabbed_vector_index] = editor_cursor;
+}
+
 extern bool e_running;
 SDL_Event event;
 
@@ -269,11 +287,25 @@ void EDITOR_Handle_Input()
 		{
 			e_running = false;
 		}
+		else if(event.type == SDL_KEYDOWN)
+		{
+			if(event.key.keysym.sym == 'g')
+			{
+				if(grabbed == 0)
+					grab_vertex();
+				else if(grabbed == 1)
+					drop_vertex();
+			}
+		}
 	}
 }
 
 void EDITOR_Loop()
 {
+	if(grabbed == 1)
+	{
+		loaded_level.vertexes[grabbed_vector_index] = editor_cursor;
+	}
 }
 
 void EDITOR_Init()
