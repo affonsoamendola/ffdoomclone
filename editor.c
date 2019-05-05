@@ -36,13 +36,23 @@ extern bool show_fps;
 
 int grabbed = 0;
 
+int snap_to_grid = 0;
+
 int grabbed_vector_index;
-VECTOR2 grabbed_vector;
+VECTOR2 grabbed_vector_start;
+VECTOR2 grabbed_vector_location;
 
 char buffer[128];
 
 VECTOR2 top_left_border;
 VECTOR2 bottom_right_border;
+
+int new_vector_start_index;
+VECTOR2 new_vector_start;
+
+SECTOR * creating_sector;
+
+int drawing_sector = 0;
 
 void move_cursor(VECTOR2 amount)
 {
@@ -56,16 +66,30 @@ void move_cursor(VECTOR2 amount)
 	}
 }
 
-void move_view(VECTOR2 amount)
+void clip_cursor()
 {
-	editor_center = sum_v2(editor_center, amount);
+	if(editor_cursor.x < top_left_border.x)
+		editor_cursor.x = top_left_border.x;
 
+	if(editor_cursor.x > bottom_right_border.x)
+		editor_cursor.x = bottom_right_border.x;
+
+	if(editor_cursor.y > top_left_border.y)
+		editor_cursor.y = top_left_border.y;
+
+	if(editor_cursor.y < bottom_right_border.y)
+		editor_cursor.y = bottom_right_border.y;
+}
+
+void update_borders()
+{
 	top_left_border = convert_editor_ss_to_ws(point2(0, 0));
 	bottom_right_border = convert_editor_ss_to_ws(point2(SCREEN_RES_X, SCREEN_RES_Y));
 }
 
-void create_vertex_at_cursor()
+void move_view(VECTOR2 amount)
 {
+	editor_center = sum_v2(editor_center, amount);
 }
 
 VECTOR2 get_closest_grid(VECTOR2 pos)
@@ -80,6 +104,8 @@ VECTOR2 get_closest_grid(VECTOR2 pos)
 
 	closest_grid.x = (float)x * grid_size;
 	closest_grid.y = (float)y * grid_size;
+
+	return closest_grid;
 }
 
 void set_grid_size(float size)
@@ -110,6 +136,13 @@ VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
 	ws.y = -((pos.y - SCREEN_RES_Y/2)/editor_zoom - editor_center.y);
 
 	return ws;
+}
+
+void new_sector()
+{
+	creating_sector = malloc(sizeof(SECTOR));
+	creating_sector.sector_id = loaded_level.s_num;
+
 }
 
 void draw_cursor()
@@ -166,6 +199,44 @@ void draw_editor_map()
 	}
 }
 
+void draw_grid()
+{
+	int grid_x_amount;
+	int grid_y_amount;
+
+	grid_x_amount = (int)((bottom_right_border.x - top_left_border.x) / grid_size);
+	grid_y_amount = (int)((top_left_border.y - bottom_right_border.y) / grid_size);
+
+	VECTOR2 top_left_grid;
+	POINT2 grid_screen_location;
+
+	top_left_grid = get_closest_grid(sum_v2(top_left_border, vector2(grid_size/2., grid_size/2.)));
+
+	for(int x = 0; x < grid_x_amount + 3; x++)
+	{
+		for(int y = 0; y < grid_y_amount + 3; y++)
+		{
+			grid_screen_location = convert_ws_to_editor_ss(sum_v2(top_left_grid, vector2((float)x*grid_size, -(float)y*grid_size)));
+			
+			GFX_set_pixel(screen, grid_screen_location.x, grid_screen_location.y, GFX_Map_Color(GFX_Color(30, 30, 30)), 0);
+		}
+	}
+}
+
+void draw_ui()
+{
+	if(snap_to_grid == 1)
+		GFX_draw_char(point2(0,0), 'G', GFX_Map_Color(GFX_Color(100, 0, 255)));
+
+	if(grabbed == 1)
+	{
+		sprintf(buffer, "x = %f", grabbed_vector_location.x);
+		GFX_draw_string(point2(0, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		sprintf(buffer, "y = %f", grabbed_vector_location.y);
+		GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+	}
+}
+
 void EDITOR_Render()
 {
 	if(SDL_MUSTLOCK(screen))
@@ -179,8 +250,11 @@ void EDITOR_Render()
 
 	GFX_clear_screen();
 
+	draw_grid();
+
 	draw_editor_map();
 	draw_cursor();
+	draw_ui();
 
 	if(show_fps)
 	{
@@ -205,14 +279,24 @@ void grab_vertex()
 	grabbed = 1;
 	
 	grabbed_vector_index = closest_vector_index;
-	grabbed_vector = closest_vector;
+	grabbed_vector_start = closest_vector;
 }
 
 void drop_vertex()
 {
 	grabbed = 0;
 
-	loaded_level.vertexes[grabbed_vector_index] = editor_cursor;
+	if(snap_to_grid)
+		loaded_level.vertexes[grabbed_vector_index] = grabbed_vector_location;
+	else
+		loaded_level.vertexes[grabbed_vector_index] = grabbed_vector_location;
+}
+
+void cancel_grab()
+{
+	grabbed = 0;
+
+	loaded_level.vertexes[grabbed_vector_index] = grabbed_vector_start;
 }
 
 extern bool e_running;
@@ -289,12 +373,46 @@ void EDITOR_Handle_Input()
 		}
 		else if(event.type == SDL_KEYDOWN)
 		{
-			if(event.key.keysym.sym == 'g')
+			if(event.key.keysym.sym == 'm')
 			{
 				if(grabbed == 0)
 					grab_vertex();
 				else if(grabbed == 1)
 					drop_vertex();
+			}
+
+			if(event.key.keysym.sym == 'g')
+				snap_to_grid = !snap_to_grid;
+
+			if(event.key.keysym.sym == '+' || event.key.keysym.sym == '=')
+			{
+				grid_size += 0.1f;
+			}
+
+			if(event.key.keysym.sym == '_' || event.key.keysym.sym == '-')
+			{	
+				if(grid_size >= 0.15f) grid_size -= 0.1f;
+			}
+			
+			if(event.key.keysym.sym == SDLK_RETURN)
+			{
+				if(grabbed)
+					drop_vertex();
+			}
+
+			if(event.key.keysym.sym == SDLK_ESCAPE)
+			{
+				if(grabbed)
+					cancel_grab();
+			}
+
+			if(event.key.keysym.sym == SDLK_SPACE)
+			{
+				if(drawing_sector == 0)
+					new_sector();
+
+				if(drawing_sector == 1)
+					add_vertex();
 			}
 		}
 	}
@@ -302,9 +420,19 @@ void EDITOR_Handle_Input()
 
 void EDITOR_Loop()
 {
-	if(grabbed == 1)
+	update_borders();
+
+	clip_cursor();
+
+	if(grabbed == 1 && snap_to_grid == 0)
 	{
+		grabbed_vector_location = editor_cursor;
 		loaded_level.vertexes[grabbed_vector_index] = editor_cursor;
+	}
+	else if(grabbed == 1 && snap_to_grid == 1)
+	{
+		grabbed_vector_location = get_closest_grid(editor_cursor);
+		loaded_level.vertexes[grabbed_vector_index] = get_closest_grid(editor_cursor);
 	}
 }
 

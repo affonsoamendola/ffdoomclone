@@ -292,16 +292,7 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 
 	float current_error = 0.0f;
 
-	float y;
-
-	if(p1.x > p2.x)
-	{
-		temp = p1;
-		p1 = p2;
-		p2 = temp;
-	}
-
-	y = p1.y;
+	float x, y;
 
 	if(p1.x == p2.x)
 	{
@@ -313,22 +304,68 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 		GFX_draw_hor_line(surface, p1.x, p2.x, p1.y, pixel);
 	}
 
-	slope = (float)(p2.y - p1.y)/(float)(p2.x - p1.x);
-
-	for(int x = p1.x; x <= p2.x; x++)
+	if(fabs(p2.y - p1.y) < fabs(p2.x - p1.x))
 	{
-		GFX_set_pixel(surface, x, y, pixel, 1);
-		current_error += slope;
-		if(current_error >= 0.5f)
+		if(p1.x > p2.x)
 		{
-			y = y + 1;
-			current_error -= 1.0f;
+			temp = p1;
+			p1 = p2;
+			p2 = temp;
 		}
 
-		if(current_error <= -0.5f)
+		y = p1.y;
+		
+		slope = (float)(p2.y - p1.y)/(float)(p2.x - p1.x);
+
+		for(int x = p1.x; x <= p2.x; x++)
 		{
-			y = y - 1;
-			current_error += 1.0f;
+			GFX_set_pixel(surface, x, y, pixel, 1);
+
+			current_error += slope;
+
+			if(current_error >= 0.5f)
+			{
+				y = y + 1;
+				current_error -= 1.0f;
+			}
+
+			if(current_error <= -0.5f)
+			{
+				y = y - 1;
+				current_error += 1.0f;
+			}
+		}
+	}
+	else
+	{
+		if(p1.y > p2.y)
+		{
+			temp = p1;
+			p1 = p2;
+			p2 = temp;
+		}
+
+		x = p1.x;
+		
+		slope = (float)(p2.x - p1.x)/(float)(p2.y - p1.y);
+
+		for(int y = p1.y; y <= p2.y; y++)
+		{
+			GFX_set_pixel(surface, x, y, pixel, 1);
+
+			current_error += slope;
+
+			if(current_error >= 0.5f)
+			{
+				x = x + 1;
+				current_error -= 1.0f;
+			}
+
+			if(current_error <= -0.5f)
+			{
+				x = x - 1;
+				current_error += 1.0f;
+			}
 		}
 	}
 }
