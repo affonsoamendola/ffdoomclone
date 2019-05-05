@@ -175,6 +175,72 @@ void level_load(const char * file_location)
 	fclose(level_file);
 }
 
+int WORLD_add_vertex(VECTOR2 vertex)
+{
+	int new_index;
+
+	new_index = loaded_level.v_num;
+
+	VECTOR2 * new_vertexes;
+
+	new_vertexes = malloc(sizeof(VECTOR2) * (new_index + 1));
+
+	for(int i = 0; i < new_index; i++)
+	{
+		new_vertexes[i] = loaded_level.vertexes[i];
+	}
+
+	new_vertexes[new_index] = vertex;
+
+	return new_index;
+}
+
+int WORLD_add_edge_to_sector(SECTOR * sector, int vertex_start_index, int vertex_end_index)
+{
+	int new_edge_index = sector->e_num;
+
+	EDGE new_edge;
+
+	EDGE * new_e;
+
+	new_e = malloc(sizeof(EDGE) * (new_edge_index + 1));	
+
+	for(int i = 0; i < new_edge_index; i++)
+	{
+		new_e[i] = sector->e[i];
+	}
+
+	new_edge.v_start = vertex_start_index;
+	new_edge.v_end = vertex_end_index;
+
+	new_edge.text_param = DEFAULT_TEXTURE_PARAM;
+
+	new_edge.is_portal = 0;
+	new_edge.neighbor_sector_id = 0;
+
+	new_e[new_edge_index] = new_edge;
+
+	return new_edge_index;
+}	
+
+int WORLD_add_sector_to_level(SECTOR * sector)
+{
+	int new_sector_index = loaded_level.s_num;
+
+	SECTOR * new_sectors;
+
+	new_sectors = malloc(sizeof(SECTOR) * (new_sector_index + 1));
+
+	for(int i = 0; i < new_sector_index; i++)
+	{
+		new_sectors[i] = loaded_level.sectors[i];
+	}
+
+	new_sectors[new_sector_index] = *sector;
+
+	return new_sector_index;
+}
+
 void get_closest_vertex(VECTOR2 pos, VECTOR2 * closest, int * vertex_index, float * distance)
 {
 	VECTOR2 current_vector;

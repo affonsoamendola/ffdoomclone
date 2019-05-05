@@ -136,11 +136,11 @@ void GFX_Init()
 	GFX_load_texture("skybox.png", 1);
 	GFX_load_texture("terminator.png", 2);
 
-	default_texture.id = 0.;
-	default_texture.parallax = 0.;
+	default_texture.id = 0;
+	default_texture.parallax = 0;
 
-	default_texture.u_offset = 0.;
-	default_texture.v_offset = 0.;
+	default_texture.u_offset = 0;
+	default_texture.v_offset = 0;
 
 	default_texture.u_scale = 1.;
 	default_texture.v_scale = 1.;

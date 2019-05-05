@@ -11,6 +11,9 @@
 #include "gfx.h"
 #include "engine.h"
 
+#define DEFAULT_FLOOR_HEIGHT 0.0f
+#define DEFAULT_CEIL_HEIGHT 1.0f
+
 VECTOR2 editor_center;
 VECTOR2 editor_cursor;
 
@@ -50,7 +53,12 @@ VECTOR2 bottom_right_border;
 int new_vector_start_index;
 VECTOR2 new_vector_start;
 
+int first_vector_index;
+VECTOR2 first_vector;
+
 SECTOR * creating_sector;
+
+int new_sector_size = 0;
 
 int drawing_sector = 0;
 
@@ -138,12 +146,78 @@ VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
 	return ws;
 }
 
+void save_sector()
+{
+	WORLD_add_sector_to_level(creating_sector);
+}
+
 void new_sector()
 {
 	creating_sector = malloc(sizeof(SECTOR));
-	creating_sector.sector_id = loaded_level.s_num;
+	creating_sector->sector_id = loaded_level.s_num;
 
+	creating_sector->e_num = 0;
+
+	creating_sector->floor_height = DEFAULT_FLOOR_HEIGHT;
+	creating_sector->ceiling_height = DEFAULT_CEIL_HEIGHT;
+
+	creating_sector->text_param_ceil = DEFAULT_TEXTURE_PARAM;
+	creating_sector->text_param_floor = DEFAULT_TEXTURE_PARAM;
+
+	creating_sector->e = NULL;
+
+	if(closest_vector_distance >= 1.0f)
+	{
+		if(snap_to_grid)
+			new_vector_start = get_closest_grid(editor_cursor);
+		else
+			new_vector_start = editor_cursor;
+
+		new_vector_start_index = WORLD_add_vertex(new_vector_start);
+
+		new_sector_size += 1;
+	}
 }
+
+void new_edge()
+{
+	VECTOR2 new_vector_end;
+	int new_vector_end_index;
+
+	if(closest_vector_distance >= 0.5f)
+	{
+		if(snap_to_grid)
+			new_vector_end = get_closest_grid(editor_cursor);
+		else
+			new_vector_end = editor_cursor;
+
+		new_vector_end_index = WORLD_add_vertex(new_vector_end);
+
+		WORLD_add_edge_to_sector(creating_sector, new_vector_start_index, new_vector_end_index);
+
+		new_vector_start = new_vector_end;
+		new_vector_start_index = new_vector_end_index;
+
+		new_sector_size += 1;
+	}
+	else
+	{
+		if(first_vector_index == closest_vector_index)
+		{
+			save_sector();
+			return;
+		}
+
+		new_vector_end = closest_vector;
+		new_vector_end_index = closest_vector_index;
+
+		WORLD_add_edge_to_sector(creating_sector, new_vector_start_index, new_vector_end_index);
+
+		new_vector_start = new_vector_end;
+		new_vector_start_index = new_vector_end_index;
+	}
+}
+
 
 void draw_cursor()
 {
@@ -412,7 +486,7 @@ void EDITOR_Handle_Input()
 					new_sector();
 
 				if(drawing_sector == 1)
-					add_vertex();
+					new_edge();
 			}
 		}
 	}

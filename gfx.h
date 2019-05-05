@@ -27,6 +27,8 @@ typedef struct GFX_TEXTURE_PARAM_
 }
 GFX_TEXTURE_PARAM;
 
+#define DEFAULT_TEXTURE_PARAM (GFX_TEXTURE_PARAM){0, 0, 0, 0, 1.0f, 1.0f}
+
 typedef struct GFX_TEXTURE_
 {
 	SDL_Surface * surface;
