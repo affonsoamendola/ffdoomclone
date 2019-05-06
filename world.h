@@ -54,4 +54,6 @@ int WORLD_add_vertex(VECTOR2 vertex);
 int WORLD_add_edge_to_sector(SECTOR * sector, int vertex_start_index, int vertex_end_index);
 int WORLD_add_sector_to_level(SECTOR * sector);
 
+void WORLD_remove_n_vertexes(int n);
+
 #endif

@@ -192,7 +192,32 @@ int WORLD_add_vertex(VECTOR2 vertex)
 
 	new_vertexes[new_index] = vertex;
 
+	free(loaded_level.vertexes);
+	loaded_level.vertexes = new_vertexes;
+
+	loaded_level.v_num += 1;
+
 	return new_index;
+}
+
+void WORLD_remove_n_vertexes(int n)
+{
+	VECTOR2 * new_vertexes;
+
+	int new_vertexes_size;
+
+	new_vertexes_size = loaded_level.v_num - n;
+
+	new_vertexes = malloc(sizeof(VECTOR2) * (new_vertexes_size));
+
+	for(int v = 0; v < new_vertexes_size; v ++)
+	{
+		new_vertexes[v] = loaded_level.vertexes[v];
+	}
+
+	free(loaded_level.vertexes);
+
+	loaded_level.vertexes = new_vertexes;
 }
 
 int WORLD_add_edge_to_sector(SECTOR * sector, int vertex_start_index, int vertex_end_index)
@@ -220,6 +245,11 @@ int WORLD_add_edge_to_sector(SECTOR * sector, int vertex_start_index, int vertex
 
 	new_e[new_edge_index] = new_edge;
 
+	free(sector->e);
+	sector->e = new_e;
+
+	sector->e_num = (sector->e_num) + 1;
+
 	return new_edge_index;
 }	
 
@@ -237,6 +267,10 @@ int WORLD_add_sector_to_level(SECTOR * sector)
 	}
 
 	new_sectors[new_sector_index] = *sector;
+	loaded_level.s_num += 1;
+
+	free(loaded_level.sectors);
+	loaded_level.sectors = new_sectors;
 
 	return new_sector_index;
 }

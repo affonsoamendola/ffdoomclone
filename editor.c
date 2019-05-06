@@ -26,6 +26,7 @@ float grid_size = 0.1;
 float editor_zoom = 50.;
 
 float cursor_speed = 1.f;
+#define crawl_cursor_speed 1.5f;
 #define walk_cursor_speed 3.f;
 #define run_cursor_speed 6.f;
 
@@ -153,6 +154,8 @@ void save_sector()
 
 void new_sector()
 {
+	drawing_sector = 1;
+
 	creating_sector = malloc(sizeof(SECTOR));
 	creating_sector->sector_id = loaded_level.s_num;
 
@@ -166,7 +169,7 @@ void new_sector()
 
 	creating_sector->e = NULL;
 
-	if(closest_vector_distance >= 1.0f)
+	if(closest_vector_distance >= 0.1f)
 	{
 		if(snap_to_grid)
 			new_vector_start = get_closest_grid(editor_cursor);
@@ -177,6 +180,14 @@ void new_sector()
 
 		new_sector_size += 1;
 	}
+	else
+	{
+		new_vector_start = closest_vector;
+		new_vector_start_index = closest_vector_index;
+	}
+
+	first_vector = new_vector_start;
+	first_vector_index = new_vector_start_index;
 }
 
 void new_edge()
@@ -184,7 +195,7 @@ void new_edge()
 	VECTOR2 new_vector_end;
 	int new_vector_end_index;
 
-	if(closest_vector_distance >= 0.5f)
+	if(closest_vector_distance >= 0.1f)
 	{
 		if(snap_to_grid)
 			new_vector_end = get_closest_grid(editor_cursor);
@@ -202,16 +213,17 @@ void new_edge()
 	}
 	else
 	{
-		if(first_vector_index == closest_vector_index)
-		{
-			save_sector();
-			return;
-		}
-
 		new_vector_end = closest_vector;
 		new_vector_end_index = closest_vector_index;
 
 		WORLD_add_edge_to_sector(creating_sector, new_vector_start_index, new_vector_end_index);
+
+		if(first_vector_index == closest_vector_index)
+		{
+			drawing_sector = 0;
+			save_sector();
+			return;
+		}
 
 		new_vector_start = new_vector_end;
 		new_vector_start_index = new_vector_end_index;
@@ -273,6 +285,35 @@ void draw_editor_map()
 	}
 }
 
+void draw_new_sector_preview()
+{
+	if(drawing_sector)
+	{
+		EDGE current_edge;
+
+		for(int i = 0; i < creating_sector->e_num; i++)
+		{
+			current_edge = creating_sector->e[i];
+			GFX_draw_line(	screen, 
+							convert_ws_to_editor_ss(get_vertex_from_sector(creating_sector, i, 0)),
+							convert_ws_to_editor_ss(get_vertex_from_sector(creating_sector, i, 1)),
+							GFX_Map_Color(GFX_Color(0, 0, 255)));
+		}
+
+		VECTOR2 preview_cursor;
+
+		if(snap_to_grid)
+			preview_cursor = get_closest_grid(editor_cursor);
+		else
+			preview_cursor = editor_cursor;
+
+		GFX_draw_line(	screen, 
+						convert_ws_to_editor_ss(new_vector_start),
+						convert_ws_to_editor_ss(preview_cursor),
+						GFX_Map_Color(GFX_Color(0, 0, 255)));
+	}
+}
+
 void draw_grid()
 {
 	int grid_x_amount;
@@ -300,7 +341,9 @@ void draw_grid()
 void draw_ui()
 {
 	if(snap_to_grid == 1)
-		GFX_draw_char(point2(0,0), 'G', GFX_Map_Color(GFX_Color(100, 0, 255)));
+		GFX_draw_string(point2(0,0), "Snap to grid", GFX_Map_Color(GFX_Color(100, 0, 255)));
+	if(drawing_sector == 1)
+		GFX_draw_string(point2(0,8), "Drawing Sector", GFX_Map_Color(GFX_Color(100, 0, 255)));
 
 	if(grabbed == 1)
 	{
@@ -327,6 +370,7 @@ void EDITOR_Render()
 	draw_grid();
 
 	draw_editor_map();
+	draw_new_sector_preview();
 	draw_cursor();
 	draw_ui();
 
@@ -342,10 +386,6 @@ void EDITOR_Render()
 	}
 
 	SDL_UpdateRect(screen, 0, 0, SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE);
-}
-
-void EDITOR_enter_click()
-{
 }
 
 void grab_vertex()
@@ -373,6 +413,18 @@ void cancel_grab()
 	loaded_level.vertexes[grabbed_vector_index] = grabbed_vector_start;
 }
 
+void cancel_new_sector()
+{
+	drawing_sector = 0;
+	new_sector_size = 0;
+
+	free(creating_sector->e);
+	free(creating_sector);
+
+	WORLD_remove_n_vertexes(new_sector_size);
+}
+
+
 extern bool e_running;
 SDL_Event event;
 
@@ -383,6 +435,10 @@ void EDITOR_Handle_Input()
 	if(keystate[SDLK_LSHIFT])
 	{
 		cursor_speed = run_cursor_speed;
+	}
+	else if(keystate[SDLK_LCTRL])
+	{
+		cursor_speed = crawl_cursor_speed;
 	}
 	else
 	{
@@ -478,14 +534,16 @@ void EDITOR_Handle_Input()
 			{
 				if(grabbed)
 					cancel_grab();
+
+				if(drawing_sector)
+					cancel_new_sector();
 			}
 
 			if(event.key.keysym.sym == SDLK_SPACE)
 			{
 				if(drawing_sector == 0)
 					new_sector();
-
-				if(drawing_sector == 1)
+				else if(drawing_sector == 1)
 					new_edge();
 			}
 		}
