@@ -46,10 +46,9 @@ extern float current_fps;
 extern bool show_fps;
 
 int grabbed = 0;
-
 int snap_to_grid = 0;
-
 int occupied = 0;
+int show_info = 0;
 
 int grabbed_vector_index;
 VECTOR2 grabbed_vector_start;
@@ -164,6 +163,7 @@ void save_sector()
 void new_sector()
 {
 	drawing_sector = 1;
+	occupied = 1;
 
 	creating_sector = malloc(sizeof(SECTOR));
 	creating_sector->sector_id = loaded_level.s_num;
@@ -231,6 +231,7 @@ void new_edge()
 		{
 			drawing_sector = 0;
 			occupied = 0;
+			new_sector_size = 0;
 			save_sector();
 			return;
 		}
@@ -367,6 +368,37 @@ void draw_ui()
 		sprintf(buffer, "y = %f", grabbed_vector_location.y);
 		GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
 	}
+
+	if(show_info == 1)
+	{
+		sprintf(buffer, "SID = %i", closest_sector_index);
+		GFX_draw_string(point2(120, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		sprintf(buffer, "EID = %i", closest_edge_index);
+		GFX_draw_string(point2(120, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		sprintf(buffer, "PORTAL = %i", closest_edge->is_portal);
+		GFX_draw_string(point2(188, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+
+		if(closest_edge->is_portal)
+		{
+			sprintf(buffer, "NID = %i", closest_edge->neighbor_sector_id);
+			GFX_draw_string(point2(188, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		}
+
+		sprintf(buffer, "S=%i", loaded_level.s_num);
+		GFX_draw_string(point2(274, 240-27), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		sprintf(buffer, "E=%i", (loaded_level.sectors + closest_sector_index)->e_num);
+		GFX_draw_string(point2(274, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		sprintf(buffer, "V=%i", loaded_level.v_num);
+		GFX_draw_string(point2(274, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		
+		if(grabbed == 0)
+		{
+			sprintf(buffer, "x = %f", editor_cursor.x);
+			GFX_draw_string(point2(0, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+			sprintf(buffer, "y = %f", editor_cursor.y);
+			GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		}
+	}
 }
 
 void draw_closest_markers()
@@ -465,12 +497,12 @@ void cancel_new_sector()
 	drawing_sector = 0;
 	occupied = 0;
 
-	new_sector_size = 0;
-
 	free(creating_sector->e);
 	free(creating_sector);
 
 	WORLD_remove_n_vertexes(new_sector_size);
+
+	new_sector_size = 0;
 }
 
 extern bool e_running;
@@ -566,6 +598,12 @@ void EDITOR_Handle_Input()
 				}
 			}
 
+			if(event.key.keysym.sym == 'i')
+			{
+				show_info = !show_info;
+			}
+
+
 			if(event.key.keysym.sym == 'g')
 				snap_to_grid = !snap_to_grid;
 
@@ -599,9 +637,9 @@ void EDITOR_Handle_Input()
 				delete_vertex();
 			}
 
-			if(event.key.keysym.sym == SDLK_SPACE && occupied == 0)
+			if(event.key.keysym.sym == SDLK_SPACE)
 			{
-				if(drawing_sector == 0)
+				if(drawing_sector == 0 && occupied == 0)
 					new_sector();
 				else if(drawing_sector == 1)
 					new_edge();

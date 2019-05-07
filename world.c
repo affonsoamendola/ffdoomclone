@@ -74,6 +74,7 @@ void WORLD_delete_sector_at(int index)
 
 	for(int i = index + 1; i < loaded_level.s_num; i++)
 	{
+		loaded_level.sectors[i].sector_id--;
 		new_sectors[i-1] = loaded_level.sectors[i];
 	}
 
@@ -289,6 +290,7 @@ void level_load(const char * file_location)
 			new_edge.v_end = *(sector_vertexes + end_vertex);
 
 			new_edge.is_portal = false;
+			new_edge.neighbor_sector_id = -1;
 
 			for(int old_s = 0; old_s < s; old_s ++)
 			{
@@ -375,6 +377,8 @@ void WORLD_remove_n_vertexes(int n)
 		new_vertexes[v] = loaded_level.vertexes[v];
 	}
 
+	loaded_level.v_num -= n;
+
 	free(loaded_level.vertexes);
 
 	loaded_level.vertexes = new_vertexes;
@@ -401,7 +405,30 @@ int WORLD_add_edge_to_sector(SECTOR * sector, int vertex_start_index, int vertex
 	new_edge.text_param = DEFAULT_TEXTURE_PARAM;
 
 	new_edge.is_portal = 0;
-	new_edge.neighbor_sector_id = 0;
+	new_edge.neighbor_sector_id = -1;
+
+	SECTOR * old_sector;
+	EDGE * old_edge;
+
+	for(int old_s = 0; old_s < loaded_level.s_num; old_s ++)
+	{
+		old_sector = loaded_level.sectors + old_s;
+
+		for(int old_e = 0; old_e < old_sector->e_num; old_e ++)
+		{
+			old_edge = old_sector->e + old_e;
+
+			if( (new_edge.v_start == old_edge->v_start && new_edge.v_end == old_edge->v_end) ||
+				(new_edge.v_start == old_edge->v_end && new_edge.v_end == old_edge->v_start))
+			{
+				new_edge.is_portal = true;
+				old_edge->is_portal = true;
+
+				new_edge.neighbor_sector_id = old_s;
+				old_edge->neighbor_sector_id = sector->sector_id;
+			}
+		}	
+	}
 
 	new_e[new_edge_index] = new_edge;
 
@@ -426,6 +453,7 @@ int WORLD_add_sector_to_level(SECTOR * sector)
 		new_sectors[i] = loaded_level.sectors[i];
 	}
 
+	sector->sector_id = new_sector_index;
 	new_sectors[new_sector_index] = *sector;
 	loaded_level.s_num += 1;
 
