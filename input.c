@@ -14,6 +14,9 @@
 
 extern bool e_running;
 
+extern bool game_mode;
+extern bool edit_mode;
+
 char* console_buffer;
 int console_buffer_cursor_pos;
 
@@ -228,13 +231,18 @@ void INPUT_Handle()
 				{
 					set_console_open(!get_console_open());
 				}
-				else if(event.key.keysym.sym == 'p')
+				else if(event.key.keysym.sym == 'i')
 				{
 					show_fps = !show_fps;
 				}
 				else if(event.key.keysym.sym == 'm')
 				{
 					show_map = !show_map;
+				}
+				else if(event.key.keysym.sym == 'p')
+				{
+					edit_mode = !edit_mode;
+					game_mode = !game_mode;
 				}
 			}
 		}

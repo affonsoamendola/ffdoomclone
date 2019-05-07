@@ -45,6 +45,9 @@ extern SDL_Surface * screen;
 extern float current_fps;
 extern bool show_fps;
 
+extern bool edit_mode;
+extern bool game_mode;
+
 int grabbed = 0;
 int snap_to_grid = 0;
 int occupied = 0;
@@ -594,7 +597,9 @@ void EDITOR_Handle_Input()
 			if(event.key.keysym.sym == 'p')
 			{
 				if(occupied == 0)
-				{
+				{	
+					edit_mode = !edit_mode;
+					game_mode = !game_mode;
 				}
 			}
 
@@ -602,7 +607,6 @@ void EDITOR_Handle_Input()
 			{
 				show_info = !show_info;
 			}
-
 
 			if(event.key.keysym.sym == 'g')
 				snap_to_grid = !snap_to_grid;
