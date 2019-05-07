@@ -28,6 +28,166 @@ VECTOR2 get_vertex_at(int index)
 	}
 }
 
+void delete_edge_at(int sector_index, int edge_index)
+{
+	EDGE * new_e;
+	SECTOR * sector;
+
+	sector = loaded_level.sectors + sector_index;
+
+	new_e = malloc(sizeof(EDGE) * (sector->e_num-1));
+
+	for(int i = 0; i < edge_index; i++)
+	{
+		new_e[i] = sector->e[i];
+	}
+
+	for(int i = edge_index + 1; i < sector->e_num; i++)
+	{
+		new_e[i-1] = sector->e[i];
+	}
+
+	sector->e_num -= 1;
+
+	free(sector->e);
+
+	if(sector->e_num == 0)
+	{
+		WORLD_delete_sector_at(sector_index);
+	}
+	else
+	{
+		sector->e = new_e;
+	}
+}
+
+void WORLD_delete_sector_at(int index)
+{
+	SECTOR * new_sectors;
+
+	new_sectors = malloc(sizeof(SECTOR) * (loaded_level.s_num - 1));
+
+	for(int i = 0; i < index; i++)
+	{
+		new_sectors[i] = loaded_level.sectors[i];
+	}
+
+	for(int i = index + 1; i < loaded_level.s_num; i++)
+	{
+		new_sectors[i-1] = loaded_level.sectors[i];
+	}
+
+	free(loaded_level.sectors);
+
+	loaded_level.sectors = new_sectors;
+	loaded_level.s_num -= 1;
+}
+
+void WORLD_delete_vertex_at(int index)
+{
+	if(loaded_level.v_num > 0)
+	{
+		VECTOR2 * new_vertexes;
+
+		new_vertexes = malloc(sizeof(VECTOR2) * (loaded_level.v_num - 1));
+
+		for(int i = 0; i < index; i++)
+		{
+			new_vertexes[i] = loaded_level.vertexes[i];
+		}
+
+		for(int i = index + 1; i < loaded_level.v_num; i ++)
+		{
+			new_vertexes[i - 1] = loaded_level.vertexes[i];
+		}
+
+		loaded_level.v_num -= 1;
+
+		free(loaded_level.vertexes);
+		loaded_level.vertexes = new_vertexes;
+
+		SECTOR * current_sector;
+		EDGE * current_edge;
+		EDGE * next_edge;
+		int next_edge_index;
+
+		int sector_amount;
+
+		sector_amount = loaded_level.s_num;
+
+		for(int s = 0; s < sector_amount; s++)
+		{
+			current_sector = loaded_level.sectors + s;
+
+			for(int e = 0; e < current_sector->e_num; e++)
+			{	
+				current_edge = current_sector->e + e;
+
+				if(e == current_sector->e_num - 1)
+				{
+					next_edge_index = 0;
+				}
+				else
+				{
+					next_edge_index = e + 1;
+				}
+
+				next_edge = current_sector->e + next_edge_index;
+
+				if(current_edge->v_end == index)
+				{
+					current_edge->v_end = next_edge->v_end;
+
+					delete_edge_at(s, next_edge_index);
+
+					if(sector_amount > loaded_level.s_num)
+					{
+						sector_amount = loaded_level.s_num;
+						s--;
+						break;
+					}
+				}
+			}
+		}
+
+		for(int s = 0; s < loaded_level.s_num; s++)
+		{
+			current_sector = loaded_level.sectors + s;
+
+			for(int e = 0; e < current_sector->e_num; e++)
+			{	
+				current_edge = current_sector->e + e;
+
+				if(current_edge->v_start > index)
+					current_edge->v_start--;
+
+				if(current_edge->v_end > index)
+					current_edge->v_end--;
+			}
+		}
+	}
+}
+
+EDGE * get_edge_from_level(int sector_index, int edge_index)
+{
+	SECTOR * sector;
+	EDGE * edge;
+
+	edge = NULL;
+
+	if(sector_index < loaded_level.s_num)
+	{
+		sector = loaded_level.sectors + sector_index;
+		
+		if(edge_index < sector->e_num)
+		{	
+			edge = sector->e + edge_index;
+		}
+	}
+
+	return edge;
+}
+
 EDGE * get_edge_at(SECTOR * sector, int edge_index)
 {
 	if(edge_index >= 0 && edge_index < sector->e_num)
@@ -312,4 +472,60 @@ void get_closest_vertex(VECTOR2 pos, VECTOR2 * closest, int * vertex_index, floa
 	{
 		*distance = closest_distance;
 	}
+}
+
+void get_closest_edge(VECTOR2 pos, EDGE ** edge, VECTOR2 * projection, int * edge_index, int * sector_index, float * distance)
+{
+	float closest_edge_index;
+	float closest_sector_index;
+	float closest_distance;
+	VECTOR2 closest_projection;
+
+	SECTOR * current_sector;
+	EDGE * current_edge;
+	VECTOR2 current_projection;
+
+	float current_distance;
+
+	current_distance = distance_v2_to_segment(pos, get_vertex_at(loaded_level.sectors->e->v_start), get_vertex_at(loaded_level.sectors->e->v_end), &current_projection);
+	
+	closest_edge_index = 0;
+	closest_sector_index = 0;
+	closest_distance = current_distance;
+	closest_projection = current_projection;
+
+	for(int s = 0; s < loaded_level.s_num; s++)
+	{
+		current_sector = loaded_level.sectors + s;
+
+		for(int e = 0; e < current_sector->e_num; e++)
+		{
+			current_edge = current_sector->e + e;
+
+			current_distance = distance_v2_to_segment(pos, get_vertex_at(current_edge->v_start), get_vertex_at(current_edge->v_end), &current_projection);
+		
+			if(	current_distance < closest_distance)
+			{
+				closest_edge_index = e;
+				closest_sector_index = s;
+				closest_distance = current_distance;
+				closest_projection = current_projection;
+			}
+		}
+	}
+
+	if(edge != NULL)
+		*edge = get_edge_from_level(closest_sector_index, closest_edge_index);
+
+	if(projection != NULL)
+		*projection = closest_projection;
+
+	if(edge_index != NULL)
+		*edge_index = closest_edge_index;
+
+	if(sector_index != NULL)
+		*sector_index = closest_sector_index;
+
+	if(distance != NULL)
+		*distance = closest_distance;
 }

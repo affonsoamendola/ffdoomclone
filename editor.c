@@ -18,8 +18,15 @@ VECTOR2 editor_center;
 VECTOR2 editor_cursor;
 
 int closest_vector_index;
+int closest_edge_index;
+int closest_sector_index;
+VECTOR2 closest_edge_projection;
+
 VECTOR2 closest_vector;
+EDGE * closest_edge;
+
 float closest_vector_distance;
+float closest_edge_distance;
 
 float grid_size = 0.1;
 
@@ -41,6 +48,8 @@ extern bool show_fps;
 int grabbed = 0;
 
 int snap_to_grid = 0;
+
+int occupied = 0;
 
 int grabbed_vector_index;
 VECTOR2 grabbed_vector_start;
@@ -66,7 +75,6 @@ int drawing_sector = 0;
 void move_cursor(VECTOR2 amount)
 {
 	editor_cursor = sum_v2(editor_cursor, amount);
-	get_closest_vertex(editor_cursor, &closest_vector, &closest_vector_index, &closest_vector_distance);
 
 	if(	editor_cursor.x < top_left_border.x || editor_cursor.y >= top_left_border.y ||
 		editor_cursor.x >= bottom_right_border.x || editor_cursor.y < bottom_right_border.y)
@@ -149,6 +157,7 @@ VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
 
 void save_sector()
 {
+
 	WORLD_add_sector_to_level(creating_sector);
 }
 
@@ -221,6 +230,7 @@ void new_edge()
 		if(first_vector_index == closest_vector_index)
 		{
 			drawing_sector = 0;
+			occupied = 0;
 			save_sector();
 			return;
 		}
@@ -230,6 +240,11 @@ void new_edge()
 	}
 }
 
+void delete_vertex()
+{
+
+	WORLD_delete_vertex_at(closest_vector_index);
+}
 
 void draw_cursor()
 {
@@ -354,6 +369,32 @@ void draw_ui()
 	}
 }
 
+void draw_closest_markers()
+{
+	POINT2 closest_vector_ss;
+	POINT2 closest_projection_ss;
+
+	closest_vector_ss = convert_ws_to_editor_ss(closest_vector);
+	closest_projection_ss = convert_ws_to_editor_ss(closest_edge_projection);
+
+	unsigned int line_color;
+
+	if(closest_edge->is_portal == 1)
+	{
+		line_color = GFX_Map_Color(GFX_Color(0, 0, 110));
+	}
+	else
+	{
+		line_color = GFX_Map_Color(GFX_Color(0, 0, 210));
+	}
+
+	GFX_draw_line(screen, convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_start)), convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_end)), line_color);
+
+	GFX_set_pixel(screen, closest_projection_ss.x, closest_projection_ss.y, GFX_Map_Color(GFX_Color(255, 0, 0)), 0);
+
+	GFX_set_pixel(screen, closest_vector_ss.x, closest_vector_ss.y, GFX_Map_Color(GFX_Color(0, 0, 255)), 0);
+}
+
 void EDITOR_Render()
 {
 	if(SDL_MUSTLOCK(screen))
@@ -371,7 +412,10 @@ void EDITOR_Render()
 
 	draw_editor_map();
 	draw_new_sector_preview();
+	draw_closest_markers();
+
 	draw_cursor();
+
 	draw_ui();
 
 	if(show_fps)
@@ -391,6 +435,7 @@ void EDITOR_Render()
 void grab_vertex()
 {
 	grabbed = 1;
+	occupied = 1;
 	
 	grabbed_vector_index = closest_vector_index;
 	grabbed_vector_start = closest_vector;
@@ -399,6 +444,7 @@ void grab_vertex()
 void drop_vertex()
 {
 	grabbed = 0;
+	occupied = 0;
 
 	if(snap_to_grid)
 		loaded_level.vertexes[grabbed_vector_index] = grabbed_vector_location;
@@ -409,6 +455,7 @@ void drop_vertex()
 void cancel_grab()
 {
 	grabbed = 0;
+	occupied = 0;
 
 	loaded_level.vertexes[grabbed_vector_index] = grabbed_vector_start;
 }
@@ -416,6 +463,8 @@ void cancel_grab()
 void cancel_new_sector()
 {
 	drawing_sector = 0;
+	occupied = 0;
+
 	new_sector_size = 0;
 
 	free(creating_sector->e);
@@ -423,7 +472,6 @@ void cancel_new_sector()
 
 	WORLD_remove_n_vertexes(new_sector_size);
 }
-
 
 extern bool e_running;
 SDL_Event event;
@@ -505,10 +553,17 @@ void EDITOR_Handle_Input()
 		{
 			if(event.key.keysym.sym == 'm')
 			{
-				if(grabbed == 0)
+				if(grabbed == 0 && occupied == 0)
 					grab_vertex();
 				else if(grabbed == 1)
 					drop_vertex();
+			}
+
+			if(event.key.keysym.sym == 'p')
+			{
+				if(occupied == 0)
+				{
+				}
 			}
 
 			if(event.key.keysym.sym == 'g')
@@ -539,7 +594,12 @@ void EDITOR_Handle_Input()
 					cancel_new_sector();
 			}
 
-			if(event.key.keysym.sym == SDLK_SPACE)
+			if(event.key.keysym.sym == SDLK_DELETE && occupied == 0)
+			{
+				delete_vertex();
+			}
+
+			if(event.key.keysym.sym == SDLK_SPACE && occupied == 0)
 			{
 				if(drawing_sector == 0)
 					new_sector();
@@ -566,10 +626,15 @@ void EDITOR_Loop()
 		grabbed_vector_location = get_closest_grid(editor_cursor);
 		loaded_level.vertexes[grabbed_vector_index] = get_closest_grid(editor_cursor);
 	}
+
+	get_closest_vertex(editor_cursor, &closest_vector, &closest_vector_index, &closest_vector_distance);
+	get_closest_edge(editor_cursor, &closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &closest_edge_distance);
 }
 
 void EDITOR_Init()
 {
 	editor_center = vector2(0., 0.);
 	editor_cursor = vector2(0., 0.);
+
+	closest_edge = get_edge_from_level(0, 0);
 }

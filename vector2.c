@@ -97,6 +97,47 @@ VECTOR2 rot_v2(VECTOR2 vector, float ang_rad)
 	return new_vector;
 }
 
+float distance_v2_to_segment(VECTOR2 point, VECTOR2 start, VECTOR2 end, VECTOR2 * closest_point)
+{
+	float distance;
+
+	VECTOR2 v;
+	VECTOR2 w;
+
+	float c1, c2;
+
+	v = sub_v2 (end, start);
+	w = sub_v2 (point, start);
+
+	c1 = dot_v2(v, w);
+
+	if(c1 <= 0)
+	{
+		if(closest_point != NULL)
+			*closest_point = start;
+		return norm_v2(sub_v2(point, start));
+	}
+
+	c2 = dot_v2(v, v);
+
+	if(c2 <= c1)
+	{
+		if(closest_point != NULL)
+			*closest_point = end;
+		return norm_v2(sub_v2(point, end));
+	}
+
+	float p = c1/c2;
+
+	VECTOR2 projection;
+
+	projection = sum_v2(start, scale_v2(v, p));
+
+	if(closest_point != NULL)
+		*closest_point = projection;
+
+	return norm_v2(sub_v2(projection, point));			
+}
 
 VECTOR2 intersect_v2(VECTOR2 start_a, VECTOR2 end_a, VECTOR2 start_b, VECTOR2 end_b)
 {

@@ -13,4 +13,6 @@ void EDITOR_Render();
 void EDITOR_Handle_Input();
 void EDITOR_Loop();
 
+void EDITOR_Init();
+
 #endif

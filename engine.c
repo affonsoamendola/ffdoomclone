@@ -60,6 +60,7 @@ void ENGINE_Init()
 	INPUT_Init();
 
 	WORLD_Init();
+	EDITOR_Init();
 
 	COMMAND_intro();
 
