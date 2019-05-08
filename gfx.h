@@ -31,6 +31,7 @@ GFX_TEXTURE_PARAM;
 
 typedef struct GFX_TEXTURE_
 {
+	int loaded;
 	SDL_Surface * surface;
 
 	int size_x;

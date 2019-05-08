@@ -70,6 +70,19 @@ GFX_TEXTURE loaded_textures[TEX_ID_SIZE];
 
 GFX_TEXTURE_PARAM default_texture;
 
+void GFX_load_resource_list(char* location)
+{
+	FILE * resource_list = fopen(location, "r");
+
+	int tex_id;
+	char buffer[128];
+
+	while(fscanf(resource_list, "%i %s", &tex_id, buffer) == 2)
+	{
+		GFX_load_texture(buffer, tex_id);
+	}
+}
+
 void GFX_load_texture(char* location, int tex_id)
 {
 	GFX_TEXTURE new_texture;
@@ -81,6 +94,7 @@ void GFX_load_texture(char* location, int tex_id)
 	if(tex_surface == NULL)
 		printf("Could not load texture id %i, (File: %s), Error: %s\n", tex_id, location, SDL_GetError());
 
+	loaded_textures[tex_id].loaded = 1;
 	loaded_textures[tex_id].surface = tex_surface;
 
 	loaded_textures[tex_id].size_x = tex_surface->w;
@@ -89,6 +103,7 @@ void GFX_load_texture(char* location, int tex_id)
 
 void GFX_unload_texture(int tex_id)
 {
+	loaded_textures[tex_id].loaded = 0;
 	SDL_FreeSurface(loaded_textures[tex_id].surface);
 }
 
@@ -131,11 +146,6 @@ void GFX_Init()
 	
 	GFX_load_font("8x8Font.fnt");
 
-	GFX_load_texture("ground.png", 3);
-	GFX_load_texture("wall.png", 0);
-	GFX_load_texture("skybox.png", 1);
-	GFX_load_texture("terminator.png", 2);
-
 	default_texture.id = 0;
 	default_texture.parallax = 0;
 
@@ -144,6 +154,13 @@ void GFX_Init()
 
 	default_texture.u_scale = 1.;
 	default_texture.v_scale = 1.;
+
+	for(int i = 0; i < TEX_ID_SIZE; i++)
+	{
+		loaded_textures[i].loaded = 0;
+	}
+
+	GFX_load_resource_list("graphix/default.rls");
 }
 
 void GFX_Quit()
