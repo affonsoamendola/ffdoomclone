@@ -13,6 +13,8 @@ char buffer[128];
 
 extern LEVEL loaded_level;
 
+extern int player_noclip;
+
 void COMMAND_ver()
 {
 	CONSOLE_print("\nRT76800");	
@@ -58,4 +60,16 @@ void COMMAND_vertex_list()
 		sprintf(buffer, "\n%f %f", (loaded_level.vertexes + v)->x, (loaded_level.vertexes + v)->y);
 		CONSOLE_print(buffer);
 	}
+}
+
+void COMMAND_noclip()
+{
+	player_noclip = !player_noclip;
+
+	if(player_noclip == 1)
+		CONSOLE_print("\nFLY YOU FOOL");
+
+	if(player_noclip == 0)
+		CONSOLE_print("\nYOU ARE GROUNDED");
+
 }

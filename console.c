@@ -159,6 +159,11 @@ void parse_token(char** token)
 			COMMAND_vertex_list();
 		}
 	}
+
+	if(command_check("noclip", token, 0))
+	{
+		COMMAND_noclip();
+	}
 }
 
 void parse_console(char* text_input)

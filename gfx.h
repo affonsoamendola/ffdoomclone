@@ -13,6 +13,14 @@ typedef struct COLOR_
 }
 COLOR;
 
+typedef struct TINT_
+{
+	float r;
+	float g;
+	float b;
+}
+TINT;
+
 typedef struct GFX_TEXTURE_PARAM_
 {
 	int id;
@@ -64,7 +72,7 @@ void GFX_Draw_Editor();
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 							float bot_height, float top_height,
-							GFX_TEXTURE_PARAM texture_parameters);
+							GFX_TEXTURE_PARAM texture_parameters, TINT tint);
 
 void GFX_set_pixel_from_texture(SDL_Surface *surface,
 								GFX_TEXTURE_PARAM texture,
@@ -87,13 +95,20 @@ void GFX_draw_wall(	int screen_x,
 					int c_height_visible, int c_height_invisible,
 					int f_height_visible, int f_height_invisible,
 					int x0, int x1, int u0, int u1, float z0, float z1,
-					GFX_TEXTURE_PARAM texture_parameters);
+					GFX_TEXTURE_PARAM texture_parameters,
+					TINT tint);
 
 void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 						int is_ceiling, float visplane_height, 
-						GFX_TEXTURE_PARAM texture_parameters);
+						GFX_TEXTURE_PARAM texture_parameters,
+						TINT tint);
 
 
+unsigned int GFX_Scale_Pixel(unsigned int pixel, float scale);
+unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint);
+
+
+TINT GFX_Tint(float r, float g, float b);
 COLOR GFX_Color(int r, int g, int b);
 COLOR GFX_Color_scale(COLOR color, float factor);
 unsigned int GFX_Map_Color(COLOR color);

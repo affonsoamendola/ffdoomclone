@@ -332,6 +332,8 @@ void level_load(const char * file_location)
 		fscanf(level_file, "%u", &(current_sector->text_param_floor.v_offset));
 		fscanf(level_file, "%f", &(current_sector->text_param_floor.u_scale));
 		fscanf(level_file, "%f", &(current_sector->text_param_floor.v_scale));
+
+		current_sector->tint = GFX_Tint(1.f, 0.2f, 0.2f);
 	}
 
 	fclose(level_file);

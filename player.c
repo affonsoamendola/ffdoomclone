@@ -15,7 +15,7 @@ float player_pos_height = PLAYER_START_HEIGHT;
 
 float player_facing = 0.00001;
 
-int player_noclip = 1;
+int player_noclip = 0;
 
 float player_walk_speed = 2.0f;
 float player_run_speed = 4.0f;
@@ -69,7 +69,8 @@ void player_move(VECTOR2 amount)
 	if(allow_move)
 	{
 		player_pos = to_pos;
-	
-		//player_pos_height = current_sector->floor_height + player_height;
+		
+		if(player_noclip == 0)
+			player_pos_height = current_sector->floor_height + player_height;
 	}
 }

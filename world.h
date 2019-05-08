@@ -24,6 +24,8 @@ typedef struct SECTOR_
 	float ceiling_height;
 	float floor_height;
 
+	TINT tint;
+
 	GFX_TEXTURE_PARAM text_param_ceil;
 	GFX_TEXTURE_PARAM text_param_floor;
 

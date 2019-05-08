@@ -387,10 +387,8 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 	}
 }
 
-void GFX_set_pixel_from_texture(SDL_Surface *surface,
-								GFX_TEXTURE_PARAM texture,
-								int screen_x, int screen_y,
-								int text_x, int text_y)
+unsigned int GFX_get_pixel_from_texture(	GFX_TEXTURE_PARAM texture,
+											int text_x, int text_y)
 {
 	int u;
 	int v;
@@ -410,9 +408,55 @@ void GFX_set_pixel_from_texture(SDL_Surface *surface,
 	u = clamp_int(u, text_size_x-1, 0);
 	v = clamp_int(v, text_size_y-1, 0);
 
-	GFX_set_pixel(surface, screen_x, screen_y, GFX_get_pixel(	loaded_textures[texture.id].surface, 
-																u, 
-																v), 1);
+	return GFX_get_pixel(	loaded_textures[texture.id].surface, u, v);
+}
+
+void GFX_set_pixel_from_texture_depth_tint(	SDL_Surface *surface,
+											GFX_TEXTURE_PARAM texture,
+											int screen_x, int screen_y,
+											int text_x, int text_y, 
+											float depth, TINT tint)
+{
+	unsigned int pixel;
+
+	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
+
+	float relative_z = (yon_z - depth)/(yon_z - hither_z);
+
+	GFX_set_pixel(surface, screen_x, screen_y, 
+				  GFX_Tint_Pixel(	GFX_Scale_Pixel(  	pixel, 
+				  										relative_z), 
+				  					tint),
+				  1);
+}
+
+void GFX_set_pixel_from_texture_depth(	SDL_Surface *surface,
+										GFX_TEXTURE_PARAM texture,
+										int screen_x, int screen_y,
+										int text_x, int text_y, float depth)
+{
+	unsigned int pixel;
+
+	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
+
+	float relative_z = (yon_z - depth)/(yon_z - hither_z);
+
+	GFX_set_pixel(surface, screen_x, screen_y, 
+				  GFX_Scale_Pixel(  pixel, 
+				  					relative_z), 
+				  1);
+}
+
+void GFX_set_pixel_from_texture(	SDL_Surface *surface,
+									GFX_TEXTURE_PARAM texture,
+									int screen_x, int screen_y,
+									int text_x, int text_y)
+{
+	unsigned int pixel;
+
+	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);	
+
+	GFX_set_pixel(surface, screen_x, screen_y, pixel, 1);
 }
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel)
@@ -575,6 +619,17 @@ void GFX_draw_map()
 	}
 }
 
+TINT GFX_Tint(float r, float g, float b)
+{
+	TINT tint;
+
+	tint.r = r;
+	tint.g = g;
+	tint.b = b;
+
+	return tint;
+}
+
 COLOR GFX_Color(int r, int g, int b)
 {
 	COLOR new_color;
@@ -603,12 +658,77 @@ unsigned int GFX_Map_Color(COLOR color)
 	return SDL_MapRGB(screen->format, color.r, color.g, color.b);
 }
 
+unsigned int GFX_Scale_Pixel(unsigned int pixel, float scale)
+{
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+
+	SDL_GetRGB(pixel, screen->format, &r, &g, &b);
+
+	r = (unsigned char)(((float)r) * scale);
+	g = (unsigned char)(((float)g) * scale);
+	b = (unsigned char)(((float)b) * scale);
+
+	if(scale <= 0)
+	{
+		r = 0;
+		g = 0;
+		b = 0;
+	}
+
+	unsigned int scaled_pixel;
+
+	scaled_pixel = SDL_MapRGB(screen->format, r, g, b);
+
+	return scaled_pixel;
+}
+
+unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint)
+{
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+
+	SDL_GetRGB(pixel, screen->format, &r, &g, &b);
+
+	r = (unsigned char)(((float)r) * tint.r);
+	g = (unsigned char)(((float)g) * tint.g);
+	b = (unsigned char)(((float)b) * tint.b);
+
+	unsigned int scaled_pixel;
+
+	scaled_pixel = SDL_MapRGB(screen->format, r, g, b);
+
+	return scaled_pixel;
+}
+
 VECTOR2 convert_ss_to_ws(POINT2 screen_space, float height)
 {
 	VECTOR2 world_space;
 
 	world_space.y = -(((float)(height)) * camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
 	world_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * world_space.y) / camera_parameters_x;
+
+	world_space = rot_v2(world_space, -player_facing);
+	world_space = sum_v2(world_space, player_pos);
+
+	return world_space;
+}
+
+VECTOR2 convert_ss_to_rs(POINT2 screen_space, float height)
+{
+	VECTOR2 relative_space;
+
+	relative_space.y = -(((float)(height)) * camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
+	relative_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * relative_space.y) / camera_parameters_x;
+
+	return relative_space;
+}
+
+VECTOR2 convert_rs_to_ws(VECTOR2 relative_space)
+{
+	VECTOR2 world_space;
 
 	world_space = rot_v2(world_space, -player_facing);
 	world_space = sum_v2(world_space, player_pos);
@@ -733,369 +853,6 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 	}
 }
 
-/*
-{
-	void sort3y_p2_uv(POINT2 * points, VECTOR2 * uvs)
-	{
-		if(points[0].y > points[1].y)
-		{	
-			swap_p2(&points[0], &points[1]);
-			swap_v2(&uvs[0], &uvs[1]);
-		}
-
-		if(points[1].y > points[2].y)
-		{	
-			swap_p2(&points[1], &points[2]);
-			swap_v2(&uvs[1], &uvs[2]);
-		}
-
-		if(points[0].y > points[1].y)
-		{	
-			swap_p2(&points[0], &points[1]);
-			swap_v2(&uvs[0], &uvs[1]);
-		}
-	}
-
-	void GFX_texture_tri(	VECTOR2 relative_pos0, VECTOR2 uv0, float height0,
-							VECTOR2 relative_pos1, VECTOR2 uv1, float height1,
-							VECTOR2 relative_pos2, VECTOR2 uv2, float height2)
-	{
-		GFX_TEXTURE_PARAM texture;
-
-		texture.id = 0;
-
-		texture.parallax = 0;
-
-		texture.u_offset = 0;
-		texture.v_offset = 0;
-
-		texture.u_scale = 1.;
-		texture.v_scale = 1.;
-
-		POINT2 ss[3];
-		VECTOR2 uv[3];
-
-		float z[3];
-
-		z[0] = relative_pos0.y;
-		z[1] = relative_pos1.y;
-		z[2] = relative_pos2.y;
-
-		ss[0] = convert_rs_to_ss(relative_pos0, height0);
-		ss[1] = convert_rs_to_ss(relative_pos1, height1);
-		ss[2] = convert_rs_to_ss(relative_pos2, height2);
-
-		uv[0] = uv0;
-		uv[1] = uv1;
-		uv[2] = uv2;
-
-		sort3y_p2_uv(ss, uv);
-
-		int Adx, Ady;
-		int Bdx, Bdy;
-		float slopeA, slopeB;
-
-		int Ax0, Ay0, Ax1, Ay1;
-		int Bx0, By0, Bx1, By1;
-
-		float Au0, Av0, Au1, Av1;
-		float Bu0, Bv0, Bu1, Bv1;
-
-		float Az0, Az1;
-		float Bz0, Bz1;
-
-		if(point_side_v2(p2v2(ss[1]), p2v2(ss[2]), p2v2(ss[0])) == 1)
-		{
-			Ax0 = ss[0].x; Ax1 = ss[2].x;
-			Ay0 = ss[0].y; Ay1 = ss[2].y;
-
-			Bx0 = ss[0].x; Bx1 = ss[1].x;
-			By0 = ss[0].y; By1 = ss[1].y;
-			//////////////
-			Au0 = uv[0].x; Au1 = uv[2].x;
-			Av0 = uv[0].y; Av1 = uv[2].y;
-
-			Bu0 = uv[0].x; Bu1 = uv[1].x;
-			Bv0 = uv[0].y; Bv1 = uv[1].y;
-
-			Az0 = z[0]; Az1 = z[2];
-			Bz0 = z[0]; Bz1 = z[1];
-		}
-		else
-		{
-			Ax0 = ss[0].x; Ax1 = ss[1].x;
-			Ay0 = ss[0].y; Ay1 = ss[1].y;
-
-			Bx0 = ss[0].x; Bx1 = ss[2].x;
-			By0 = ss[0].y; By1 = ss[2].y;
-			//////////////
-			Au0 = uv[0].x; Au1 = uv[1].x;
-			Av0 = uv[0].y; Av1 = uv[1].y;
-
-			Bu0 = uv[0].x; Bu1 = uv[2].x;
-			Bv0 = uv[0].y; Bv1 = uv[2].y;
-
-			Az0 = z[0]; Az1 = z[1];
-			Bz0 = z[0]; Bz1 = z[2];
-		}
-
-		Adx = Ax1 - Ax0;
-		Ady = Ay1 - Ay0;
-
-		Bdx = Bx1 - Bx0;
-		Bdy = By1 - By0;
-
-		slopeA = (float)(Adx)/(float)(Ady);
-		slopeB = (float)(Bdx)/(float)(Bdy);
-
-		int start_y;
-		int end_y;
-
-		start_y = clamp_int(ss[0].y, SCREEN_RES_Y, 0);
-		end_y = clamp_int(ss[2].y, SCREEN_RES_Y, 0);
-
-		for(int y = start_y; y < end_y; y++)
-		{
-			if(y == ss[1].y)
-			{
-				if(point_side_v2(p2v2(ss[1]), p2v2(ss[2]), p2v2(ss[0])) == 1)
-				{
-					Ax0 = ss[0].x; Ax1 = ss[2].x;
-					Ay0 = ss[0].y; Ay1 = ss[2].y;
-
-					Bx0 = ss[1].x; Bx1 = ss[2].x;
-					By0 = ss[1].y; By1 = ss[2].y;
-					//////////////
-					Au0 = uv[0].x; Au1 = uv[2].x;
-					Av0 = uv[0].y; Av1 = uv[2].y;
-
-					Bu0 = uv[1].x; Bu1 = uv[2].x;
-					Bv0 = uv[1].y; Bv1 = uv[2].y;
-
-					Az0 = z[0]; Az1 = z[2];
-					Bz0 = z[1]; Bz1 = z[2];
-				}
-				else
-				{
-					Ax0 = ss[1].x; Ax1 = ss[2].x;
-					Ay0 = ss[1].y; Ay1 = ss[2].y;
-
-					Bx0 = ss[0].x; Bx1 = ss[2].x;
-					By0 = ss[0].y; By1 = ss[2].y;
-					//////////////
-					Au0 = uv[1].x; Au1 = uv[2].x;
-					Av0 = uv[1].y; Av1 = uv[2].y;
-
-					Bu0 = uv[0].x; Bu1 = uv[2].x;
-					Bv0 = uv[0].y; Bv1 = uv[2].y;
-
-					Az0 = z[1]; Az1 = z[2];
-					Bz0 = z[0]; Bz1 = z[2];
-				}
-					
-				Adx = Ax1 - Ax0;
-				Ady = Ay1 - Ay0;
-
-				Bdx = Bx1 - Bx0;
-				Bdy = By1 - By0;
-
-				slopeA = (float)(Adx)/(float)(Ady);
-				slopeB = (float)(Bdx)/(float)(Bdy);
-			}
-
-			float Arelative_y = (float)(y-Ay0)/(float)(Ady);
-			float Brelative_y = (float)(y-By0)/(float)(Bdy);
-
-			int x_start = (int)(slopeA * (float)(y - Ay0)) + Ax0;
-			int x_end = (int)(slopeB * (float)(y - By0)) + Bx0;
-
-			float t_step = 1./(float)(x_end - x_start);
-
-			float u_start = Arelative_y * (Au1 - Au0) + Au0;
-			float v_start = Arelative_y * (Av1 - Av0) + Av0;
-			float z_start = Arelative_y * (Az1 - Az0) + Az0;
-			float u_end = Brelative_y * (Bu1 - Bu0) + Bu0;
-			float v_end = Brelative_y * (Bv1 - Bv0) + Bv0;
-			float z_end = Brelative_y * (Bz1 - Bz0) + Bz0;
-
-			VECTOR2 uv_step = scale_v2(vector2(u_end - u_start, v_end - v_start), t_step);
-
-			float z_step = (z_end - z_start) * t_step;
-
-			VECTOR2 current_uv;
-			float current_z;
-
-			VECTOR2 start_uv = vector2(u_start, v_start);
-
-			int c_x_start = clamp_int(x_start, SCREEN_RES_X, 0);
-			int c_x_end = clamp_int(x_end, SCREEN_RES_X, 0);
-
-			for(int x = c_x_start; x < c_x_end; x++)
-			{
-				current_uv = sum_v2(start_uv, scale_v2(uv_step, (float)x-x_start));
-				current_z = z_start + z_step * (x-x_start);
-
-				if(x == 160)
-					printf("%f\n", current_z);
-
-				GFX_set_pixel_from_texture(	screen, texture, x, y,
-											(int)(current_uv.x*current_z * 128.),
-											(int)(current_uv.y*current_z * 128.) );
-
-			}		
-		}
-	}
-
-	int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
-						VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights)
-	{
-		//Clips a triangle with the hither z clipping plane, and gives the uvs and heights of every new vertex.
-		//Also returns 3 or 4, depending ou how many vertexes got returned
-
-		int poly_size = 0;
-		for(int i = 0; i < 3; i ++)
-		{
-			int next_element = i + 1;
-			if(next_element >= 3) next_element = 0;
-
-			if(vertexes[i].y >= hither_z && vertexes[next_element].y >= hither_z)
-			{
-				clipped_vertexes[poly_size] = vertexes[next_element];
-				clipped_uvs[poly_size] = uvs[next_element];
-				clipped_heights[poly_size] = heights[next_element];
-				poly_size += 1;
-			}
-			else if(vertexes[i].y < hither_z && vertexes[next_element].y >= hither_z)
-			{	
-				float relative_x;
-				VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
-				relative_x = (intersect.x - vertexes[i].x)/(vertexes[next_element].x - vertexes[i].x);
-				VECTOR2 i_uv = sum_v2(scale_v2(sub_v2(uvs[next_element], uvs[i]), relative_x), uvs[i]);
-				float i_height = relative_x * (heights[next_element] - heights[i]) + heights[i];
-
-				clipped_vertexes[poly_size] = intersect;
-				clipped_uvs[poly_size] = i_uv;
-				clipped_heights[poly_size] = i_height;
-
-				clipped_vertexes[poly_size+1] = vertexes[next_element];
-				clipped_uvs[poly_size+1] = uvs[next_element];
-				clipped_heights[poly_size+1] = heights[next_element];
-
-				poly_size += 2;
-			}
-			else if(vertexes[i].y >= hither_z && vertexes[next_element].y < hither_z)
-			{
-				float relative_x;
-				VECTOR2 intersect = intersect_v2(vector2(-10., hither_z), vector2(10., hither_z), vertexes[i], vertexes[next_element]);
-				relative_x = (intersect.x - vertexes[i].x)/(vertexes[next_element].x - vertexes[i].x);
-				VECTOR2 i_uv = sum_v2(scale_v2(sub_v2(uvs[next_element], uvs[i]), relative_x), uvs[i]);
-				float i_height = relative_x * (heights[next_element] - heights[i]) + heights[i];
-
-				clipped_vertexes[poly_size] = intersect;
-				clipped_uvs[poly_size] = i_uv;
-				clipped_heights[poly_size] = i_height;
-				poly_size += 1;
-			}
-		}
-
-		return poly_size;
-	}
-
-	void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0, 
-							VECTOR2 pos1, VECTOR2 uv1, float height1,
-							VECTOR2 pos2, VECTOR2 uv2, float height2, 
-							VECTOR2 pos3, VECTOR2 uv3, float height3)
-	{
-		VECTOR2 tri0_pos[3];
-		VECTOR2 tri0_uv[3];
-		float tri0_height[3];
-		VECTOR2 c_tri0_pos[4];
-		VECTOR2 c_tri0_uv[4];
-		float c_tri0_height[4];
-
-		VECTOR2 tri1_pos[3];
-		VECTOR2 tri1_uv[3];
-		float tri1_height[3];
-		VECTOR2 c_tri1_pos[4];
-		VECTOR2 c_tri1_uv[4];
-		float c_tri1_height[4];
-
-		convert_ws_to_rs(pos0, height0, &(tri0_pos[0]), &(tri0_height[0])); 
-		convert_ws_to_rs(pos1, height1, &(tri0_pos[1]), &(tri0_height[1]));
-		convert_ws_to_rs(pos2, height2, &(tri0_pos[2]), &(tri0_height[2]));
-
-		tri0_uv[0] = uv0;
-		tri0_uv[1] = uv1;
-		tri0_uv[2] = uv2;
-
-		////////////////////////
-
-		convert_ws_to_rs(pos0, height0, &(tri1_pos[0]), &(tri1_height[0])); 
-		convert_ws_to_rs(pos2, height2, &(tri1_pos[1]), &(tri1_height[1]));
-		convert_ws_to_rs(pos3, height3, &(tri1_pos[2]), &(tri1_height[2]));
-
-		tri1_uv[0] = uv0;
-		tri1_uv[1] = uv2;
-		tri1_uv[2] = uv3;
-		
-		if(GFX_clip_tri(tri0_pos, tri0_uv, tri0_height,
-						c_tri0_pos, c_tri0_uv, c_tri0_height) == 3)
-		{
-			GFX_texture_tri(c_tri0_pos[0], c_tri0_uv[0], c_tri0_height[0],
-							c_tri0_pos[1], c_tri0_uv[1], c_tri0_height[1],
-							c_tri0_pos[2], c_tri0_uv[2], c_tri0_height[2]);
-		}
-		else
-		{
-			GFX_texture_tri(c_tri0_pos[0], c_tri0_uv[0], c_tri0_height[0],
-							c_tri0_pos[1], c_tri0_uv[1], c_tri0_height[1],
-							c_tri0_pos[2], c_tri0_uv[2], c_tri0_height[2]);
-
-			GFX_texture_tri(c_tri0_pos[0], c_tri0_uv[0], c_tri0_height[0],
-							c_tri0_pos[2], c_tri0_uv[2], c_tri0_height[2],
-							c_tri0_pos[3], c_tri0_uv[3], c_tri0_height[3]);
-		}
-
-		if(GFX_clip_tri(tri1_pos, tri1_uv, tri1_height,
-						c_tri1_pos, c_tri1_uv, c_tri1_height) == 3)
-		{
-			GFX_texture_tri(c_tri1_pos[0], c_tri1_uv[0], c_tri1_height[0],
-							c_tri1_pos[1], c_tri1_uv[1], c_tri1_height[1],
-							c_tri1_pos[2], c_tri1_uv[2], c_tri1_height[2]);
-		}
-		else
-		{
-			GFX_texture_tri(c_tri1_pos[0], c_tri1_uv[0], c_tri1_height[0],
-							c_tri1_pos[1], c_tri1_uv[1], c_tri1_height[1],
-							c_tri1_pos[2], c_tri1_uv[2], c_tri1_height[2]);
-
-			GFX_texture_tri(c_tri1_pos[0], c_tri1_uv[0], c_tri1_height[0],
-							c_tri1_pos[2], c_tri1_uv[2], c_tri1_height[2],
-							c_tri1_pos[3], c_tri1_uv[3], c_tri1_height[3]);
-		}
-		/*
-		printf("ctri0 0 x%f y%f u%f v%f h%f\n", c_tri0_pos[0].x, c_tri0_pos[0].y,
-							c_tri0_uv[0].x, c_tri0_uv[0].y, c_tri0_height[0]);
-		printf("ctri0 1 x%f y%f u%f v%f h%f\n", c_tri0_pos[1].x, c_tri0_pos[1].y,
-							c_tri0_uv[1].x, c_tri0_uv[1].y, c_tri0_height[1]);
-		printf("ctri0 2 x%f y%f u%f v%f h%f\n", c_tri0_pos[2].x, c_tri0_pos[2].y,
-							c_tri0_uv[2].x, c_tri0_uv[2].y, c_tri0_height[2]);
-		printf("ctri0 3 x%f y%f u%f v%f h%f\n", c_tri0_pos[3].x, c_tri0_pos[3].y,
-							c_tri0_uv[3].x, c_tri0_uv[3].y, c_tri0_height[3]);
-
-		printf("ctri1 0 x%f y%f u%f v%f h%f\n", c_tri1_pos[0].x, c_tri1_pos[0].y,
-							c_tri1_uv[0].x, c_tri1_uv[0].y, c_tri1_height[0]);
-		printf("ctri1 1 x%f y%f u%f v%f h%f\n", c_tri1_pos[1].x, c_tri1_pos[1].y,
-							c_tri1_uv[1].x, c_tri1_uv[1].y, c_tri1_height[1]);
-		printf("ctri1 2 x%f y%f u%f v%f h%f\n", c_tri1_pos[2].x, c_tri1_pos[2].y,
-							c_tri1_uv[2].x, c_tri1_uv[2].y, c_tri1_height[2]);
-		printf("ctri1 3 x%f y%f u%f v%f h%f\n", c_tri1_pos[3].x, c_tri1_pos[3].y,
-							c_tri1_uv[3].x, c_tri1_uv[3].y, c_tri1_height[3]);
-		*//*
-	}
-}
-*/
-
 float get_view_plane_pos_x(int ssx)
 {
 	float pos_x = ((float)(ssx - SCREEN_RES_X/2)/(float)(SCREEN_RES_X/2)) *  hither_x;
@@ -1165,6 +922,8 @@ void GFX_render_3d()
 		for(int e = 0; e < current_sector->e_num; e++)
 		{
 			current_edge = current_sector->e + e;
+
+			TINT current_tint = current_sector->tint;
 
 			//if(start_screen_x == end_screen_x) continue;
 
@@ -1315,11 +1074,13 @@ void GFX_render_3d()
 				
 				GFX_draw_visplane(	x, y_undrawn_top[x], c_screen_y_ceil,
 									1, yceil - 0.02, 
-									current_sector->text_param_ceil);
+									current_sector->text_param_ceil, 
+									current_tint);
 
 				GFX_draw_visplane(	x, c_screen_y_floor, y_undrawn_bot[x],
 									0, yfloor + 0.02, 
-									current_sector->text_param_floor);
+									current_sector->text_param_floor, 
+									current_tint);
 
 				if(current_edge->is_portal)
 				{
@@ -1338,7 +1099,7 @@ void GFX_render_3d()
 										c_screen_y_ceil, screen_y_ceil, 
 										c_n_screen_y_ceil, n_screen_y_ceil, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-										current_edge->text_param); 
+										current_edge->text_param, current_tint); 
 					}
 
 					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
@@ -1351,7 +1112,7 @@ void GFX_render_3d()
 										c_n_screen_y_floor, n_screen_y_floor, 
 										c_screen_y_floor, screen_y_floor, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-										current_edge->text_param); 
+										current_edge->text_param, current_tint); 
 					}
 
 					y_undrawn_bot[x] = clamp_int(min_int(c_screen_y_floor, c_n_screen_y_floor), y_undrawn_bot[x], 0);
@@ -1363,7 +1124,7 @@ void GFX_render_3d()
 									c_screen_y_ceil, screen_y_ceil, 
 									c_screen_y_floor, screen_y_floor, 
 									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-									current_edge->text_param);
+									current_edge->text_param, current_tint);
 				}
 			}
 
@@ -1388,7 +1149,8 @@ void GFX_draw_wall(	int screen_x,
 					int top_visible, int top_invisible,
 					int bot_visible, int bot_invisible,
 					int x0, int x1, int u0, int u1, float z0, float z1,
-					GFX_TEXTURE_PARAM texture_parameters)
+					GFX_TEXTURE_PARAM texture_parameters,
+					TINT tint)
 {
 	int text_x = (int)((u0*((x1-screen_x)*z1) + u1*((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
 
@@ -1408,10 +1170,11 @@ void GFX_draw_wall(	int screen_x,
 		{
 			int text_y = (float)(screen_y - top_invisible)/(float)(bot_invisible - top_invisible) * (TEXTURE_SIZE_Y);
 
-			GFX_set_pixel_from_texture(	screen,
-										texture_parameters,
-										screen_x, screen_y,
-										text_x, text_y);
+			GFX_set_pixel_from_texture_depth_tint(	screen,
+													texture_parameters,
+													screen_x, screen_y,
+													text_x, text_y, 
+													z, tint);
 
 			set_z_buffer(screen_x, screen_y, z);
 		}
@@ -1420,7 +1183,8 @@ void GFX_draw_wall(	int screen_x,
 
 void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 							float bot_height, float top_height,
-							GFX_TEXTURE_PARAM texture_parameters)
+							GFX_TEXTURE_PARAM texture_parameters,
+							TINT tint)
 {
 	//Transform current edges to player point of view (player at 0,0)
 	VECTOR2 transformed_pos_0 = sub_v2(start_pos, player_pos);
@@ -1538,24 +1302,27 @@ void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 						c_screen_y_ceil, screen_y_ceil, 
 						c_screen_y_floor, screen_y_floor, 
 						x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-						texture_parameters);
+						texture_parameters, tint);
 
 	}
 }
 
 void GFX_draw_sprite_wall_db (	VECTOR2 start_pos, VECTOR2 end_pos,
 								float bot_height, float top_height,
-								GFX_TEXTURE_PARAM texture_parameters)
+								GFX_TEXTURE_PARAM texture_parameters,
+								TINT tint)
 {
-	GFX_draw_sprite_wall(start_pos, end_pos, bot_height, top_height, texture_parameters);
-	GFX_draw_sprite_wall(end_pos, start_pos, bot_height, top_height, texture_parameters);
+	GFX_draw_sprite_wall(start_pos, end_pos, bot_height, top_height, texture_parameters, tint);
+	GFX_draw_sprite_wall(end_pos, start_pos, bot_height, top_height, texture_parameters, tint);
 }
 
 void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 						int is_ceiling, float visplane_height, 
-						GFX_TEXTURE_PARAM texture_parameters)
+						GFX_TEXTURE_PARAM texture_parameters,
+						TINT tint)
 {
 	VECTOR2 world_space;
+	VECTOR2 relative_space;
 	int is_visible = 1;
 
 	if(is_ceiling && visplane_height < 0.) is_visible = 0;
@@ -1575,12 +1342,15 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 			}
 			else
 			{
-				world_space = convert_ss_to_ws(point2(screen_x, screen_y), visplane_height);
-				GFX_set_pixel_from_texture(	screen,
-											texture_parameters,
-											screen_x, screen_y,
-											(int)(world_space.x * 128.), (int)(world_space.y * 128.));
-		
+				relative_space = convert_ss_to_rs(point2(screen_x, screen_y), visplane_height);
+				world_space = convert_rs_to_ws(relative_space);
+
+				GFX_set_pixel_from_texture_depth_tint(	screen,
+														texture_parameters,
+														screen_x, screen_y,
+														(int)(world_space.x * 128.), (int)(world_space.y * 128.),
+														relative_space.y, tint);
+			
 			}
 		}
 	}
