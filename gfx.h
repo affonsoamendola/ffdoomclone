@@ -67,7 +67,11 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 void GFX_draw_console();
 void GFX_draw_map();
 
+void GFX_draw_hand();
+
 void GFX_Draw_Editor();
+
+
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,

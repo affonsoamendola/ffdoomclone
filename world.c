@@ -456,6 +456,7 @@ int WORLD_add_sector_to_level(SECTOR * sector)
 	}
 
 	sector->sector_id = new_sector_index;
+	sector->tint = GFX_Tint(1., 1., 1.);
 	new_sectors[new_sector_index] = *sector;
 	loaded_level.s_num += 1;
 

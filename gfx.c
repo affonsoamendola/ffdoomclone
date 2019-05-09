@@ -54,6 +54,8 @@ float hither_z = 1e-4f;
 float hither_x;
 float hither_y;
 
+float depth_shading_fall_off = 5.f;
+
 float yon_z = 16.0f;
 float yon_x;
 float yon_y;
@@ -161,6 +163,9 @@ void GFX_Init()
 	}
 
 	GFX_load_resource_list("graphix/default.rls");
+
+	GFX_load_texture("graphix/coffeehands.png", 10);
+	GFX_load_texture("graphix/terminator.png", 11);
 }
 
 void GFX_Quit()
@@ -421,11 +426,28 @@ void GFX_set_pixel_from_texture_depth_tint(	SDL_Surface *surface,
 
 	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
 
-	float relative_z = (yon_z - depth)/(yon_z - hither_z);
+	float relative_z = (depth_shading_fall_off - depth)/(depth_shading_fall_off - hither_z);
 
 	GFX_set_pixel(surface, screen_x, screen_y, 
 				  GFX_Tint_Pixel(	GFX_Scale_Pixel(  	pixel, 
 				  										relative_z), 
+				  					tint),
+				  1);
+}
+
+void GFX_set_pixel_from_texture_tint(	SDL_Surface *surface,
+										GFX_TEXTURE_PARAM texture,
+										int screen_x, int screen_y,
+										int text_x, int text_y, 
+										TINT tint)
+{
+	unsigned int pixel;
+
+	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
+
+
+	GFX_set_pixel(surface, screen_x, screen_y, 
+				  GFX_Tint_Pixel(	pixel, 
 				  					tint),
 				  1);
 }
@@ -439,7 +461,7 @@ void GFX_set_pixel_from_texture_depth(	SDL_Surface *surface,
 
 	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
 
-	float relative_z = (yon_z - depth)/(yon_z - hither_z);
+	float relative_z = (depth_shading_fall_off - depth)/(depth_shading_fall_off - hither_z);
 
 	GFX_set_pixel(surface, screen_x, screen_y, 
 				  GFX_Scale_Pixel(  pixel, 
@@ -490,6 +512,10 @@ void GFX_Render()
 	GFX_clear_screen();
 
 	GFX_render_3d();
+
+	GFX_draw_sprite(vector2(0., 2.), vector2(0.35f, 0.7f), 0);
+
+	GFX_draw_hand();
 
 	if(show_map)
 	{
@@ -690,13 +716,16 @@ unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint)
 	unsigned char g;
 	unsigned char b;
 
+	unsigned int scaled_pixel;
+
 	SDL_GetRGB(pixel, screen->format, &r, &g, &b);
 
-	r = (unsigned char)(((float)r) * tint.r);
-	g = (unsigned char)(((float)g) * tint.g);
-	b = (unsigned char)(((float)b) * tint.b);
-
-	unsigned int scaled_pixel;
+	if(r != 255 && b != 255)
+	{
+		r = (unsigned char)(((float)r) * tint.r);
+		g = (unsigned char)(((float)g) * tint.g);
+		b = (unsigned char)(((float)b) * tint.b);	
+	}
 
 	scaled_pixel = SDL_MapRGB(screen->format, r, g, b);
 
@@ -796,7 +825,7 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 	VECTOR2 transformed_pos;
 	GFX_TEXTURE_PARAM texture;
 
-	texture.id = 2;
+	texture.id = 11;
 
 	texture.parallax = 0;
 
@@ -839,15 +868,22 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 	int c_screen_y0 = clamp_int(screen_y0, SCREEN_RES_Y, 0);
 	int c_screen_y1 = clamp_int(screen_y1, SCREEN_RES_Y, 0);
 
+	TINT tint;
+
+	tint.r = 1.;
+	tint.g = 0.2;
+	tint.b = 0.2;
+
 	for(int x = c_screen_x0; x < c_screen_x1; x++)
 	{
 		for(int y = c_screen_y0; y < c_screen_y1; y++)
 		{
 			if(transformed_pos.y < get_z_buffer(x, y))
 			{
-				GFX_set_pixel_from_texture(	screen, texture, x, y,
-											(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
-											(int)((float)(y-screen_y0)/(float)(screen_y1-screen_y0) * 256));
+				GFX_set_pixel_from_texture_tint(	screen, texture, x, y,
+													(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
+													(int)((float)(y-screen_y0)/(float)(screen_y1-screen_y0) * 256),
+													tint);
 			}
 		}
 	}
@@ -1354,4 +1390,32 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 			}
 		}
 	}
+}
+
+void GFX_draw_hand()
+{	
+	GFX_TEXTURE_PARAM hand_texture;
+
+	hand_texture.id = 10;
+	hand_texture.parallax = 0;
+	hand_texture.u_offset = 0;
+	hand_texture.v_offset = 0;
+	hand_texture.u_scale = 1.;
+	hand_texture.v_scale = 1.;
+
+	TINT tint;
+
+	tint = (loaded_level.sectors + current_player_sector)->tint;
+
+	for(int x = 0; x < SCREEN_RES_X; x ++)
+	{
+		for(int y = 0; y < SCREEN_RES_Y; y ++)
+		{
+			GFX_set_pixel_from_texture_tint(	screen,
+												hand_texture,
+												x, y,
+												x, y, 
+												tint);
+		}
+	}	
 }
