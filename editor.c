@@ -37,7 +37,7 @@ float cursor_speed = 1.f;
 #define walk_cursor_speed 3.f;
 #define run_cursor_speed 6.f;
 
-#define cursor_color GFX_Color(0, 0, 255)
+#define cursor_color GFX_Color(255, 0, 0)
 
 extern LEVEL loaded_level; 
 extern SDL_Surface * screen;
@@ -316,7 +316,7 @@ void draw_new_sector_preview()
 			GFX_draw_line(	screen, 
 							convert_ws_to_editor_ss(get_vertex_from_sector(creating_sector, i, 0)),
 							convert_ws_to_editor_ss(get_vertex_from_sector(creating_sector, i, 1)),
-							GFX_Map_Color(GFX_Color(0, 0, 255)));
+							GFX_Map_Color(GFX_Color(255, 0, 0)));
 		}
 
 		VECTOR2 preview_cursor;
@@ -329,7 +329,7 @@ void draw_new_sector_preview()
 		GFX_draw_line(	screen, 
 						convert_ws_to_editor_ss(new_vector_start),
 						convert_ws_to_editor_ss(preview_cursor),
-						GFX_Map_Color(GFX_Color(0, 0, 255)));
+						GFX_Map_Color(GFX_Color(255, 0, 0)));
 	}
 }
 
@@ -360,46 +360,46 @@ void draw_grid()
 void draw_ui()
 {
 	if(snap_to_grid == 1)
-		GFX_draw_string(point2(0,0), "Snap to grid", GFX_Map_Color(GFX_Color(100, 0, 255)));
+		GFX_draw_string(point2(0,0), "Snap to grid", GFX_Map_Color(GFX_Color(255, 0, 100)));
 	if(drawing_sector == 1)
-		GFX_draw_string(point2(0,8), "Drawing Sector", GFX_Map_Color(GFX_Color(100, 0, 255)));
+		GFX_draw_string(point2(0,8), "Drawing Sector", GFX_Map_Color(GFX_Color(255, 0, 100)));
 
 	if(grabbed == 1)
 	{
 		sprintf(buffer, "x = %f", grabbed_vector_location.x);
-		GFX_draw_string(point2(0, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(0, 240-18), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		sprintf(buffer, "y = %f", grabbed_vector_location.y);
-		GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 	}
 
 	if(show_info == 1)
 	{
 		sprintf(buffer, "SID = %i", closest_sector_index);
-		GFX_draw_string(point2(120, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(120, 240-18), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		sprintf(buffer, "EID = %i", closest_edge_index);
-		GFX_draw_string(point2(120, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(120, 240-9), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		sprintf(buffer, "PORTAL = %i", closest_edge->is_portal);
-		GFX_draw_string(point2(188, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(188, 240-18), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 
 		if(closest_edge->is_portal)
 		{
 			sprintf(buffer, "NID = %i", closest_edge->neighbor_sector_id);
-			GFX_draw_string(point2(188, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+			GFX_draw_string(point2(188, 240-9), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		}
 
 		sprintf(buffer, "S=%i", loaded_level.s_num);
-		GFX_draw_string(point2(274, 240-27), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(274, 240-27), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		sprintf(buffer, "E=%i", (loaded_level.sectors + closest_sector_index)->e_num);
-		GFX_draw_string(point2(274, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(274, 240-18), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		sprintf(buffer, "V=%i", loaded_level.v_num);
-		GFX_draw_string(point2(274, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+		GFX_draw_string(point2(274, 240-9), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		
 		if(grabbed == 0)
 		{
 			sprintf(buffer, "x = %f", editor_cursor.x);
-			GFX_draw_string(point2(0, 240-18), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+			GFX_draw_string(point2(0, 240-18), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 			sprintf(buffer, "y = %f", editor_cursor.y);
-			GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(0, 100, 255)));
+			GFX_draw_string(point2(0, 240-9), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 		}
 	}
 }
@@ -416,18 +416,18 @@ void draw_closest_markers()
 
 	if(closest_edge->is_portal == 1)
 	{
-		line_color = GFX_Map_Color(GFX_Color(0, 0, 110));
+		line_color = GFX_Map_Color(GFX_Color(110, 0, 0));
 	}
 	else
 	{
-		line_color = GFX_Map_Color(GFX_Color(0, 0, 210));
+		line_color = GFX_Map_Color(GFX_Color(210, 0, 0));
 	}
 
 	GFX_draw_line(screen, convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_start)), convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_end)), line_color);
 
-	GFX_set_pixel(screen, closest_projection_ss.x, closest_projection_ss.y, GFX_Map_Color(GFX_Color(255, 0, 0)), 0);
+	GFX_set_pixel(screen, closest_projection_ss.x, closest_projection_ss.y, GFX_Map_Color(GFX_Color(0, 0, 255)), 0);
 
-	GFX_set_pixel(screen, closest_vector_ss.x, closest_vector_ss.y, GFX_Map_Color(GFX_Color(0, 0, 255)), 0);
+	GFX_set_pixel(screen, closest_vector_ss.x, closest_vector_ss.y, GFX_Map_Color(GFX_Color(255, 0, 0)), 0);
 }
 
 void EDITOR_Render()

@@ -181,7 +181,7 @@ void GFX_Quit()
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 {
     int bpp = surface->format->BytesPerPixel;
-   
+
    	unsigned char *p = (unsigned char *)surface->pixels + y*surface->pitch + x*bpp;
 
     switch(bpp) {
@@ -194,18 +194,11 @@ unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y)
 	        break;
 
 	    case 3:
-	        if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
-	        {
-	        	return p[0] << 16 | p[1] << 8 | p[2];
-	        }
-	        else
-	        { 
-	        	return p[0] | p[1] << 8 | p[2] << 16;
-	        }
+	        return p[0] << 16 | p[1] << 8 | p[2];
 	        break;
 
 	    case 4:
-     		return *(unsigned int *)p;
+     		return p[0] << 16| p[1] << 8 | p[2] << 0;
 	       	break;
 
 	    default:
@@ -238,37 +231,31 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int t
 			        break;
 	
 			    case 3:
-			        if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
-			            p[0] = (pixel >> 16) & 0xff;
-			            p[1] = (pixel >> 8) & 0xff;
-			            p[2] = pixel & 0xff;
-			        } else {
-			            p[0] = pixel & 0xff;
-			            p[1] = (pixel >> 8) & 0xff;
-			            p[2] = (pixel >> 16) & 0xff;
-			        }
+			    	if(	!(transparency && 
+			    		((pixel & 0xff) == 255) && 
+			    		(((pixel >> 8 ) & 0xff) == 0) &&
+			    		(((pixel >> 16) & 0xff)	== 255) ))
+			    	{
+			    		p[0] = pixel & 0xff;
+		            	p[1] = (pixel >> 8) & 0xff;
+		          		p[2] = (pixel >> 16) & 0xff;
+			    	}   
 			        break;
 	
 			    case 4:
-			    	if(transparency)
+			    	if(	!(transparency && 
+			    		((pixel & 0xff) == 255) && 
+			    		(((pixel >> 8 ) & 0xff) == 0) &&
+			    		(((pixel >> 16) & 0xff)	== 255) ))
 			    	{
-			    		if(!(((pixel & 0xff) == 255)&& (((pixel >> 8) & 0xff) == 0) && (((pixel >> 16) & 0xff) == 255)))
-						{
-							p[2] = pixel & 0xff;
-				            p[1] = (pixel >> 8) & 0xff;
-				            p[0] = (pixel >> 16) & 0xff;
-						}	
-			    	}
-			    	else
-			    	{
-			    		p[2] = pixel & 0xff;
-			            p[1] = (pixel >> 8) & 0xff;
-			            p[0] = (pixel >> 16) & 0xff;
-			    	}
+			    		p[0] = pixel & 0xff;
+		            	p[1] = (pixel >> 8) & 0xff;
+		          		p[2] = (pixel >> 16) & 0xff;
+			    	}   
 			        break;
 			    }
 	    	}
-	    }    
+	    }  
 	}
 }
 
@@ -445,7 +432,6 @@ void GFX_set_pixel_from_texture_tint(	SDL_Surface *surface,
 
 	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
 
-
 	GFX_set_pixel(surface, screen_x, screen_y, 
 				  GFX_Tint_Pixel(	pixel, 
 				  					tint),
@@ -515,7 +501,7 @@ void GFX_Render()
 
 	GFX_draw_sprite(vector2(0., 2.), vector2(0.35f, 0.7f), 0);
 
-	GFX_draw_hand();
+	//GFX_draw_hand();
 
 	if(show_map)
 	{
@@ -720,11 +706,11 @@ unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint)
 
 	SDL_GetRGB(pixel, screen->format, &r, &g, &b);
 
-	if(r != 255 && b != 255)
+	if(r != 255 && g != 0 && b != 255)
 	{
 		r = (unsigned char)(((float)r) * tint.r);
 		g = (unsigned char)(((float)g) * tint.g);
-		b = (unsigned char)(((float)b) * tint.b);	
+		b = (unsigned char)(((float)b) * tint.b);
 	}
 
 	scaled_pixel = SDL_MapRGB(screen->format, r, g, b);
