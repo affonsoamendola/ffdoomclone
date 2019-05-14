@@ -63,4 +63,14 @@ void WORLD_delete_sector_at(int index);
 
 void WORLD_remove_n_vertexes(int n);
 
+VECTOR2 convert_ss_to_ws(CAMERA * camera, POINT2 screen_space, float height);
+VECTOR2 convert_ss_to_rs(CAMERA * camera, POINT2 screen_space, float height);
+
+VECTOR2 convert_rs_to_ws(VECTOR2 relative_space);
+POINT2 convert_ws_to_ss(CAMERA * camera, VECTOR2 world_space, float height);
+
+void convert_ws_to_rs(	VECTOR2 world_space, float world_height,
+						VECTOR2 * relative_space, float * relative_height);
+POINT2 convert_rs_to_ss(CAMERA * camera, VECTOR2 relative_space, float relative_height);
+
 #endif

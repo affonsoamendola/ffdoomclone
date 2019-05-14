@@ -7,38 +7,51 @@
 #define PLAYER_START_HEIGHT 0.5f
 #define PLAYER_START_SPEED 1.0f
 
-VECTOR2 player_pos = {0.5f, 0.0f};
-
-float player_height = PLAYER_START_HEIGHT;
-
-float player_pos_height = PLAYER_START_HEIGHT;
-
-float player_facing = 0.00001;
-
-int player_noclip = 0;
-
-float player_walk_speed = 2.0f;
-float player_run_speed = 4.0f;
-
-float player_walk_turn_speed = 2.0f;
-float player_run_turn_speed = 3.0f;
-
-float player_speed = 1.0f;
-float player_turn_speed = 0.5f;
-
-int current_player_sector = 0;
+#define PLAYER_START_X 0.5f
+#define PLAYER_START_Y 0.0f
 
 extern LEVEL loaded_level;
 
-void player_move(VECTOR2 amount)
+PLAYER * player;
+
+void PLAYER_Init(PLAYER ** player)
+{
+	PLAYER initted_player;
+
+	initted_player.pos = vector2(PLAYER_START_X, PLAYER_START_Y);
+
+	initted_player.height = PLAYER_START_HEIGHT;
+
+	initted_player.pos_height = PLAYER_START_HEIGHT;
+
+	initted_player.facing = 0.00001;
+
+	initted_player.noclip = 0;
+
+	initted_player.walk_speed = 2.0f;
+	initted_player.run_speed = 4.0f;
+
+	initted_player.walk_turn_speed = 2.0f;
+	initted_player.run_turn_speed = 3.0f;
+
+	initted_player.speed = 1.0f;
+	initted_player.turn_speed = 0.5f;
+
+	initted_player.current_sector = 0;
+
+	*player = malloc(sizeof(PLAYER));
+	**player = initted_player;
+}
+
+void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 {
 	SECTOR * current_sector;
 
 	int allow_move = 1;
 
-	VECTOR2 to_pos = sum_v2(player_pos, amount);
+	VECTOR2 to_pos = sum_v2(player->pos, amount);
 
-	current_sector = loaded_level.sectors + current_player_sector;
+	current_sector = loaded_level.sectors + player->current_sector;
 
 	for(int e = 0; e < current_sector->e_num; e ++)
 	{
@@ -47,7 +60,7 @@ void player_move(VECTOR2 amount)
 		VECTOR2 edge_vertex_0 = get_vertex_from_sector(current_sector, e, 0);
 		VECTOR2 edge_vertex_1 = get_vertex_from_sector(current_sector, e, 1);
 
-		if(intersect_box_v2(player_pos, to_pos, edge_vertex_0, edge_vertex_1))
+		if(intersect_box_v2(player->pos, to_pos, edge_vertex_0, edge_vertex_1))
 		{
 			if(point_side_v2(to_pos, edge_vertex_0, edge_vertex_1) > 0)
 			{
@@ -55,11 +68,11 @@ void player_move(VECTOR2 amount)
 				{
 					allow_move = 1;
 
-					current_player_sector = current_edge->neighbor_sector_id;
+					player->current_sector = current_edge->neighbor_sector_id;
 				}
 				else
 				{
-					if(player_noclip == 0)
+					if(player->noclip == 0)
 						allow_move = 0;
 				}
 			}
@@ -68,9 +81,9 @@ void player_move(VECTOR2 amount)
 
 	if(allow_move)
 	{
-		player_pos = to_pos;
+		player->pos = to_pos;
 		
-		if(player_noclip == 0)
-			player_pos_height = current_sector->floor_height + player_height;
+		if(player->noclip == 0)
+			player->pos_height = current_sector->floor_height + player->height;
 	}
 }

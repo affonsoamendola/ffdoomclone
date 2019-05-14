@@ -8,12 +8,13 @@
 #include "world.h"
 #include "console.h"
 #include "vector3.h"
+#include "player.h"
 
 char buffer[128];
 
 extern LEVEL loaded_level;
 
-extern int player_noclip;
+extern PLAYER * player;
 
 void COMMAND_ver()
 {
@@ -64,12 +65,12 @@ void COMMAND_vertex_list()
 
 void COMMAND_noclip()
 {
-	player_noclip = !player_noclip;
+	player->noclip = !(player->noclip);
 
-	if(player_noclip == 1)
+	if(player->noclip == 1)
 		CONSOLE_print("\nFLY YOU FOOL");
 
-	if(player_noclip == 0)
+	if(player->noclip == 0)
 		CONSOLE_print("\nYOU ARE GROUNDED");
 
 }

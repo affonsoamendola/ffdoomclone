@@ -47,11 +47,33 @@ typedef struct GFX_TEXTURE_
 }
 GFX_TEXTURE;
 
+typedef struct CAMERA_
+{
+	float * z_buffer;
+
+	float hither_z;
+	float hither_x;
+	float hither_y;
+
+	float yon_z;
+	float yon_x;
+	float yon_y;
+
+	float depth_lighting_max_distance;
+
+	float hfov;
+	float vfov;
+
+	float camera_parameters_x;
+	float camera_parameters_y;
+}
+CAMERA;
+
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y);
 void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int transparency);
 
-float get_z_buffer(int x, int y);
-void set_z_buffer(int x, int y, float value);
+float get_z_buffer(CAMERA * camera, int x, int y);
+void set_z_buffer(CAMERA * camera, int x, int y, float value);
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel);
 void GFX_clear_screen();
@@ -68,10 +90,9 @@ void GFX_draw_console();
 void GFX_draw_map();
 
 void GFX_draw_hand();
+void GFX_draw_ui();
 
 void GFX_Draw_Editor();
-
-
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
 void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
@@ -110,7 +131,6 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 
 unsigned int GFX_Scale_Pixel(unsigned int pixel, float scale);
 unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint);
-
 
 TINT GFX_Tint(float r, float g, float b);
 COLOR GFX_Color(int r, int g, int b);

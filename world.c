@@ -5,14 +5,21 @@
 #include "list.h"
 #include "console.h"
 #include "vector2.h"
+#include "player.h"
 
 #include "world.h"
 
 LEVEL loaded_level;
 
+extern PLAYER * player;
+
 void WORLD_Init()
 {
 	CONSOLE_print("Initting World... Please hold...");
+
+	CONSOLE_print("Initting Player... Please hold...");
+	PLAYER_Init(&player);
+
 	level_load("level");
 }
 
@@ -333,7 +340,7 @@ void level_load(const char * file_location)
 		fscanf(level_file, "%f", &(current_sector->text_param_floor.u_scale));
 		fscanf(level_file, "%f", &(current_sector->text_param_floor.v_scale));
 
-		current_sector->tint = GFX_Tint(1.f, 0.2f, 0.2f);
+		current_sector->tint = GFX_Tint(0.1f, 0.1f, 0.6f);
 	}
 
 	fclose(level_file);
@@ -559,4 +566,92 @@ void get_closest_edge(VECTOR2 pos, EDGE ** edge, VECTOR2 * projection, int * edg
 
 	if(distance != NULL)
 		*distance = closest_distance;
+}
+
+VECTOR2 convert_ss_to_ws(CAMERA * camera, POINT2 screen_space, float height)
+{
+	VECTOR2 world_space;
+
+	world_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
+	world_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * world_space.y) / camera->camera_parameters_x;
+
+	world_space = rot_v2(world_space, -(player->facing));
+	world_space = sum_v2(world_space, player->pos);
+
+	return world_space;
+}
+
+VECTOR2 convert_ss_to_rs(CAMERA * camera, POINT2 screen_space, float height)
+{
+	VECTOR2 relative_space;
+
+	relative_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
+	relative_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * relative_space.y) / camera->camera_parameters_x;
+
+	return relative_space;
+}
+
+VECTOR2 convert_rs_to_ws(VECTOR2 relative_space)
+{
+	VECTOR2 world_space;
+
+	world_space = rot_v2(world_space, -(player->facing));
+	world_space = sum_v2(world_space, player->pos);
+
+	return world_space;
+}
+
+POINT2 convert_ws_to_ss(CAMERA * camera, VECTOR2 world_space, float height)
+{
+	VECTOR2 transformed_pos;
+	float transformed_height;
+
+	POINT2 screen_space;
+
+	transformed_pos = sub_v2(world_space, player->pos);
+	transformed_pos = rot_v2(transformed_pos, player->facing);
+
+	transformed_height = height - player->pos_height;
+
+	float xscale = camera->camera_parameters_x / transformed_pos.y;
+	float yscale = camera->camera_parameters_y / transformed_pos.y;
+
+	float proj_x = transformed_pos.x * xscale;
+	float proj_height = transformed_height * yscale;
+
+	int x = (int)(proj_x) + SCREEN_RES_X/2;
+	int y = SCREEN_RES_Y/2 - (int)(proj_height);
+
+	screen_space.x = x;
+	screen_space.y = y;
+
+	return screen_space;
+}
+
+void convert_ws_to_rs(	VECTOR2 world_space, float world_height,
+						VECTOR2 * relative_space, float * relative_height)
+{
+	*relative_space = sub_v2(world_space, player->pos);
+	*relative_space = rot_v2(*relative_space, player->facing);
+
+	*relative_height = world_height - player->pos_height;
+}
+
+POINT2 convert_rs_to_ss(CAMERA * camera, VECTOR2 relative_space, float relative_height)
+{
+	POINT2 screen_space;
+
+	float xscale = camera->camera_parameters_x / relative_space.y;
+	float yscale = camera->camera_parameters_y / relative_space.y;
+
+	float proj_x = relative_space.x * xscale;
+	float proj_height = relative_height * yscale;
+
+	int x = (int)(proj_x) + SCREEN_RES_X/2;
+	int y = SCREEN_RES_Y/2 - (int)(proj_height);
+
+	screen_space.x = x;
+	screen_space.y = y;
+
+	return screen_space;
 }

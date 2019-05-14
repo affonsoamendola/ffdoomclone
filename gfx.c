@@ -13,6 +13,7 @@
 #include "vector2.h"
 #include "utility.h"
 #include "list.h"
+#include "player.h"
 
 #include "gfx.h"
 
@@ -22,7 +23,10 @@
 #define SKYBOX_SIZE_X 640
 #define SKYBOX_SIZE_Y 120
 
-#define TEX_ID_SIZE 64
+#define TEX_ID_SIZE 256
+
+#define HAND_TEX_ID 10
+#define UI_TEX_ID 12
 
 extern SDL_Surface * screen;
 
@@ -33,14 +37,7 @@ extern bool show_map;
 
 extern LEVEL loaded_level;
 
-extern VECTOR2 player_pos;
-extern float player_pos_height;
-extern int current_player_sector;
-
-extern float player_facing;
-
-extern float player_angle_cos;
-extern float player_angle_sin;
+extern PLAYER * player;
 
 float map_scale = 20.0f;
 
@@ -48,25 +45,7 @@ char buffer[128];
 
 char * default_font_location;
 
-float * z_buffer;
-
-float hither_z = 1e-4f;
-float hither_x;
-float hither_y;
-
-float depth_shading_fall_off = 5.f;
-
-float yon_z = 16.0f;
-float yon_x;
-float yon_y;
-
-float depth_lighting_max_distance = 6.0f;
-
-float hfov = PI/4;
-float vfov;
-
-float camera_parameters_x;
-float camera_parameters_y;
+CAMERA * main_camera;
 
 GFX_TEXTURE loaded_textures[TEX_ID_SIZE];
 
@@ -109,42 +88,63 @@ void GFX_unload_texture(int tex_id)
 	SDL_FreeSurface(loaded_textures[tex_id].surface);
 }
 
-void set_z_buffer(int x, int y, float value)
+void set_z_buffer(CAMERA * camera, int x, int y, float value)
 {
-	z_buffer[x + (y*SCREEN_RES_X)] = value;
+	camera->z_buffer[x + (y*SCREEN_RES_X)] = value;
 }
 
-float get_z_buffer(int x, int y)
+float get_z_buffer(CAMERA * camera, int x, int y)
 {
-	return z_buffer[x + y*SCREEN_RES_X];
+	return camera->z_buffer[x + y*SCREEN_RES_X];
 }
 
-void clear_z_buffer()
+void clear_z_buffer(CAMERA * camera)
 {
 	for(int x = 0; x < SCREEN_RES_X; x++)
 	{
 		for(int y = 0; y < SCREEN_RES_Y; y++)
 		{
-			set_z_buffer(x, y, yon_z);
+			set_z_buffer(camera, x, y, camera->yon_z);
 		}
 	}
 }
 
+void GFX_Init_Camera(CAMERA ** camera)
+{
+	CAMERA initted_camera;
+
+	initted_camera.hither_z = 1e-4f;
+	initted_camera.yon_z = 16.0f;
+	initted_camera.hfov = PI/4;
+	initted_camera.depth_lighting_max_distance = 6.0f;
+
+	initted_camera.z_buffer = (float *)malloc(sizeof(float) * SCREEN_RES_X * SCREEN_RES_Y);
+	clear_z_buffer(&initted_camera);
+
+	initted_camera.hither_x = tan(initted_camera.hfov) * initted_camera.hither_z;
+	initted_camera.hither_y = (initted_camera.hither_x * SCREEN_RES_Y)/SCREEN_RES_X;
+
+	initted_camera.yon_x = tan(initted_camera.hfov) * initted_camera.yon_z;
+	initted_camera.yon_y = initted_camera.yon_x/ASPECT_RATIO;
+
+	initted_camera.vfov = atan(initted_camera.hither_y/initted_camera.hither_z);
+
+	initted_camera.camera_parameters_x = ((initted_camera.hither_z * (float)SCREEN_RES_X/2) / initted_camera.hither_x);
+	initted_camera.camera_parameters_y = ((initted_camera.hither_z * (float)SCREEN_RES_Y/2) / initted_camera.hither_y);
+
+	*camera = malloc(sizeof(CAMERA));
+	**camera = initted_camera;
+}
+
+void GFX_Destroy_Camera(CAMERA * camera)
+{
+	free(camera->z_buffer);
+	free(camera);
+}
+
 void GFX_Init()
 {
-	z_buffer = (float *)malloc(sizeof(float) * SCREEN_RES_X * SCREEN_RES_Y);
-	clear_z_buffer();
-
-	hither_x = tan(hfov) * hither_z;
-	hither_y = (hither_x * SCREEN_RES_Y)/SCREEN_RES_X;
-
-	yon_x = tan(hfov) * yon_z;
-	yon_y = yon_x/ASPECT_RATIO;
-
-	vfov = atan(hither_y/hither_z);
-
-	camera_parameters_x = ((hither_z * (float)SCREEN_RES_X/2) / hither_x);
-	camera_parameters_y = ((hither_z * (float)SCREEN_RES_Y/2) / hither_y);
+	GFX_Init_Camera(&main_camera);
 	
 	GFX_load_font("8x8Font.fnt");
 
@@ -164,13 +164,14 @@ void GFX_Init()
 
 	GFX_load_resource_list("graphix/default.rls");
 
-	GFX_load_texture("graphix/coffeehands.png", 10);
+	GFX_load_texture("graphix/coffeehands.png", HAND_TEX_ID);
 	GFX_load_texture("graphix/terminator.png", 11);
+	GFX_load_texture("graphix/ui.png", UI_TEX_ID);
 }
 
 void GFX_Quit()
 {
-	free(z_buffer);
+	GFX_Destroy_Camera(main_camera);
 
 	for(int i = 0; i < TEX_ID_SIZE; i++)
 	{
@@ -413,7 +414,7 @@ void GFX_set_pixel_from_texture_depth_tint(	SDL_Surface *surface,
 
 	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
 
-	float relative_z = (depth_shading_fall_off - depth)/(depth_shading_fall_off - hither_z);
+	float relative_z = (main_camera->depth_lighting_max_distance - depth)/(main_camera->depth_lighting_max_distance - main_camera->hither_z);
 
 	GFX_set_pixel(surface, screen_x, screen_y, 
 				  GFX_Tint_Pixel(	GFX_Scale_Pixel(  	pixel, 
@@ -447,7 +448,7 @@ void GFX_set_pixel_from_texture_depth(	SDL_Surface *surface,
 
 	pixel = GFX_get_pixel_from_texture(texture, text_x, text_y);
 
-	float relative_z = (depth_shading_fall_off - depth)/(depth_shading_fall_off - hither_z);
+	float relative_z = (main_camera->depth_lighting_max_distance - depth)/(main_camera->depth_lighting_max_distance - main_camera->hither_z);
 
 	GFX_set_pixel(surface, screen_x, screen_y, 
 				  GFX_Scale_Pixel(  pixel, 
@@ -501,7 +502,9 @@ void GFX_Render()
 
 	GFX_draw_sprite(vector2(0., 2.), vector2(0.35f, 0.7f), 0);
 
-	//GFX_draw_hand();
+	GFX_draw_hand();
+
+	GFX_draw_ui();
 
 	if(show_map)
 	{
@@ -576,58 +579,6 @@ void GFX_draw_string(POINT2 position, char* string, unsigned int pixel)
 		}
 		
 		GFX_draw_char(point2(position.x + i * 8, position.y), *(string + i), pixel);
-	}
-}
-
-void GFX_draw_console()
-{
-	GFX_fill_rectangle(point2(0, 0), point2(319, 79), SDL_MapRGB(screen->format, 40, 40, 40));
-	GFX_fill_rectangle(point2(0, 80), point2(319, 87), SDL_MapRGB(screen->format, 60, 60, 60));
-
-	for(int y = 0; y < 10; y ++)
-	{
-		GFX_draw_string(point2(0, 72 - y * 8), get_console_history(y), SDL_MapRGB(screen->format, 200, 200, 200));
-		GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(screen->format, 255, 255, 255));
-	}
-}
-
-void GFX_draw_map()
-{
-	int last_v;
-	unsigned int color;
-
-	VECTOR2 last_v_vector;
-	VECTOR2 current_v_vector;
-
-	POINT2 current_line_start;
-	POINT2 current_line_end;
-
-	for(int s = 0; s < loaded_level.s_num; s++)
-	{
-		for(int e = 0; e < (loaded_level.sectors+s)->e_num; e++)
-		{
-			EDGE current_edge = *((loaded_level.sectors+s)->e + e);
-			
-			last_v_vector = *(loaded_level.vertexes + current_edge.v_start);
-			current_v_vector = *(loaded_level.vertexes + current_edge.v_end);
-
-			last_v_vector = sub_v2(last_v_vector, player_pos);
-			current_v_vector = sub_v2(current_v_vector, player_pos);
-
-			current_line_start = point2((int)(last_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*map_scale));
-			current_line_end = point2((int)(current_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*map_scale));
-
-			if(current_edge.is_portal)
-			{
-				color = SDL_MapRGB(screen->format, 60, 60, 60);
-			}
-			else
-			{
-				color = SDL_MapRGB(screen->format, 180, 180, 180);
-			}
-
-			GFX_draw_line(screen, current_line_start, current_line_end, color);
-		}
 	}
 }
 
@@ -718,93 +669,6 @@ unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint)
 	return scaled_pixel;
 }
 
-VECTOR2 convert_ss_to_ws(POINT2 screen_space, float height)
-{
-	VECTOR2 world_space;
-
-	world_space.y = -(((float)(height)) * camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
-	world_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * world_space.y) / camera_parameters_x;
-
-	world_space = rot_v2(world_space, -player_facing);
-	world_space = sum_v2(world_space, player_pos);
-
-	return world_space;
-}
-
-VECTOR2 convert_ss_to_rs(POINT2 screen_space, float height)
-{
-	VECTOR2 relative_space;
-
-	relative_space.y = -(((float)(height)) * camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
-	relative_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * relative_space.y) / camera_parameters_x;
-
-	return relative_space;
-}
-
-VECTOR2 convert_rs_to_ws(VECTOR2 relative_space)
-{
-	VECTOR2 world_space;
-
-	world_space = rot_v2(world_space, -player_facing);
-	world_space = sum_v2(world_space, player_pos);
-
-	return world_space;
-}
-
-POINT2 convert_ws_to_ss(VECTOR2 world_space, float height)
-{
-	VECTOR2 transformed_pos;
-	float transformed_height;
-
-	POINT2 screen_space;
-
-	transformed_pos = sub_v2(world_space, player_pos);
-	transformed_pos = rot_v2(transformed_pos, player_facing);
-
-	transformed_height = height - player_pos_height;
-
-	float xscale = camera_parameters_x / transformed_pos.y;
-	float yscale = camera_parameters_y / transformed_pos.y;
-
-	float proj_x = transformed_pos.x * xscale;
-	float proj_height = transformed_height * yscale;
-
-	int x = (int)(proj_x) + SCREEN_RES_X/2;
-	int y = SCREEN_RES_Y/2 - (int)(proj_height);
-
-	screen_space.x = x;
-	screen_space.y = y;
-
-	return screen_space;
-}
-
-void convert_ws_to_rs(	VECTOR2 world_space, float world_height,
-						VECTOR2 * relative_space, float * relative_height)
-{
-	*relative_space = sub_v2(world_space, player_pos);
-	*relative_space = rot_v2(*relative_space, player_facing);
-
-	*relative_height = world_height - player_pos_height;
-}
-
-POINT2 convert_rs_to_ss(VECTOR2 relative_space, float relative_height)
-{
-	POINT2 screen_space;
-
-	float xscale = camera_parameters_x / relative_space.y;
-	float yscale = camera_parameters_y / relative_space.y;
-
-	float proj_x = relative_space.x * xscale;
-	float proj_height = relative_height * yscale;
-
-	int x = (int)(proj_x) + SCREEN_RES_X/2;
-	int y = SCREEN_RES_Y/2 - (int)(proj_height);
-
-	screen_space.x = x;
-	screen_space.y = y;
-
-	return screen_space;
-}
 
 void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 {
@@ -823,13 +687,13 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 
 	float sprite_height;
 
-	transformed_pos = sub_v2(sprite_position, player_pos);
-	transformed_pos = rot_v2(transformed_pos, player_facing);
+	transformed_pos = sub_v2(sprite_position, player->pos);
+	transformed_pos = rot_v2(transformed_pos, player->facing);
 
-	float transformed_height = height - player_pos_height;
+	float transformed_height = height - player->pos_height;
 
-	float xscale = camera_parameters_x / transformed_pos.y;
-	float yscale = camera_parameters_y / transformed_pos.y;
+	float xscale = main_camera->camera_parameters_x / transformed_pos.y;
+	float yscale = main_camera->camera_parameters_y / transformed_pos.y;
 
 	float proj_x = transformed_pos.x * xscale;
 	float proj_height = transformed_height * yscale;
@@ -856,15 +720,15 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 
 	TINT tint;
 
-	tint.r = 1.;
-	tint.g = 0.2;
-	tint.b = 0.2;
+	tint.r = 0.1;
+	tint.g = 0.1;
+	tint.b = 0.6;
 
 	for(int x = c_screen_x0; x < c_screen_x1; x++)
 	{
 		for(int y = c_screen_y0; y < c_screen_y1; y++)
 		{
-			if(transformed_pos.y < get_z_buffer(x, y))
+			if(transformed_pos.y < get_z_buffer(main_camera, x, y))
 			{
 				GFX_set_pixel_from_texture_tint(	screen, texture, x, y,
 													(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
@@ -877,14 +741,14 @@ void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 
 float get_view_plane_pos_x(int ssx)
 {
-	float pos_x = ((float)(ssx - SCREEN_RES_X/2)/(float)(SCREEN_RES_X/2)) *  hither_x;
+	float pos_x = ((float)(ssx - SCREEN_RES_X/2)/(float)(SCREEN_RES_X/2)) *  main_camera->hither_x;
 
 	return pos_x;
 }
 
 float get_view_angle_from_ss(int ssx)
 {
-	float angle_x = atan(get_view_plane_pos_x(ssx) / hither_z);
+	float angle_x = atan(get_view_plane_pos_x(ssx) / main_camera->hither_z);
 
 	return angle_x;
 }
@@ -905,7 +769,7 @@ void GFX_render_3d()
 
 	int y_undrawn_top[SCREEN_RES_X], y_undrawn_bot[SCREEN_RES_X];
 
-	clear_z_buffer();
+	clear_z_buffer(main_camera);
 
 	for(int x = 0; x < SCREEN_RES_X; x++)
 	{
@@ -916,7 +780,7 @@ void GFX_render_3d()
 	start_screen_x = 0;
 	end_screen_x = SCREEN_RES_X - 1;
 
-	current_sector_id = current_player_sector;
+	current_sector_id = player->current_sector;
 
 	pending_portals = create_list();
 
@@ -953,11 +817,11 @@ void GFX_render_3d()
 			VECTOR2 edge_v1 = get_vertex_at(current_edge->v_end);
 
 			//Transform current edges to player point of view (player at 0,0)
-			transformed_pos_0 = sub_v2(edge_v0, player_pos);
-			transformed_pos_1 = sub_v2(edge_v1, player_pos);
+			transformed_pos_0 = sub_v2(edge_v0, player->pos);
+			transformed_pos_1 = sub_v2(edge_v1, player->pos);
 			
-			transformed_pos_0 = rot_v2(transformed_pos_0, player_facing);
-			transformed_pos_1 = rot_v2(transformed_pos_1, player_facing);
+			transformed_pos_0 = rot_v2(transformed_pos_0, player->facing);
+			transformed_pos_1 = rot_v2(transformed_pos_1, player->facing);
 
 			VECTOR2 ni_pos_0 = transformed_pos_0;
 			VECTOR2 ni_pos_1 = transformed_pos_1;
@@ -973,8 +837,8 @@ void GFX_render_3d()
 			{
 				if(transformed_pos_0.y <= 0)
 				{	
-					VECTOR2 i0 = intersect_v2(vector2(-hither_x, hither_z), vector2(-yon_x, yon_z), transformed_pos_0, transformed_pos_1);
-					VECTOR2 i1 = intersect_v2(vector2(hither_x, hither_z), vector2(yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+					VECTOR2 i0 = intersect_v2(vector2(-(main_camera->hither_x), main_camera->hither_z), vector2(-(main_camera->yon_x), main_camera->yon_z), transformed_pos_0, transformed_pos_1);
+					VECTOR2 i1 = intersect_v2(vector2(main_camera->hither_x, main_camera->hither_z), vector2(main_camera->yon_x, main_camera->yon_z), transformed_pos_0, transformed_pos_1);
 
 					if(i0.y > 0 && i1.y > 0)
 					{
@@ -992,8 +856,8 @@ void GFX_render_3d()
 				if(transformed_pos_1.y <= 0)
 				//if(transformed_pos_1.x <= -(hither_x/hither_z)*transformed_pos_1.z)
 				{	
-					VECTOR2 i0 = intersect_v2(vector2(-hither_x, hither_z), vector2(-yon_x, yon_z), transformed_pos_0, transformed_pos_1);
-					VECTOR2 i1 = intersect_v2(vector2(hither_x, hither_z), vector2(yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+					VECTOR2 i0 = intersect_v2(vector2(-(main_camera->hither_x), main_camera->hither_z), vector2(-(main_camera->yon_x), main_camera->yon_z), transformed_pos_0, transformed_pos_1);
+					VECTOR2 i1 = intersect_v2(vector2(main_camera->hither_x, main_camera->hither_z), vector2(main_camera->yon_x, main_camera->yon_z), transformed_pos_0, transformed_pos_1);
 						
 					if(i0.y > 0 && i1.y > 0)
 					{
@@ -1013,11 +877,11 @@ void GFX_render_3d()
 			}
 
 			//Do projection scales
-			float xscale0 = camera_parameters_x / transformed_pos_0.y;
-			float yscale0 = camera_parameters_y / transformed_pos_0.y;
+			float xscale0 = main_camera->camera_parameters_x / transformed_pos_0.y;
+			float yscale0 = main_camera->camera_parameters_y / transformed_pos_0.y;
 
-			float xscale1 = camera_parameters_x / transformed_pos_1.y;
-			float yscale1 = camera_parameters_y / transformed_pos_1.y;
+			float xscale1 = main_camera->camera_parameters_x / transformed_pos_1.y;
+			float yscale1 = main_camera->camera_parameters_y / transformed_pos_1.y;
 
 			//Transform to pixel locations (and project)
 
@@ -1031,8 +895,8 @@ void GFX_render_3d()
 			if(x0 >= x1 || x1 < start_screen_x || x0 > end_screen_x) continue;
 
 			//Get relative ceil and floor heights
-			float yceil = current_sector->ceiling_height - player_pos_height;
-			float yfloor = current_sector->floor_height - player_pos_height;
+			float yceil = current_sector->ceiling_height - player->pos_height;
+			float yfloor = current_sector->floor_height - player->pos_height;
 
 			//Project and get pixel position, like above.
 
@@ -1063,8 +927,8 @@ void GFX_render_3d()
 			{
 				neighbor_sector = loaded_level.sectors + current_edge->neighbor_sector_id;
 
-				nyceil = neighbor_sector->ceiling_height - player_pos_height;
-				nyfloor = neighbor_sector->floor_height - player_pos_height;
+				nyceil = neighbor_sector->ceiling_height - player->pos_height;
+				nyfloor = neighbor_sector->floor_height - player->pos_height;
 			}
 
 			//Do the same for neighboring sectors
@@ -1182,7 +1046,7 @@ void GFX_draw_wall(	int screen_x,
 	{
 		if(texture_parameters.parallax)
 		{
-			int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+			int offset = (player->facing)/(2.*PI) * SKYBOX_SIZE_X;
 			GFX_set_pixel_from_texture(	screen,
 										texture_parameters,
 										screen_x, screen_y,
@@ -1198,7 +1062,7 @@ void GFX_draw_wall(	int screen_x,
 													text_x, text_y, 
 													z, tint);
 
-			set_z_buffer(screen_x, screen_y, z);
+			set_z_buffer(main_camera, screen_x, screen_y, z);
 		}
 	}	
 }
@@ -1209,11 +1073,11 @@ void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 							TINT tint)
 {
 	//Transform current edges to player point of view (player at 0,0)
-	VECTOR2 transformed_pos_0 = sub_v2(start_pos, player_pos);
-	VECTOR2 transformed_pos_1 = sub_v2(end_pos, player_pos);
+	VECTOR2 transformed_pos_0 = sub_v2(start_pos, player->pos);
+	VECTOR2 transformed_pos_1 = sub_v2(end_pos, player->pos);
 	
-	transformed_pos_0 = rot_v2(transformed_pos_0, player_facing);
-	transformed_pos_1 = rot_v2(transformed_pos_1, player_facing);
+	transformed_pos_0 = rot_v2(transformed_pos_0, player->facing);
+	transformed_pos_1 = rot_v2(transformed_pos_1, player->facing);
 
 	VECTOR2 ni_pos_0 = transformed_pos_0;
 	VECTOR2 ni_pos_1 = transformed_pos_1;
@@ -1229,8 +1093,8 @@ void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 	{
 		if(transformed_pos_0.y <= 0)
 		{	
-			VECTOR2 i0 = intersect_v2(vector2(-hither_x, hither_z), vector2(-yon_x, yon_z), transformed_pos_0, transformed_pos_1);
-			VECTOR2 i1 = intersect_v2(vector2(hither_x, hither_z), vector2(yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+			VECTOR2 i0 = intersect_v2(vector2(-(main_camera->hither_x), main_camera->hither_z), vector2(-(main_camera->yon_x), main_camera->yon_z), transformed_pos_0, transformed_pos_1);
+			VECTOR2 i1 = intersect_v2(vector2(main_camera->hither_x, main_camera->hither_z), vector2(main_camera->yon_x, main_camera->yon_z), transformed_pos_0, transformed_pos_1);
 
 			if(i0.y > 0 && i1.y > 0)
 			{
@@ -1248,8 +1112,8 @@ void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 		if(transformed_pos_1.y <= 0)
 		//if(transformed_pos_1.x <= -(hither_x/hither_z)*transformed_pos_1.z)
 		{	
-			VECTOR2 i0 = intersect_v2(vector2(-hither_x, hither_z), vector2(-yon_x, yon_z), transformed_pos_0, transformed_pos_1);
-			VECTOR2 i1 = intersect_v2(vector2(hither_x, hither_z), vector2(yon_x, yon_z), transformed_pos_0, transformed_pos_1);
+			VECTOR2 i0 = intersect_v2(vector2(-(main_camera->hither_x), main_camera->hither_z), vector2(-(main_camera->yon_x), main_camera->yon_z), transformed_pos_0, transformed_pos_1);
+			VECTOR2 i1 = intersect_v2(vector2(main_camera->hither_x, main_camera->hither_z), vector2(main_camera->yon_x, main_camera->yon_z), transformed_pos_0, transformed_pos_1);
 				
 			if(i0.y > 0 && i1.y > 0)
 			{
@@ -1269,11 +1133,11 @@ void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 	}
 
 	//Do projection scales
-	float xscale0 = camera_parameters_x / transformed_pos_0.y;
-	float yscale0 = camera_parameters_y / transformed_pos_0.y;
+	float xscale0 = main_camera->camera_parameters_x / transformed_pos_0.y;
+	float yscale0 = main_camera->camera_parameters_y / transformed_pos_0.y;
 
-	float xscale1 = camera_parameters_x / transformed_pos_1.y;
-	float yscale1 = camera_parameters_y / transformed_pos_1.y;
+	float xscale1 = main_camera->camera_parameters_x / transformed_pos_1.y;
+	float yscale1 = main_camera->camera_parameters_y / transformed_pos_1.y;
 
 	//Transform to pixel locations (and project)
 
@@ -1287,8 +1151,8 @@ void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 	if(x0 >= x1 || x1 < 0 || x0 > SCREEN_RES_X) return;
 
 	//Get relative ceil and floor heights
-	float yceil = top_height - player_pos_height;
-	float yfloor = bot_height - player_pos_height;
+	float yceil = top_height - player->pos_height;
+	float yfloor = bot_height - player->pos_height;
 
 	//Project and get pixel position, like above.
 
@@ -1356,7 +1220,7 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 		{
 			if(texture_parameters.parallax)
 			{
-				int offset = (player_facing)/(2.*PI) * SKYBOX_SIZE_X;
+				int offset = (player->facing)/(2.*PI) * SKYBOX_SIZE_X;
 				GFX_set_pixel_from_texture(	screen,
 											texture_parameters,
 											screen_x, screen_y,
@@ -1364,7 +1228,7 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 			}
 			else
 			{
-				relative_space = convert_ss_to_rs(point2(screen_x, screen_y), visplane_height);
+				relative_space = convert_ss_to_rs(main_camera, point2(screen_x, screen_y), visplane_height);
 				world_space = convert_rs_to_ws(relative_space);
 
 				GFX_set_pixel_from_texture_depth_tint(	screen,
@@ -1382,7 +1246,7 @@ void GFX_draw_hand()
 {	
 	GFX_TEXTURE_PARAM hand_texture;
 
-	hand_texture.id = 10;
+	hand_texture.id = HAND_TEX_ID;
 	hand_texture.parallax = 0;
 	hand_texture.u_offset = 0;
 	hand_texture.v_offset = 0;
@@ -1391,7 +1255,7 @@ void GFX_draw_hand()
 
 	TINT tint;
 
-	tint = (loaded_level.sectors + current_player_sector)->tint;
+	tint = (loaded_level.sectors + player->current_sector)->tint;
 
 	for(int x = 0; x < SCREEN_RES_X; x ++)
 	{
@@ -1402,6 +1266,85 @@ void GFX_draw_hand()
 												x, y,
 												x, y, 
 												tint);
+		}
+	}	
+}
+
+void GFX_draw_console()
+{
+	GFX_fill_rectangle(point2(0, 0), point2(319, 79), SDL_MapRGB(screen->format, 40, 40, 40));
+	GFX_fill_rectangle(point2(0, 80), point2(319, 87), SDL_MapRGB(screen->format, 60, 60, 60));
+
+	for(int y = 0; y < 10; y ++)
+	{
+		GFX_draw_string(point2(0, 72 - y * 8), get_console_history(y), SDL_MapRGB(screen->format, 200, 200, 200));
+		GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(screen->format, 255, 255, 255));
+	}
+}
+
+void GFX_draw_map()
+{
+	int last_v;
+	unsigned int color;
+
+	VECTOR2 last_v_vector;
+	VECTOR2 current_v_vector;
+
+	POINT2 current_line_start;
+	POINT2 current_line_end;
+
+	for(int s = 0; s < loaded_level.s_num; s++)
+	{
+		for(int e = 0; e < (loaded_level.sectors+s)->e_num; e++)
+		{
+			EDGE current_edge = *((loaded_level.sectors+s)->e + e);
+			
+			last_v_vector = *(loaded_level.vertexes + current_edge.v_start);
+			current_v_vector = *(loaded_level.vertexes + current_edge.v_end);
+
+			last_v_vector = sub_v2(last_v_vector, player->pos);
+			current_v_vector = sub_v2(current_v_vector, player->pos);
+
+			current_line_start = point2((int)(last_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*map_scale));
+			current_line_end = point2((int)(current_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*map_scale));
+
+			if(current_edge.is_portal)
+			{
+				color = SDL_MapRGB(screen->format, 60, 60, 60);
+			}
+			else
+			{
+				color = SDL_MapRGB(screen->format, 180, 180, 180);
+			}
+
+			GFX_draw_line(screen, current_line_start, current_line_end, color);
+		}
+	}
+}
+
+void GFX_draw_ui()
+{	
+	GFX_TEXTURE_PARAM ui_texture;
+
+	ui_texture.id = UI_TEX_ID;
+	ui_texture.parallax = 0;
+	ui_texture.u_offset = 0;
+	ui_texture.v_offset = 0;
+	ui_texture.u_scale = 1.;
+	ui_texture.v_scale = 1.;
+
+	TINT tint;
+
+	tint = (loaded_level.sectors + player->current_sector)->tint;
+
+	for(int x = 0; x < SCREEN_RES_X; x ++)
+	{
+		for(int y = 200; y < SCREEN_RES_Y; y ++)
+		{
+			GFX_set_pixel_from_texture(	screen,
+										ui_texture,
+										x, y,
+										x, y);
 		}
 	}	
 }
