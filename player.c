@@ -4,12 +4,6 @@
 
 #include "player.h"
 
-#define PLAYER_START_HEIGHT 0.5f
-#define PLAYER_START_SPEED 1.0f
-
-#define PLAYER_START_X 0.5f
-#define PLAYER_START_Y 0.0f
-
 extern LEVEL loaded_level;
 
 PLAYER * player;
@@ -38,6 +32,12 @@ void PLAYER_Init(PLAYER ** player)
 	initted_player.turn_speed = 0.5f;
 
 	initted_player.current_sector = 0;
+
+	initted_player.max_health = PLAYER_MAX_DEFAULT_HEALTH;
+	initted_player.health = PLAYER_MAX_DEFAULT_HEALTH;
+
+	initted_player.max_armor = PLAYER_MAX_DEFAULT_ARMOR;
+	initted_player.armor = PLAYER_MAX_DEFAULT_ARMOR;
 
 	*player = malloc(sizeof(PLAYER));
 	**player = initted_player;

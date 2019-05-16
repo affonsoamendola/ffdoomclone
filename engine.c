@@ -109,6 +109,8 @@ void ENGINE_Loop()
 	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
 }
 
+#include "utility.h"
+
 int main(int argc, char** argv)
 {
 	ENGINE_Init();
