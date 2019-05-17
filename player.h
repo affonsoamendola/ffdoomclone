@@ -13,7 +13,6 @@
 #define PLAYER_MAX_DEFAULT_HEALTH 100
 #define PLAYER_MAX_DEFAULT_ARMOR 100
 
-
 typedef struct PLAYER_
 {
 	VECTOR2 pos;

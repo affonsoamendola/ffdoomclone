@@ -5,3 +5,5 @@ float min_float(float a, float b);
 float max_float(float a, float b);
 
 int clamp_int(int value, int upper_bound, int lower_bound);
+
+int get_number_in_decimal_slot(int value, int decimal_slot);

@@ -16,6 +16,7 @@ void CONSOLE_Quit();
 
 void CONSOLE_scroll(int lines);
 void CONSOLE_print(char* text);
+void CONSOLE_printi(int i);
 
 void parse_console(char* text_input);
 

@@ -5,6 +5,12 @@
 #include "vector2.h"
 #include "SDL.h"
 
+#define TEXTURE_SIZE_X 128
+#define TEXTURE_SIZE_Y 128
+
+#define SKYBOX_SIZE_X 640
+#define SKYBOX_SIZE_Y 120
+
 typedef struct COLOR_
 {
 	char r;
@@ -74,6 +80,7 @@ void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int t
 
 float get_z_buffer(CAMERA * camera, int x, int y);
 void set_z_buffer(CAMERA * camera, int x, int y, float value);
+void clear_z_buffer(CAMERA * camera);
 
 void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel);
 void GFX_clear_screen();
@@ -92,29 +99,31 @@ void GFX_draw_map();
 void GFX_draw_hand();
 void GFX_draw_ui();
 
+void GFX_draw_7_segment(POINT2 position, int number);
+
 void GFX_Draw_Editor();
 
-void GFX_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height);
-void GFX_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
-							float bot_height, float top_height,
-							GFX_TEXTURE_PARAM texture_parameters, TINT tint);
+void GFX_set_pixel_from_texture_depth_tint(	SDL_Surface *surface,
+											GFX_TEXTURE_PARAM texture,
+											int screen_x, int screen_y,
+											int text_x, int text_y, 
+											float depth, TINT tint);
 
-void GFX_set_pixel_from_texture(SDL_Surface *surface,
-								GFX_TEXTURE_PARAM texture,
-								int screen_x, int screen_y,
-								int text_x, int text_y);
+void GFX_set_pixel_from_texture_tint(	SDL_Surface *surface,
+										GFX_TEXTURE_PARAM texture,
+										int screen_x, int screen_y,
+										int text_x, int text_y, 
+										TINT tint);
 
-int GFX_clip_tri(	VECTOR2 * vertexes, VECTOR2 * uvs, float * heights,
-					VECTOR2 * clipped_vertexes, VECTOR2 * clipped_uvs, float * clipped_heights);
+void GFX_set_pixel_from_texture_depth(	SDL_Surface *surface,
+										GFX_TEXTURE_PARAM texture,
+										int screen_x, int screen_y,
+										int text_x, int text_y, float depth);
 
-void GFX_texture_tri(	VECTOR2 pos0, VECTOR2 uv0, float height0,
-						VECTOR2 pos1, VECTOR2 uv1, float height1,
-						VECTOR2 pos2, VECTOR2 uv2, float height2);
-						
-void GFX_project_sprite(VECTOR2 pos0, VECTOR2 uv0, float height0, 
-						VECTOR2 pos1, VECTOR2 uv1, float height1,
-						VECTOR2 pos2, VECTOR2 uv2, float height2, 
-						VECTOR2 pos3, VECTOR2 uv3, float height3);
+void GFX_set_pixel_from_texture(	SDL_Surface *surface,
+									GFX_TEXTURE_PARAM texture,
+									int screen_x, int screen_y,
+									int text_x, int text_y);
 
 void GFX_draw_wall(	int screen_x, 
 					int c_height_visible, int c_height_invisible,
@@ -136,8 +145,6 @@ TINT GFX_Tint(float r, float g, float b);
 COLOR GFX_Color(int r, int g, int b);
 COLOR GFX_Color_scale(COLOR color, float factor);
 unsigned int GFX_Map_Color(COLOR color);
-
-void GFX_render_3d();
 
 void GFX_Render();
 void GFX_Init();

@@ -82,6 +82,14 @@ void CONSOLE_print(char* text)
 	}
 }
 
+char buffer[128];
+
+void CONSOLE_printi(int i)
+{
+	sprintf(buffer, "%i", i);
+	CONSOLE_print(buffer);
+}
+
 void CONSOLE_Init()
 {
 	console_history = malloc(HISTORY_SIZE * sizeof(char*));
@@ -163,6 +171,11 @@ void parse_token(char** token)
 	if(command_check("noclip", token, 0))
 	{
 		COMMAND_noclip();
+	}
+
+	if(command_check("set", token, 0))
+	{
+		COMMAND_set(get_token_value(token, 1), atoi(get_token_value(token, 2)));
 	}
 }
 

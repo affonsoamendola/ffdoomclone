@@ -72,5 +72,21 @@ void COMMAND_noclip()
 
 	if(player->noclip == 0)
 		CONSOLE_print("\nYOU ARE GROUNDED");
+}
 
+void COMMAND_set(char * variable, int value)
+{
+	if(strcmp(variable, "health") == 0)
+	{
+		CONSOLE_print("\nSetting health to ");
+		CONSOLE_printi(value);
+		player->health = value;
+	}
+
+	if(strcmp(variable, "armor") == 0)
+	{
+		CONSOLE_print("\nSetting armor to ");
+		CONSOLE_printi(value);
+		player->armor = value;
+	}
 }

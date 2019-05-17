@@ -10,4 +10,6 @@ void COMMAND_vertex_list();
 
 void COMMAND_noclip();
 
+void COMMAND_set(char * variable, int value);
+
 #endif

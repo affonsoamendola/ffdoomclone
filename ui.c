@@ -20,6 +20,15 @@ extern PLAYER * player;
 
 float map_scale = 20.0f;
 
+char buffer[128];
+
+extern bool show_map;
+extern bool show_fps;
+
+extern float current_fps;
+
+extern SDL_Surface * ui_tex;
+
 void GFX_draw_console()
 {
 	GFX_fill_rectangle(point2(0, 0), point2(319, 79), SDL_MapRGB(screen->format, 40, 40, 40));
@@ -72,8 +81,8 @@ void GFX_draw_map()
 	}
 }
 
-void GFX_draw_ui()
-{	
+void GFX_draw_ui_bar()
+{
 	GFX_TEXTURE_PARAM ui_texture;
 
 	ui_texture.id = UI_TEX_ID;
@@ -83,13 +92,9 @@ void GFX_draw_ui()
 	ui_texture.u_scale = 1.;
 	ui_texture.v_scale = 1.;
 
-	TINT tint;
-
-	tint = (loaded_level.sectors + player->current_sector)->tint;
-
 	for(int x = 0; x < SCREEN_RES_X; x ++)
 	{
-		for(int y = 200; y < SCREEN_RES_Y; y ++)
+		for(int y = SCREEN_RES_Y - 40; y < SCREEN_RES_Y; y ++)
 		{
 			GFX_set_pixel_from_texture(	screen,
 										ui_texture,
@@ -97,4 +102,26 @@ void GFX_draw_ui()
 										x, y);
 		}
 	}	
+}
+
+void GFX_draw_ui()
+{	
+	GFX_draw_ui_bar();
+
+	if(show_map)
+	{
+		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0), 1);
+		GFX_draw_map();
+	}
+	
+	if(get_console_open())
+	{
+		GFX_draw_console();	
+	}
+
+	if(show_fps)
+	{
+		sprintf(buffer, "%f", current_fps);
+		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
+	}
 }
