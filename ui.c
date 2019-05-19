@@ -81,6 +81,55 @@ void GFX_draw_map()
 	}
 }
 
+void GFX_draw_ammo_line(POINT2 location, int weapon_number)
+{
+	TINT color;
+
+	if(player->current_weapon == weapon_number)
+		color = GFX_Tint(1., 0.8, 0.6);
+	else
+		color = GFX_Tint(0.6, 0.3, 0.1);
+
+	sprintf(buffer, "%i", weapon_number);
+	GFX_draw_tiny_string(location, buffer, color);
+
+	GFX_draw_tiny_char(sum_p2(location, point2(3, 0)), ':', color);
+	
+	sprintf(buffer, "%i", player->ammo[weapon_number]);
+
+	int offset = 0;
+
+	if(player->max_ammo[weapon_number] < 100)
+		offset = -4;
+
+	if(player->ammo[weapon_number] >= 100)
+		GFX_draw_tiny_string(sum_p2(location, point2(7 + offset, 0)), buffer, color);
+	else if(player->ammo[weapon_number] >= 10)
+		GFX_draw_tiny_string(sum_p2(location, point2(11 + offset, 0)), buffer, color);
+	else
+		GFX_draw_tiny_string(sum_p2(location, point2(15 + offset, 0)), buffer, color);
+
+	GFX_draw_tiny_char(sum_p2(location, point2(20 + offset, 0)), '/', color);
+
+	sprintf(buffer, "%i", player->max_ammo[weapon_number]);
+	GFX_draw_tiny_string(sum_p2(location, point2(24 + offset, 0)), buffer, color);
+}
+
+void GFX_draw_ammo_inventory()
+{
+	GFX_draw_ammo_line(point2(198,218), 2);
+	GFX_draw_ammo_line(point2(198,224), 3);
+	GFX_draw_ammo_line(point2(198,230), 4);
+
+	GFX_draw_ammo_line(point2(236,218), 5);
+	GFX_draw_ammo_line(point2(236,224), 6);
+	GFX_draw_ammo_line(point2(236,230), 7);
+
+	GFX_draw_ammo_line(point2(274,218), 8);
+	GFX_draw_ammo_line(point2(274,224), 9);
+	GFX_draw_ammo_line(point2(274,230), 0);
+}
+
 void GFX_draw_ui_bar()
 {
 	GFX_TEXTURE_PARAM ui_texture;
@@ -102,6 +151,8 @@ void GFX_draw_ui_bar()
 										x, y);
 		}
 	}	
+
+	GFX_draw_ammo_inventory();
 }
 
 void GFX_draw_ui()

@@ -13,6 +13,17 @@
 #define PLAYER_MAX_DEFAULT_HEALTH 100
 #define PLAYER_MAX_DEFAULT_ARMOR 100
 
+#define WEAPON_0_MAX_AMMO 10
+#define WEAPON_1_MAX_AMMO 0
+#define WEAPON_2_MAX_AMMO 150
+#define WEAPON_3_MAX_AMMO 100
+#define WEAPON_4_MAX_AMMO 400
+#define WEAPON_5_MAX_AMMO 120
+#define WEAPON_6_MAX_AMMO 150
+#define WEAPON_7_MAX_AMMO 110
+#define WEAPON_8_MAX_AMMO 50
+#define WEAPON_9_MAX_AMMO 25
+
 typedef struct PLAYER_
 {
 	VECTOR2 pos;
@@ -41,6 +52,11 @@ typedef struct PLAYER_
 
 	int max_armor;
 	int armor;
+
+	int current_weapon;
+
+	int ammo[10];
+	int max_ammo[10];
 }
 PLAYER;
 

@@ -45,6 +45,7 @@ GFX_TEXTURE loaded_textures[TEX_ID_SIZE];
 GFX_TEXTURE_PARAM default_texture;
 
 SDL_Surface * seven_seg_font;
+SDL_Surface * tiny_text_font;
 SDL_Surface * ui_tex;
 
 void GFX_load_resource_list(char* location)
@@ -150,6 +151,9 @@ void GFX_Init()
 
 	ui_tex = IMG_Load("graphix/ui.png");
 	SDL_SetColorKey (ui_tex, SDL_TRUE, SDL_MapRGB(ui_tex->format, 255, 0, 255));
+
+	tiny_text_font = IMG_Load("graphix/tinytext.png");
+	SDL_SetColorKey (tiny_text_font, SDL_TRUE, SDL_MapRGB(tiny_text_font->format, 255, 0, 255));
 
 	default_texture.id = 0;
 	default_texture.parallax = 0;
@@ -526,14 +530,14 @@ void GFX_Render()
 	GFX_draw_ui();
 
 	if(player->health >= 100)
-		GFX_draw_7_segment(point2(2, 214), player->health);
+		GFX_draw_7_segment(point2(2, 214), player->health, GFX_Tint(1., 1., 1.));
 	else
-		GFX_draw_7_segment(point2(0, 214), player->health);
+		GFX_draw_7_segment(point2(0, 214), player->health, GFX_Tint(1., 1., 1.));
 
 	if(player->armor >= 100)
-		GFX_draw_7_segment(point2(38, 214), player->armor);
+		GFX_draw_7_segment(point2(38, 214), player->armor, GFX_Tint(1., 1., 1.));
 	else
-		GFX_draw_7_segment(point2(36, 214), player->armor);
+		GFX_draw_7_segment(point2(36, 214), player->armor, GFX_Tint(1., 1., 1.));
 
 	SDL_UpdateRect(screen, 0, 0, SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE);
 }
@@ -552,6 +556,21 @@ void GFX_load_font(const char * location)
 	}
 
 	fclose(font_file);
+}
+
+void GFX_blit(SDL_Surface * src, SDL_Surface * dst, SDL_Rect src_rect, POINT2 dst_pos, TINT tint)
+{
+	for(int x = 0; x < src_rect.w; x++)
+	{
+		for(int y = 0; y < src_rect.h; y++)
+		{
+			unsigned int pixel;
+
+			pixel = GFX_get_pixel(src, src_rect.x + x, src_rect.y + y);
+			pixel = GFX_Tint_Pixel(pixel, tint);
+			GFX_set_pixel(screen, dst_pos.x + x, dst_pos.y + y, pixel, 1);
+		}
+	}
 }
 
 void GFX_draw_char(POINT2 position, char character, unsigned int pixel)
@@ -576,7 +595,20 @@ void GFX_draw_char(POINT2 position, char character, unsigned int pixel)
 	}
 }
 
-void GFX_draw_7_segment(POINT2 position, int number)
+void GFX_draw_string(POINT2 position, char* string, unsigned int pixel)
+{
+	for(int i = 0; i < 256; i++)
+	{
+		if(*(string + i) == '\0')
+		{
+			break;
+		}
+		
+		GFX_draw_char(point2(position.x + i * 8, position.y), *(string + i), pixel);
+	}
+}
+
+void GFX_draw_7_segment(POINT2 position, int number, TINT tint)
 {
 	int value[3];
 	bool to_draw[3];
@@ -597,33 +629,38 @@ void GFX_draw_7_segment(POINT2 position, int number)
 
 	to_draw[3] = 1;
 
-	SDL_Surface* textures[3];
-
 	for(int i = 0; i < 3; i++)
 	{
 		if(to_draw[i])
 		{
-			textures[i] = GFX_new_surface(12, 22);
-
 			SDL_Rect location = (SDL_Rect){12 * value[i],0,12,22};
 
-			SDL_BlitSurface(seven_seg_font, &location, textures[i], NULL);
-
-			for(int x = 0; x < 12; x ++)
-			{
-				for(int y = 0; y < 22; y++)
-				{
-					unsigned int pixel;
-
-					pixel = GFX_get_pixel(textures[i], x, y);
-					GFX_set_pixel(screen, position.x + i * 12 + x, position.y + y, pixel, 1);
-				}
-			}
-		}
+			GFX_blit(seven_seg_font, screen, location, sum_p2(position, point2(i * location.w, 0)), tint);
+		}		
 	}
 }
 
-void GFX_draw_string(POINT2 position, char* string, unsigned int pixel)
+void GFX_draw_tiny_char(POINT2 position, char character, TINT tint)
+{
+	SDL_Rect location;
+
+	int character_column = 12;
+	int character_line = 0;
+
+	if(character == '!') {character_column = 26; character_line = 1;}
+	if(character == '?') {character_column = 27; character_line = 1;}
+	if(character == ':') {character_column = 10; character_line = 0;}
+	if(character == '/') {character_column = 11; character_line = 0;}
+	if(character >= (int)'0' && character <= (int)'9') {character_column = (int)character - (int)'0'; character_line = 0;}
+	if(character >= (int)'a' && character <= (int)'z') {character_column = (int)character - (int)'a'; character_line = 1;}
+	if(character >= (int)'A' && character <= (int)'Z') {character_column = (int)character - (int)'A'; character_line = 1;}
+
+	location = (SDL_Rect){4 * character_column, 6 * character_line, 4, 6};
+	
+	GFX_blit(tiny_text_font, screen, location, position, tint);
+}
+
+void GFX_draw_tiny_string(POINT2 position, char* string, TINT tint)
 {
 	for(int i = 0; i < 256; i++)
 	{
@@ -632,7 +669,8 @@ void GFX_draw_string(POINT2 position, char* string, unsigned int pixel)
 			break;
 		}
 		
-		GFX_draw_char(point2(position.x + i * 8, position.y), *(string + i), pixel);
+		if(*(string + i) != ' ')
+			GFX_draw_tiny_char(point2(position.x + i * 4, position.y), *(string + i), tint);
 	}
 }
 
@@ -711,7 +749,7 @@ unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint)
 
 	SDL_GetRGB(pixel, screen->format, &r, &g, &b);
 
-	if(r != 255 && g != 0 && b != 255)
+	if(!(r == 255 && g == 0 && b == 255))
 	{
 		r = (unsigned char)(((float)r) * tint.r);
 		g = (unsigned char)(((float)g) * tint.g);

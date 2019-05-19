@@ -7,7 +7,7 @@
 #define EPSILON 1e-6
 #define PI 3.14159
 
-#define ENGINE_VERSION "0.05"
+#define ENGINE_VERSION "0.06"
 #define PIXEL_SCALE 3
 
 #define SCREEN_RES_X 320

@@ -91,6 +91,11 @@ void GFX_load_texture(char * location, int id);
 void GFX_draw_char(POINT2 position, char character, unsigned int pixel);
 void GFX_draw_string(POINT2 position, char* string, unsigned int pixel);
 
+void GFX_draw_7_segment(POINT2 position, int number, TINT tint);
+
+void GFX_draw_tiny_char(POINT2 position, char character, TINT tint);
+void GFX_draw_tiny_string(POINT2 position, char* string, TINT tint);
+
 void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixel);
 
 void GFX_draw_console();
@@ -98,8 +103,6 @@ void GFX_draw_map();
 
 void GFX_draw_hand();
 void GFX_draw_ui();
-
-void GFX_draw_7_segment(POINT2 position, int number);
 
 void GFX_Draw_Editor();
 

@@ -26,22 +26,7 @@ char lower_case_symbols[20] = {'`', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 char upper_case_symbols[20] = {'~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '{', '}', ':', '\"', '<', '>', '?'};
 
 extern clock_t current_frame_start;
-/*
-extern VECTOR2 player_pos;
 
-extern float player_walk_speed;
-extern float player_walk_turn_speed;
-
-extern float player_run_speed;
-extern float player_run_turn_speed;
-
-extern float player_pos_height;
-extern float player_speed;
-extern float player_turn_speed;
-extern float player_facing;
-extern float player_angle_cos;
-extern float player_angle_sin;
-*/
 extern PLAYER * player;
 
 bool show_fps = 0;
@@ -220,6 +205,57 @@ void INPUT_Handle()
 			}
 			else if(event.type == SDL_KEYDOWN)
 			{
+				switch(event.key.keysym.sym)
+				{
+					case '`':
+						set_console_open(!get_console_open());
+						break;
+
+					case 'i':
+						show_fps = !show_fps;
+						break;
+
+					case 'm':
+						show_map = !show_map;
+						break;
+
+					case 'p':
+						edit_mode = !edit_mode;
+						game_mode = !game_mode;
+						break;
+
+					case '0':
+						player->current_weapon = 0;
+						break;
+					case '1':
+						player->current_weapon = 1;
+						break;
+					case '2':
+						player->current_weapon = 2;
+						break;
+					case '3':
+						player->current_weapon = 3;
+						break;
+					case '4':
+						player->current_weapon = 4;
+						break;
+					case '5':
+						player->current_weapon = 5;
+						break;
+					case '6':
+						player->current_weapon = 6;
+						break;
+					case '7':
+						player->current_weapon = 7;
+						break;
+					case '8':
+						player->current_weapon = 8;
+						break;
+					case '9':
+						player->current_weapon = 9;
+						break;
+				}
+				/*
 				if(event.key.keysym.sym == '`')
 				{
 					set_console_open(!get_console_open());
@@ -237,6 +273,8 @@ void INPUT_Handle()
 					edit_mode = !edit_mode;
 					game_mode = !game_mode;
 				}
+				else
+				*/
 			}
 		}
 	}	

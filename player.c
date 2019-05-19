@@ -39,6 +39,21 @@ void PLAYER_Init(PLAYER ** player)
 	initted_player.max_armor = PLAYER_MAX_DEFAULT_ARMOR;
 	initted_player.armor = PLAYER_MAX_DEFAULT_ARMOR;
 
+	initted_player.current_weapon = 2 ;
+
+	for(int i = 0; i < 10; i ++) initted_player.ammo[i] = 33;
+	
+	initted_player.max_ammo[0] = WEAPON_0_MAX_AMMO; 
+	initted_player.max_ammo[1] = WEAPON_1_MAX_AMMO; 
+	initted_player.max_ammo[2] = WEAPON_2_MAX_AMMO; 
+	initted_player.max_ammo[3] = WEAPON_3_MAX_AMMO; 
+	initted_player.max_ammo[4] = WEAPON_4_MAX_AMMO; 
+	initted_player.max_ammo[5] = WEAPON_5_MAX_AMMO; 
+	initted_player.max_ammo[6] = WEAPON_6_MAX_AMMO; 
+	initted_player.max_ammo[7] = WEAPON_7_MAX_AMMO; 
+	initted_player.max_ammo[8] = WEAPON_8_MAX_AMMO; 
+	initted_player.max_ammo[9] = WEAPON_9_MAX_AMMO; 
+	
 	*player = malloc(sizeof(PLAYER));
 	**player = initted_player;
 }
