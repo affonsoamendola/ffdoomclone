@@ -23,6 +23,12 @@ void WORLD_Init()
 	level_load("level");
 }
 
+void WORLD_Update()
+{
+	
+	PLAYER_Update();
+}
+
 VECTOR2 get_vertex_at(int index)
 {
 	if(index >= 0 && index < loaded_level.v_num)

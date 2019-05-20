@@ -98,6 +98,7 @@ void ENGINE_Loop()
 	{
 		GFX_Render();
 		INPUT_Handle();
+		WORLD_Update();
 	}
 	else if(edit_mode)
 	{

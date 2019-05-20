@@ -43,6 +43,7 @@ typedef struct LEVEL_
 LEVEL;
 
 void WORLD_Init();
+void WORLD_Update();
 
 void level_load(const char * file_location);
 VECTOR2 get_vertex_at(int index);

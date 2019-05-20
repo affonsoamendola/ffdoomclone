@@ -4,6 +4,13 @@
 #define PLAYER_HEIGHT 2.0f
 #define PLAYER_CROUCH 1.0f
 
+#define PLAYER_KNEE 0.3f //Value suggested by Bruno Tonsa, any complaints must be directed to
+						 //bruno@tonsa.org
+
+#define JUMP_VELOCITY 3.0f
+
+#define GRAVITY -10.f
+
 #define PLAYER_START_HEIGHT 0.5f
 #define PLAYER_START_SPEED 1.0f
 
@@ -31,6 +38,9 @@ typedef struct PLAYER_
 	float height;
 
 	float pos_height;
+	float h_velocity;
+
+	int is_grounded;
 
 	float facing;
 
@@ -62,6 +72,9 @@ PLAYER;
 
 void PLAYER_Init(PLAYER ** player);
 
+void PLAYER_Update();
+
+void PLAYER_Jump();
 void PLAYER_Move(PLAYER * player, VECTOR2 amount);
 
 #endif

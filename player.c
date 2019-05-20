@@ -17,6 +17,7 @@ void PLAYER_Init(PLAYER ** player)
 	initted_player.height = PLAYER_START_HEIGHT;
 
 	initted_player.pos_height = PLAYER_START_HEIGHT;
+	initted_player.h_velocity = 0.;
 
 	initted_player.facing = 0.00001;
 
@@ -58,6 +59,26 @@ void PLAYER_Init(PLAYER ** player)
 	**player = initted_player;
 }
 
+void PLAYER_Update()
+{
+	player->is_grounded = 0;
+
+	if(player->h_velocity > 0.) 
+		player->is_grounded = 0;
+	else if(player->pos_height - player->height <= loaded_level.sectors[player->current_sector].floor_height)
+	{
+		player->is_grounded = 1;
+		player->h_velocity = 0.;
+		player->pos_height = loaded_level.sectors[player->current_sector].floor_height + player->height;	
+	}
+
+	if(player->is_grounded == 0)
+	{
+		player->h_velocity = player->h_velocity + (GRAVITY * ENGINE_delta_time());
+		player->pos_height = player->pos_height + (player->h_velocity * ENGINE_delta_time());
+	}
+}
+
 void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 {
 	SECTOR * current_sector;
@@ -81,9 +102,19 @@ void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 			{
 				if(current_edge->is_portal)
 				{
-					allow_move = 1;
+					float neighbor_sector_floor;
 
-					player->current_sector = current_edge->neighbor_sector_id;
+					neighbor_sector_floor = loaded_level.sectors[current_edge->neighbor_sector_id].floor_height;
+
+					if(current_sector->floor_height + player->pos_height - player->height + PLAYER_KNEE > neighbor_sector_floor)
+					{
+						allow_move = 1;
+						player->current_sector = current_edge->neighbor_sector_id;
+					}
+					else
+						allow_move = 0;
+
+					
 				}
 				else
 				{
@@ -98,7 +129,15 @@ void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 	{
 		player->pos = to_pos;
 		
-		if(player->noclip == 0)
-			player->pos_height = current_sector->floor_height + player->height;
+		//if(player->noclip == 0)
+			//player->pos_height = current_sector->floor_height + player->height;
+	}
+}
+
+void PLAYER_Jump()
+{
+	if(player->is_grounded)
+	{
+		player->h_velocity = JUMP_VELOCITY;
 	}
 }

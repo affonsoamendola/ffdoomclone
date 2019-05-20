@@ -254,27 +254,11 @@ void INPUT_Handle()
 					case '9':
 						player->current_weapon = 9;
 						break;
+
+					case SDLK_SPACE:
+						PLAYER_Jump();
+						break;
 				}
-				/*
-				if(event.key.keysym.sym == '`')
-				{
-					set_console_open(!get_console_open());
-				}
-				else if(event.key.keysym.sym == 'i')
-				{
-					show_fps = !show_fps;
-				}
-				else if(event.key.keysym.sym == 'm')
-				{
-					show_map = !show_map;
-				}
-				else if(event.key.keysym.sym == 'p')
-				{
-					edit_mode = !edit_mode;
-					game_mode = !game_mode;
-				}
-				else
-				*/
 			}
 		}
 	}	
