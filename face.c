@@ -59,12 +59,14 @@ void FACE_Draw()
 	GFX_blit(face_sheet.surface, screen, current_rect, point2(142,201), GFX_Tint(1., 1., 1.));
 }
 
-#define ANIM_IDLE_0 20
+#define ANIM_IDLE_0 10
 #define ANIM_IDLE_1 20
 #define ANIM_IDLE_2 20
 #define ANIM_IDLE_3 5
+#define ANIM_IDLE_4 1
 
 #define ANIM_IDLE_RAND 40
+#define ANIM_IDLE_BLINK_RAND 2
 
 int random_variation = 0;
 
@@ -89,7 +91,18 @@ void FACE_ANIM_Idle()
 
 		case 3:
 			current_rect = IDLE_C;
-			if(anim_counter > ANIM_IDLE_3 + random_variation) {anim_counter = 0; current_state = 0; random_variation = rand()%ANIM_IDLE_RAND;}
+			if(anim_counter > ANIM_IDLE_3 + random_variation) 
+			{
+				anim_counter = 0; 
+				if(rand()%2 == 1) {	current_state = 4; random_variation = rand()%ANIM_IDLE_BLINK_RAND;}
+				else 			  { current_state = 0; random_variation = rand()%ANIM_IDLE_RAND;}
+				
+			}
+			break;
+
+		case 4:
+			current_rect = IDLE_BLINK;
+			if(anim_counter > ANIM_IDLE_4 + random_variation) {anim_counter = 0; current_state = 0; random_variation = rand()%ANIM_IDLE_RAND;}
 			break;
 	}
 }
