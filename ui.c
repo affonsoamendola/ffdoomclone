@@ -10,6 +10,8 @@
 #include "player.h"
 #include "input.h"
 
+#include "face.h"
+
 #include "ui.h"
 
 #include "engine.h"
@@ -153,6 +155,7 @@ void GFX_draw_ui_bar()
 	}	
 
 	GFX_draw_ammo_inventory();
+	FACE_Draw();
 }
 
 void GFX_draw_ui()
@@ -175,4 +178,14 @@ void GFX_draw_ui()
 		sprintf(buffer, "%f", current_fps);
 		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
 	}
+}
+
+void UI_Init()
+{
+	FACE_Init();
+}
+
+void UI_Tick()
+{
+	FACE_Tick();
 }

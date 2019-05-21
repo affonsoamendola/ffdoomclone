@@ -78,6 +78,8 @@ CAMERA;
 unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y);
 void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int transparency);
 
+void GFX_blit(SDL_Surface * src, SDL_Surface * dst, SDL_Rect src_rect, POINT2 dst_pos, TINT tint);
+
 float get_z_buffer(CAMERA * camera, int x, int y);
 void set_z_buffer(CAMERA * camera, int x, int y, float value);
 void clear_z_buffer(CAMERA * camera);
@@ -87,6 +89,7 @@ void GFX_clear_screen();
 
 void GFX_load_font(const char * location);
 void GFX_load_texture(char * location, int id);
+void GFX_load_texture_at(char* location, GFX_TEXTURE * holder);
 
 void GFX_draw_char(POINT2 position, char character, unsigned int pixel);
 void GFX_draw_string(POINT2 position, char* string, unsigned int pixel);
@@ -151,6 +154,7 @@ unsigned int GFX_Map_Color(COLOR color);
 
 void GFX_Render();
 void GFX_Init();
+void GFX_Tick();
 void GFX_Quit(); 
 
 #endif

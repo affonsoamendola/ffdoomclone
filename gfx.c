@@ -44,9 +44,9 @@ GFX_TEXTURE loaded_textures[TEX_ID_SIZE];
 
 GFX_TEXTURE_PARAM default_texture;
 
-SDL_Surface * seven_seg_font;
-SDL_Surface * tiny_text_font;
-SDL_Surface * ui_tex;
+GFX_TEXTURE seven_seg_font;
+GFX_TEXTURE tiny_text_font;
+GFX_TEXTURE ui_tex;
 
 void GFX_load_resource_list(char* location)
 {
@@ -61,23 +61,31 @@ void GFX_load_resource_list(char* location)
 	}
 }
 
-void GFX_load_texture(char* location, int tex_id)
+void GFX_load_texture_at(char* location, GFX_TEXTURE * holder)
 {
-	GFX_TEXTURE new_texture;
-
 	SDL_Surface * tex_surface;
 
 	tex_surface = IMG_Load(location);
-	SDL_SetColorKey (tex_surface, SDL_TRUE, SDL_MapRGB(tex_surface->format, 255, 0, 255));
 
 	if(tex_surface == NULL)
-		printf("Could not load texture id %i, (File: %s), Error: %s\n", tex_id, location, SDL_GetError());
+	{
+		printf("Could not load texture, Error: %s\n", SDL_GetError());
+		exit(-1);
+	}
 
-	loaded_textures[tex_id].loaded = 1;
-	loaded_textures[tex_id].surface = tex_surface;
+	SDL_SetColorKey (tex_surface, SDL_TRUE, SDL_MapRGB(tex_surface->format, 255, 0, 255));
 
-	loaded_textures[tex_id].size_x = tex_surface->w;
-	loaded_textures[tex_id].size_y = tex_surface->h;
+	holder->loaded = 1;
+	holder->surface = tex_surface;
+
+	holder->size_x = tex_surface->w;
+	holder->size_y = tex_surface->h;
+}
+
+
+void GFX_load_texture(char* location, int tex_id)
+{
+	GFX_load_texture_at(location, loaded_textures + tex_id);
 }
 
 void GFX_unload_texture(int tex_id)
@@ -146,14 +154,9 @@ void GFX_Init()
 	
 	GFX_load_font("8x8Font.fnt");
 
-	seven_seg_font = IMG_Load("graphix/7seg.png");
-	SDL_SetColorKey (seven_seg_font, SDL_TRUE, SDL_MapRGB(seven_seg_font->format, 255, 0, 255));
-
-	ui_tex = IMG_Load("graphix/ui.png");
-	SDL_SetColorKey (ui_tex, SDL_TRUE, SDL_MapRGB(ui_tex->format, 255, 0, 255));
-
-	tiny_text_font = IMG_Load("graphix/tinytext.png");
-	SDL_SetColorKey (tiny_text_font, SDL_TRUE, SDL_MapRGB(tiny_text_font->format, 255, 0, 255));
+	GFX_load_texture_at("graphix/7seg.png", &seven_seg_font);
+	GFX_load_texture_at("graphix/ui.png", &ui_tex);
+	GFX_load_texture_at("graphix/tinytext.png", &tiny_text_font);
 
 	default_texture.id = 0;
 	default_texture.parallax = 0;
@@ -174,6 +177,13 @@ void GFX_Init()
 	GFX_load_texture("graphix/coffeehands.png", HAND_TEX_ID);
 	GFX_load_texture("graphix/terminator.png", 11);
 	GFX_load_texture("graphix/ui.png", UI_TEX_ID);
+
+	UI_Init();
+}
+
+void GFX_Tick()
+{
+	UI_Tick();
 }
 
 void GFX_Quit()
@@ -635,7 +645,7 @@ void GFX_draw_7_segment(POINT2 position, int number, TINT tint)
 		{
 			SDL_Rect location = (SDL_Rect){12 * value[i],0,12,22};
 
-			GFX_blit(seven_seg_font, screen, location, sum_p2(position, point2(i * location.w, 0)), tint);
+			GFX_blit(seven_seg_font.surface, screen, location, sum_p2(position, point2(i * location.w, 0)), tint);
 		}		
 	}
 }
@@ -657,7 +667,7 @@ void GFX_draw_tiny_char(POINT2 position, char character, TINT tint)
 
 	location = (SDL_Rect){4 * character_column, 6 * character_line, 4, 6};
 	
-	GFX_blit(tiny_text_font, screen, location, position, tint);
+	GFX_blit(tiny_text_font.surface, screen, location, position, tint);
 }
 
 void GFX_draw_tiny_string(POINT2 position, char* string, TINT tint)

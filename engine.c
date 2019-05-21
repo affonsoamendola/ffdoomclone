@@ -90,6 +90,27 @@ float ENGINE_delta_time()
 	return (float)(current_time - current_frame_start) / (float)CLOCKS_PER_SEC;
 }
 
+float current_tick = 0;
+
+void ENGINE_Tick()
+{
+	GFX_Tick();
+}
+
+void ENGINE_Check_Tick()
+{
+	if(current_tick > 0.02)
+	{
+		current_tick = 0.;
+		ENGINE_Tick();
+	}
+	else
+	{
+	//	printf("ADDED + %f\n", ENGINE_delta_time());
+		current_tick += ENGINE_delta_time();
+	}
+}
+
 void ENGINE_Loop()
 {
 	current_frame_start = clock();
@@ -99,6 +120,7 @@ void ENGINE_Loop()
 		GFX_Render();
 		INPUT_Handle();
 		WORLD_Update();
+		ENGINE_Check_Tick();
 	}
 	else if(edit_mode)
 	{
@@ -109,8 +131,6 @@ void ENGINE_Loop()
 
 	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
 }
-
-#include "utility.h"
 
 int main(int argc, char** argv)
 {

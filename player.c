@@ -113,8 +113,6 @@ void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 					}
 					else
 						allow_move = 0;
-
-					
 				}
 				else
 				{
