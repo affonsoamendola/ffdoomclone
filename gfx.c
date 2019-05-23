@@ -19,8 +19,6 @@
 
 #include "gfx.h"
 
-#define TEX_ID_SIZE 256
-
 #define HAND_TEX_ID 10
 
 extern SDL_Surface * screen;
@@ -81,7 +79,6 @@ void GFX_load_texture_at(char* location, GFX_TEXTURE * holder)
 	holder->size_x = tex_surface->w;
 	holder->size_y = tex_surface->h;
 }
-
 
 void GFX_load_texture(char* location, int tex_id)
 {
@@ -170,13 +167,15 @@ void GFX_Init()
 	for(int i = 0; i < TEX_ID_SIZE; i++)
 	{
 		loaded_textures[i].loaded = 0;
+		loaded_textures[i].surface = NULL;
+		loaded_textures[i].size_x = 0;
+		loaded_textures[i].size_y = 0;
 	}
 
 	GFX_load_resource_list("graphix/default.rls");
 
 	GFX_load_texture("graphix/coffeehands.png", HAND_TEX_ID);
 	GFX_load_texture("graphix/terminator.png", 11);
-	GFX_load_texture("graphix/ui.png", UI_TEX_ID);
 
 	UI_Init();
 }
@@ -627,6 +626,10 @@ void GFX_draw_7_segment(POINT2 position, int number, TINT tint)
 	value[1] = get_number_in_decimal_slot(number, 1);
 	value[2] = get_number_in_decimal_slot(number, 0);
 
+	to_draw[0] = 1;
+	to_draw[1] = 1;
+	to_draw[2] = 1;
+
 	if(value[0] == 0)
 		to_draw[0] = 0;
 	else
@@ -637,7 +640,7 @@ void GFX_draw_7_segment(POINT2 position, int number, TINT tint)
 	else
 		to_draw[1] = 1;
 
-	to_draw[3] = 1;
+	to_draw[2] = 1;
 
 	for(int i = 0; i < 3; i++)
 	{

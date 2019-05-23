@@ -15,4 +15,6 @@ void EDITOR_Loop();
 
 void EDITOR_Init();
 
+void draw_texture_select();
+
 #endif

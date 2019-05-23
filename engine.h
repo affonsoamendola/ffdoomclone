@@ -26,4 +26,6 @@ char* ENGINE_version();
 
 float ENGINE_delta_time();
 
+int ENGINE_Blink_State();
+
 #endif

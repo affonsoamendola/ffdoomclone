@@ -15,9 +15,7 @@ extern PLAYER * player;
 
 void WORLD_Init()
 {
-	CONSOLE_print("Initting World... Please hold...");
-
-	CONSOLE_print("Initting Player... Please hold...");
+	CONSOLE_print("Initting Player...\n");
 	PLAYER_Init(&player);
 
 	level_load("level");
@@ -211,6 +209,18 @@ EDGE * get_edge_at(SECTOR * sector, int edge_index)
 	else
 	{
 		return sector->e;
+	}
+}
+
+SECTOR * get_sector_at(int sector_index)
+{
+	if(sector_index >= 0 && sector_index < loaded_level.s_num)
+	{
+		return loaded_level.sectors + sector_index;
+	}
+	else
+	{
+		return loaded_level.sectors;
 	}
 }
 
@@ -548,7 +558,7 @@ void get_closest_edge(VECTOR2 pos, EDGE ** edge, VECTOR2 * projection, int * edg
 
 			current_distance = distance_v2_to_segment(pos, get_vertex_at(current_edge->v_start), get_vertex_at(current_edge->v_end), &current_projection);
 		
-			if(	current_distance < closest_distance)
+			if(	current_distance < closest_distance && point_side_v2(pos, get_vertex_at(current_edge->v_start), get_vertex_at(current_edge->v_end)) == -1)
 			{
 				closest_edge_index = e;
 				closest_sector_index = s;

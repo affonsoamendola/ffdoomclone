@@ -11,6 +11,8 @@
 #define SKYBOX_SIZE_X 640
 #define SKYBOX_SIZE_Y 120
 
+#define TEX_ID_SIZE 256
+
 typedef struct COLOR_
 {
 	char r;

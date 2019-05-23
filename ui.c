@@ -29,7 +29,7 @@ extern bool show_fps;
 
 extern float current_fps;
 
-extern SDL_Surface * ui_tex;
+extern GFX_TEXTURE ui_tex;
 
 void GFX_draw_console()
 {
@@ -134,23 +134,19 @@ void GFX_draw_ammo_inventory()
 
 void GFX_draw_ui_bar()
 {
-	GFX_TEXTURE_PARAM ui_texture;
-
-	ui_texture.id = UI_TEX_ID;
-	ui_texture.parallax = 0;
-	ui_texture.u_offset = 0;
-	ui_texture.v_offset = 0;
-	ui_texture.u_scale = 1.;
-	ui_texture.v_scale = 1.;
+	unsigned int pixel;
 
 	for(int x = 0; x < SCREEN_RES_X; x ++)
 	{
-		for(int y = SCREEN_RES_Y - 40; y < SCREEN_RES_Y; y ++)
+		for(int y = 0; y < 40; y ++)
 		{
+			pixel = GFX_get_pixel(ui_tex.surface, x, y);
+			GFX_set_pixel(screen, x, y + SCREEN_RES_Y - 40, pixel, 1);
+			/*
 			GFX_set_pixel_from_texture(	screen,
 										ui_texture,
 										x, y,
-										x, y);
+										x, y);*/
 		}
 	}	
 

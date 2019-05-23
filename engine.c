@@ -55,11 +55,20 @@ void ENGINE_Init()
 
 	CONSOLE_Init();
 
+	printf("Initting GFX Subsystem...\n");
+
 	GFX_Init();
+
+	printf("Initting Input Subsystem...\n");
 
 	INPUT_Init();
 
+	printf("Initting World Subsystem...\n");
+
 	WORLD_Init();
+
+	printf("Initting Editor Subsystem...\n");
+
 	EDITOR_Init();
 
 	COMMAND_intro();
@@ -92,9 +101,31 @@ float ENGINE_delta_time()
 
 float current_tick = 0;
 
+#define BLINK_RATE 2
+
+int current_blink_state = 0;
+int blink_counter = 0;
+
+void ENGINE_Tick_Blink()
+{
+	blink_counter += 1;
+
+	if(blink_counter > BLINK_RATE)
+	{
+		current_blink_state = !current_blink_state;
+		blink_counter = 0;
+	}
+}
+
 void ENGINE_Tick()
 {
 	GFX_Tick();
+	ENGINE_Tick_Blink();
+}
+
+int ENGINE_Blink_State()
+{
+	return current_blink_state;
 }
 
 void ENGINE_Check_Tick()
@@ -120,7 +151,6 @@ void ENGINE_Loop()
 		GFX_Render();
 		INPUT_Handle();
 		WORLD_Update();
-		ENGINE_Check_Tick();
 	}
 	else if(edit_mode)
 	{
@@ -128,6 +158,8 @@ void ENGINE_Loop()
 		EDITOR_Loop();
 		EDITOR_Handle_Input();
 	}
+
+	ENGINE_Check_Tick();
 
 	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
 }

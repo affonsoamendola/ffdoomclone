@@ -113,6 +113,7 @@ void INPUT_Handle_Console()
 			if(event.key.keysym.sym == SDLK_RETURN)
 			{
 				CONSOLE_scroll(1);
+				CONSOLE_print("\n");
     			CONSOLE_print(console_buffer);
 				parse_console(console_buffer);
 				console_buffer_cursor_pos = 0;

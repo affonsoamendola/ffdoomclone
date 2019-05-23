@@ -50,6 +50,7 @@ VECTOR2 get_vertex_at(int index);
 
 EDGE * get_edge_from_level(int sector_index, int edge_index);
 EDGE * get_edge_at(SECTOR * sector, int edge_index);
+SECTOR * get_sector_at(int sector_index);
 
 VECTOR2 get_vertex_from_sector(SECTOR * sector, int edge_index, int start_or_end);
 void get_closest_vertex(VECTOR2 pos, VECTOR2 * closest, int * vertex_index, float * distance);
