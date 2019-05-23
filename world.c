@@ -16,9 +16,9 @@ extern PLAYER * player;
 void WORLD_Init()
 {
 	CONSOLE_print("Initting Player...\n");
-	PLAYER_Init(&player);
-
+	
 	level_load("level");
+	PLAYER_Init(&player);
 }
 
 void WORLD_Update()
@@ -240,6 +240,10 @@ void level_load(const char * file_location)
 {
 	FILE * level_file;
 
+	LEVEL new_level;
+
+	int success = 1;
+
 	int vertex_num;
 	int sector_num;
 
@@ -250,116 +254,141 @@ void level_load(const char * file_location)
 
 	level_file = fopen(file_location, "r");
 
-	fscanf(level_file, "%u", &vertex_num);
-	fscanf(level_file, "%u", &sector_num);
-
-	loaded_level.v_num = vertex_num;
-	loaded_level.vertexes = malloc(vertex_num * sizeof(VECTOR2));
-	loaded_level.s_num = sector_num;
-	loaded_level.sectors = malloc(sector_num * sizeof(SECTOR));
-
-	for(int v = 0; v < vertex_num; v++)
+	if(level_file == NULL)
 	{
-		fscanf(level_file, "%f %f", &x, &y);
-
-		*(loaded_level.vertexes + v) = vector2(x, y);
+		success = 0;
 	}
-
-	for(int s = 0; s < sector_num; s++)
+	else
 	{
-		SECTOR * current_sector;
+		fscanf(level_file, "%u", &vertex_num);
+		fscanf(level_file, "%u", &sector_num);
 
-		current_sector = loaded_level.sectors + s;
+		new_level.v_num = vertex_num;
+		new_level.vertexes = malloc(vertex_num * sizeof(VECTOR2));
+		new_level.s_num = sector_num;
+		new_level.sectors = malloc(sector_num * sizeof(SECTOR));
 
-		fscanf(level_file, "%u", &sector_size);
-
-		current_sector->sector_id = s;
-		current_sector->e_num = sector_size;
-		current_sector->e = malloc(sector_size * sizeof(EDGE));
-
-		fscanf(level_file, "%f", &(current_sector->floor_height));
-		fscanf(level_file, "%f", &(current_sector->ceiling_height));
-		
-		int * sector_vertexes;
-
-		sector_vertexes = malloc(sector_size * sizeof(int));
-
-		for(int v = 0; v < sector_size; v++)
+		for(int v = 0; v < vertex_num; v++)
 		{
-			fscanf(level_file, "%u", sector_vertexes + v);
+			fscanf(level_file, "%f %f", &x, &y);
+
+			*(new_level.vertexes + v) = vector2(x, y);
 		}
 
-		for(int e = 0; e < sector_size; e++)
+		for(int s = 0; s < sector_num; s++)
 		{
-			EDGE new_edge;
-			int end_vertex;
+			SECTOR * current_sector;
 
-			new_edge.v_start = *(sector_vertexes + e);
+			current_sector = new_level.sectors + s;
 
-			fscanf(level_file, "%u", &(new_edge.text_param.id));
-			fscanf(level_file, "%u", &(new_edge.text_param.parallax));
-			fscanf(level_file, "%u", &(new_edge.text_param.u_offset));
-			fscanf(level_file, "%u", &(new_edge.text_param.v_offset));
-			fscanf(level_file, "%f", &(new_edge.text_param.u_scale));
-			fscanf(level_file, "%f", &(new_edge.text_param.v_scale));
+			fscanf(level_file, "%u", &sector_size);
 
-			end_vertex = e + 1;
+			current_sector->sector_id = s;
+			current_sector->e_num = sector_size;
+			current_sector->e = malloc(sector_size * sizeof(EDGE));
 
-			if(end_vertex >= sector_size)
+			fscanf(level_file, "%f", &(current_sector->floor_height));
+			fscanf(level_file, "%f", &(current_sector->ceiling_height));
+			
+			int * sector_vertexes;
+
+			sector_vertexes = malloc(sector_size * sizeof(int));
+
+			for(int v = 0; v < sector_size; v++)
 			{
-				end_vertex = 0;
+				fscanf(level_file, "%u", sector_vertexes + v);
 			}
 
-			new_edge.v_end = *(sector_vertexes + end_vertex);
+			float r;
+			float g;
+			float b;
 
-			new_edge.is_portal = false;
-			new_edge.neighbor_sector_id = -1;
+			fscanf(level_file, "%f %f %f", &r, &g, &b);
 
-			for(int old_s = 0; old_s < s; old_s ++)
+			current_sector->tint = GFX_Tint(r,g,b);
+
+			for(int e = 0; e < sector_size; e++)
 			{
-				SECTOR * checking_sector;
+				EDGE new_edge;
+				int end_vertex;
 
-				checking_sector = loaded_level.sectors + old_s;
+				new_edge.v_start = *(sector_vertexes + e);
 
-				for(int old_e = 0; old_e < checking_sector->e_num; old_e++)
+				fscanf(level_file, "%u", &(new_edge.text_param.id));
+				fscanf(level_file, "%u", &(new_edge.text_param.parallax));
+				fscanf(level_file, "%u", &(new_edge.text_param.u_offset));
+				fscanf(level_file, "%u", &(new_edge.text_param.v_offset));
+				fscanf(level_file, "%f", &(new_edge.text_param.u_scale));
+				fscanf(level_file, "%f", &(new_edge.text_param.v_scale));
+
+				end_vertex = e + 1;
+
+				if(end_vertex >= sector_size)
 				{
-					EDGE * checking_edge;
+					end_vertex = 0;
+				}
 
-					checking_edge = checking_sector->e + old_e;
+				new_edge.v_end = *(sector_vertexes + end_vertex);
 
-					if( (new_edge.v_start == checking_edge->v_start && new_edge.v_end == checking_edge->v_end) ||
-						(new_edge.v_start == checking_edge->v_end && new_edge.v_end == checking_edge->v_start))
+				new_edge.is_portal = false;
+				new_edge.neighbor_sector_id = -1;
+
+				for(int old_s = 0; old_s < s; old_s ++)
+				{
+					SECTOR * checking_sector;
+
+					checking_sector = new_level.sectors + old_s;
+
+					for(int old_e = 0; old_e < checking_sector->e_num; old_e++)
 					{
-						new_edge.is_portal = true;
-						checking_edge->is_portal = true;
+						EDGE * checking_edge;
 
-						new_edge.neighbor_sector_id = old_s;
-						checking_edge->neighbor_sector_id = s;
+						checking_edge = checking_sector->e + old_e;
+
+						if( (new_edge.v_start == checking_edge->v_start && new_edge.v_end == checking_edge->v_end) ||
+							(new_edge.v_start == checking_edge->v_end && new_edge.v_end == checking_edge->v_start))
+						{
+							new_edge.is_portal = true;
+							checking_edge->is_portal = true;
+
+							new_edge.neighbor_sector_id = old_s;
+							checking_edge->neighbor_sector_id = s;
+						}
 					}
 				}
+
+				*(current_sector->e + e) = new_edge;
 			}
 
-			*(current_sector->e + e) = new_edge;
+			fscanf(level_file, "%u", &(current_sector->text_param_ceil.id));
+			fscanf(level_file, "%u", &(current_sector->text_param_ceil.parallax));
+			fscanf(level_file, "%u", &(current_sector->text_param_ceil.u_offset));
+			fscanf(level_file, "%u", &(current_sector->text_param_ceil.v_offset));
+			fscanf(level_file, "%f", &(current_sector->text_param_ceil.u_scale));
+			fscanf(level_file, "%f", &(current_sector->text_param_ceil.v_scale));
+
+			fscanf(level_file, "%u", &(current_sector->text_param_floor.id));
+			fscanf(level_file, "%u", &(current_sector->text_param_floor.parallax));
+			fscanf(level_file, "%u", &(current_sector->text_param_floor.u_offset));
+			fscanf(level_file, "%u", &(current_sector->text_param_floor.v_offset));
+			fscanf(level_file, "%f", &(current_sector->text_param_floor.u_scale));
+			fscanf(level_file, "%f", &(current_sector->text_param_floor.v_scale));
 		}
 
-		fscanf(level_file, "%u", &(current_sector->text_param_ceil.id));
-		fscanf(level_file, "%u", &(current_sector->text_param_ceil.parallax));
-		fscanf(level_file, "%u", &(current_sector->text_param_ceil.u_offset));
-		fscanf(level_file, "%u", &(current_sector->text_param_ceil.v_offset));
-		fscanf(level_file, "%f", &(current_sector->text_param_ceil.u_scale));
-		fscanf(level_file, "%f", &(current_sector->text_param_ceil.v_scale));
-
-		fscanf(level_file, "%u", &(current_sector->text_param_floor.id));
-		fscanf(level_file, "%u", &(current_sector->text_param_floor.parallax));
-		fscanf(level_file, "%u", &(current_sector->text_param_floor.u_offset));
-		fscanf(level_file, "%u", &(current_sector->text_param_floor.v_offset));
-		fscanf(level_file, "%f", &(current_sector->text_param_floor.u_scale));
-		fscanf(level_file, "%f", &(current_sector->text_param_floor.v_scale));
-
-		current_sector->tint = GFX_Tint(0.1f, 0.1f, 0.6f);
+		fclose(level_file);
 	}
 
-	fclose(level_file);
+	if(success == 1)
+	{
+		loaded_level = new_level;
+		CONSOLE_print("\nLoaded ");
+		CONSOLE_print((char *)file_location);
+	}
+	else
+	{
+		CONSOLE_print("\nError loading level at ");
+		CONSOLE_print((char *)file_location);
+	}
 }
 
 int WORLD_add_vertex(VECTOR2 vertex)

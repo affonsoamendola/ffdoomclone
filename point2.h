@@ -1,6 +1,8 @@
 #ifndef POINT2_H
 #define POINT2_H
 
+#define ZERO_POINT2 (POINT2){0, 0}
+
 typedef struct _POINT2
 {
 	int x;

@@ -19,8 +19,6 @@
 
 #include "gfx.h"
 
-#define HAND_TEX_ID 10
-
 extern SDL_Surface * screen;
 
 extern float current_fps;
@@ -31,6 +29,8 @@ extern bool show_map;
 extern LEVEL loaded_level;
 
 extern PLAYER * player;
+
+extern bool edit_mode;
 
 char buffer[128];
 
@@ -45,6 +45,8 @@ GFX_TEXTURE_PARAM default_texture;
 GFX_TEXTURE seven_seg_font;
 GFX_TEXTURE tiny_text_font;
 GFX_TEXTURE ui_tex;
+
+GFX_TEXTURE hand_tex;
 
 void GFX_load_resource_list(char* location)
 {
@@ -154,6 +156,7 @@ void GFX_Init()
 	GFX_load_texture_at("graphix/7seg.png", &seven_seg_font);
 	GFX_load_texture_at("graphix/ui.png", &ui_tex);
 	GFX_load_texture_at("graphix/tinytext.png", &tiny_text_font);
+	GFX_load_texture_at("graphix/coffeehands.png", &hand_tex);
 
 	default_texture.id = 0;
 	default_texture.parallax = 0;
@@ -174,7 +177,6 @@ void GFX_Init()
 
 	GFX_load_resource_list("graphix/default.rls");
 
-	GFX_load_texture("graphix/coffeehands.png", HAND_TEX_ID);
 	GFX_load_texture("graphix/terminator.png", 11);
 
 	UI_Init();
@@ -535,18 +537,10 @@ void GFX_Render()
 
 	G3D_render_3d();
 
-	GFX_draw_hand();
-	GFX_draw_ui();
-
-	if(player->health >= 100)
-		GFX_draw_7_segment(point2(2, 214), player->health, GFX_Tint(1., 1., 1.));
+	if(edit_mode == 0)
+		GFX_draw_ui();
 	else
-		GFX_draw_7_segment(point2(0, 214), player->health, GFX_Tint(1., 1., 1.));
-
-	if(player->armor >= 100)
-		GFX_draw_7_segment(point2(38, 214), player->armor, GFX_Tint(1., 1., 1.));
-	else
-		GFX_draw_7_segment(point2(36, 214), player->armor, GFX_Tint(1., 1., 1.));
+		GFX_draw_ui_edit();
 
 	SDL_UpdateRect(screen, 0, 0, SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE);
 }
@@ -664,6 +658,10 @@ void GFX_draw_tiny_char(POINT2 position, char character, TINT tint)
 	if(character == '?') {character_column = 27; character_line = 1;}
 	if(character == ':') {character_column = 10; character_line = 0;}
 	if(character == '/') {character_column = 11; character_line = 0;}
+	if(character == '-') {character_column = 12; character_line = 0;}
+	if(character == '+') {character_column = 13; character_line = 0;}
+	if(character == '.') {character_column = 14; character_line = 0;}
+	if(character == ',') {character_column = 15; character_line = 0;}
 	if(character >= (int)'0' && character <= (int)'9') {character_column = (int)character - (int)'0'; character_line = 0;}
 	if(character >= (int)'a' && character <= (int)'z') {character_column = (int)character - (int)'a'; character_line = 1;}
 	if(character >= (int)'A' && character <= (int)'Z') {character_column = (int)character - (int)'A'; character_line = 1;}
@@ -772,32 +770,4 @@ unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint)
 	scaled_pixel = SDL_MapRGB(screen->format, r, g, b);
 
 	return scaled_pixel;
-}
-
-void GFX_draw_hand()
-{	
-	GFX_TEXTURE_PARAM hand_texture;
-
-	hand_texture.id = HAND_TEX_ID;
-	hand_texture.parallax = 0;
-	hand_texture.u_offset = 0;
-	hand_texture.v_offset = 0;
-	hand_texture.u_scale = 1.;
-	hand_texture.v_scale = 1.;
-
-	TINT tint;
-
-	tint = (loaded_level.sectors + player->current_sector)->tint;
-
-	for(int x = SCREEN_RES_X/3; x < SCREEN_RES_X; x ++)
-	{
-		for(int y = SCREEN_RES_Y/2; y < SCREEN_RES_Y; y ++)
-		{
-			GFX_set_pixel_from_texture_tint(	screen,
-												hand_texture,
-												x, y,
-												x, y, 
-												tint);
-		}
-	}	
 }

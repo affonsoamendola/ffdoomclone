@@ -8,7 +8,9 @@
 #include "time.h"
 #include "vector2.h"
 #include "math.h"
+#include "editor.h"
 #include "player.h"
+#include "world.h"
 
 #include "input.h"
 
@@ -16,6 +18,9 @@ extern bool e_running;
 
 extern bool game_mode;
 extern bool edit_mode;
+
+extern int show_texture_select;
+extern int selecting_texture_for;
 
 char* console_buffer;
 int console_buffer_cursor_pos;
@@ -31,6 +36,10 @@ extern PLAYER * player;
 
 bool show_fps = 0;
 bool show_map = 0;
+
+extern VECTOR2 closest_vector;
+extern EDGE * closest_edge;
+extern SECTOR * closest_sector;
 
 char get_upper_case_symbol(char lower_case)
 {
@@ -133,6 +142,10 @@ void INPUT_Handle()
 	{
 		INPUT_Handle_Console();
 	}
+	else if(edit_mode == 1)
+	{
+		EDIT_MODE_Handle_Input();
+	}
 	else
 	{
 		unsigned char * keystate = SDL_GetKeyState(NULL); 
@@ -166,10 +179,7 @@ void INPUT_Handle()
 			}
 			else
 			{
-				player->facing = player->facing + player->turn_speed * ENGINE_delta_time();
-
-				if(player->facing >= 2.*PI) player->facing -= 2*PI;
-				if(player->facing < 0.) player->facing += 2*PI;
+				PLAYER_Turn(player, player->turn_speed * ENGINE_delta_time());
 			}
 		}
 		
@@ -181,10 +191,7 @@ void INPUT_Handle()
 			}
 			else
 			{
-				player->facing = player->facing - player->turn_speed * ENGINE_delta_time();
-
-				if(player->facing >= 2*PI) player->facing -= 2*PI;
-				if(player->facing < 0.) player->facing += 2*PI;
+				PLAYER_Turn(player, -player->turn_speed * ENGINE_delta_time());
 			}
 		}
 		
@@ -221,8 +228,7 @@ void INPUT_Handle()
 						break;
 
 					case 'p':
-						edit_mode = !edit_mode;
-						game_mode = !game_mode;
+						if(edit_mode == 1 && show_texture_select == 0) game_mode = !game_mode;
 						break;
 
 					case '0':

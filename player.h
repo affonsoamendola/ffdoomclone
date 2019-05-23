@@ -1,6 +1,8 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include "world.h"
+
 #define PLAYER_HEIGHT 2.0f
 #define PLAYER_CROUCH 1.0f
 
@@ -67,6 +69,15 @@ typedef struct PLAYER_
 
 	int ammo[10];
 	int max_ammo[10];
+
+	bool movement_blocked;
+
+	VECTOR2 closest_vector;
+	SECTOR * closest_sector;
+	EDGE * closest_edge;
+
+	float closest_vector_distance;
+	float closest_edge_distance;
 }
 PLAYER;
 
@@ -76,5 +87,6 @@ void PLAYER_Update();
 
 void PLAYER_Jump();
 void PLAYER_Move(PLAYER * player, VECTOR2 amount);
+void PLAYER_Turn(PLAYER * player, float amount);
 
 #endif

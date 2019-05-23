@@ -6,6 +6,20 @@
 
 extern LEVEL loaded_level;
 
+extern VECTOR2 editor_cursor;
+
+extern int closest_vector_index;
+extern int closest_edge_index;
+extern int closest_sector_index;
+extern VECTOR2 closest_edge_projection;
+
+extern VECTOR2 closest_vector;
+extern EDGE * closest_edge;
+extern SECTOR * closest_sector;
+
+extern float closest_vector_distance;
+extern float closest_edge_distance;
+
 PLAYER * player;
 
 void PLAYER_Init(PLAYER ** player)
@@ -40,7 +54,9 @@ void PLAYER_Init(PLAYER ** player)
 	initted_player.max_armor = PLAYER_MAX_DEFAULT_ARMOR;
 	initted_player.armor = PLAYER_MAX_DEFAULT_ARMOR;
 
-	initted_player.current_weapon = 2 ;
+	initted_player.current_weapon = 2;
+
+	initted_player.movement_blocked = 0;
 
 	for(int i = 0; i < 10; i ++) initted_player.ammo[i] = 33;
 	
@@ -54,6 +70,10 @@ void PLAYER_Init(PLAYER ** player)
 	initted_player.max_ammo[7] = WEAPON_7_MAX_AMMO; 
 	initted_player.max_ammo[8] = WEAPON_8_MAX_AMMO; 
 	initted_player.max_ammo[9] = WEAPON_9_MAX_AMMO; 
+
+	get_closest_vertex(initted_player.pos, &initted_player.closest_vector, &closest_vector_index, &initted_player.closest_vector_distance);
+	get_closest_edge(initted_player.pos, &initted_player.closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &initted_player.closest_edge_distance);
+	initted_player.closest_sector = get_sector_at(closest_sector_index);
 	
 	*player = malloc(sizeof(PLAYER));
 	**player = initted_player;
@@ -61,21 +81,24 @@ void PLAYER_Init(PLAYER ** player)
 
 void PLAYER_Update()
 {
-	player->is_grounded = 0;
-
-	if(player->h_velocity > 0.) 
+	if(player->noclip == 0)
+	{
 		player->is_grounded = 0;
-	else if(player->pos_height - player->height <= loaded_level.sectors[player->current_sector].floor_height)
-	{
-		player->is_grounded = 1;
-		player->h_velocity = 0.;
-		player->pos_height = loaded_level.sectors[player->current_sector].floor_height + player->height;	
-	}
 
-	if(player->is_grounded == 0)
-	{
-		player->h_velocity = player->h_velocity + (GRAVITY * ENGINE_delta_time());
-		player->pos_height = player->pos_height + (player->h_velocity * ENGINE_delta_time());
+		if(player->h_velocity > 0.) 
+			player->is_grounded = 0;
+		else if(player->pos_height - player->height <= loaded_level.sectors[player->current_sector].floor_height)
+		{
+			player->is_grounded = 1;
+			player->h_velocity = 0.;
+			player->pos_height = loaded_level.sectors[player->current_sector].floor_height + player->height;	
+		}
+
+		if(player->is_grounded == 0)
+		{
+			player->h_velocity = player->h_velocity + (GRAVITY * ENGINE_delta_time());
+			player->pos_height = player->pos_height + (player->h_velocity * ENGINE_delta_time());
+		}
 	}
 }
 
@@ -112,7 +135,12 @@ void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 						player->current_sector = current_edge->neighbor_sector_id;
 					}
 					else
-						allow_move = 0;
+					{
+						if(player->noclip == 0)
+							allow_move = 0;
+						else
+							allow_move = 1;
+					}
 				}
 				else
 				{
@@ -123,13 +151,25 @@ void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 		}
 	}
 
-	if(allow_move)
+	if(allow_move && !player->movement_blocked)
 	{
 		player->pos = to_pos;
 		
-		//if(player->noclip == 0)
-			//player->pos_height = current_sector->floor_height + player->height;
+		get_closest_vertex(player->pos, &player->closest_vector, &closest_vector_index, &player->closest_vector_distance);
+		get_closest_edge(player->pos, &player->closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &player->closest_edge_distance);
+		player->closest_sector = get_sector_at(closest_sector_index);
 	}
+}
+
+void PLAYER_Turn(PLAYER * player, float amount)
+{
+	if(!player->movement_blocked)
+	{
+		player->facing = player->facing + amount;
+
+		if(player->facing >= 2.*PI) player->facing -= 2*PI;
+		if(player->facing < 0.) player->facing += 2*PI;
+	}	
 }
 
 void PLAYER_Jump()

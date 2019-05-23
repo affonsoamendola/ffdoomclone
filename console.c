@@ -5,6 +5,7 @@
 
 #include "engine.h"
 #include "world.h"
+#include "player.h"
 
 #include "console.h"
 #include "console_commands.h"
@@ -14,6 +15,9 @@ bool console_open = false;
 char** console_history;
 
 int console_cursor_location = 0;
+
+extern bool edit_mode;
+extern PLAYER * player;
 
 void set_console_open(bool value)
 {
@@ -147,11 +151,6 @@ void parse_token(char** token)
 		COMMAND_intro();
 	}
 
-	if(command_check("loadlevel", token, 0))
-	{
-		level_load(get_token_value(token, 1));
-	}
-
 	if(command_check("sector", token, 0))
 	{
 		if(command_check("show", token, 1))
@@ -175,7 +174,38 @@ void parse_token(char** token)
 
 	if(command_check("set", token, 0))
 	{
-		COMMAND_set(get_token_value(token, 1), atoi(get_token_value(token, 2)));
+		if(strcmp(get_token_value(token,1), "tint") == 0)
+		{
+			float r;
+			float g;
+			float b;
+
+			sscanf(get_token_value(token,2), "%f", &r);
+			sscanf(get_token_value(token,3), "%f", &g);
+			sscanf(get_token_value(token,4), "%f", &b);
+
+			COMMAND_set_tint(r, g, b);
+		}
+		else
+		{
+			COMMAND_set(get_token_value(token, 1), atoi(get_token_value(token, 2)));
+		}
+	}
+
+	if(command_check("edit", token, 0))
+	{
+		edit_mode = !edit_mode;
+		player->noclip = !player->noclip;
+	}
+
+	if(command_check("save", token, 0))
+	{
+		COMMAND_save_level(get_token_value(token, 1));
+	}
+
+	if(command_check("load", token, 0))
+	{
+		COMMAND_load_level(get_token_value(token, 1));
 	}
 }
 

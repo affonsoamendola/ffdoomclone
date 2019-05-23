@@ -9,6 +9,7 @@
 #include "gfx.h"
 #include "player.h"
 #include "input.h"
+#include "editor.h"
 
 #include "face.h"
 
@@ -29,7 +30,15 @@ extern bool show_fps;
 
 extern float current_fps;
 
+extern bool edit_mode;
+
 extern GFX_TEXTURE ui_tex;
+extern GFX_TEXTURE hand_tex;
+
+extern int show_texture_select;
+extern int selecting_texture_for;
+
+extern bool show_help;
 
 void GFX_draw_console()
 {
@@ -142,20 +151,104 @@ void GFX_draw_ui_bar()
 		{
 			pixel = GFX_get_pixel(ui_tex.surface, x, y);
 			GFX_set_pixel(screen, x, y + SCREEN_RES_Y - 40, pixel, 1);
-			/*
-			GFX_set_pixel_from_texture(	screen,
-										ui_texture,
-										x, y,
-										x, y);*/
 		}
 	}	
+
+	if(player->health >= 100)
+		GFX_draw_7_segment(point2(2, 214), player->health, GFX_Tint(1., 1., 1.));
+	else
+		GFX_draw_7_segment(point2(0, 214), player->health, GFX_Tint(1., 1., 1.));
+
+	if(player->armor >= 100)
+		GFX_draw_7_segment(point2(38, 214), player->armor, GFX_Tint(1., 1., 1.));
+	else
+		GFX_draw_7_segment(point2(36, 214), player->armor, GFX_Tint(1., 1., 1.));
 
 	GFX_draw_ammo_inventory();
 	FACE_Draw();
 }
 
+void GFX_draw_help()
+{
+	int location_x = 180;
+
+	GFX_draw_tiny_string(point2(location_x, 80), "R : Select ceiling.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 86), "T : Select closest wall.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 92), "Y : Select floor.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 98), "G : Open texture selector.", GFX_Tint(1.0, 0.3, 0.0));
+
+	GFX_draw_tiny_string(point2(location_x, 106), "Home : Increase selected height.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 112), "End : Decrease selected height.", GFX_Tint(1.0, 0.3, 0.0));
+}
+
+void GFX_draw_ui_edit()
+{
+	if(show_texture_select)
+	{
+		EDITOR_draw_texture_select();
+	}
+
+	if(get_console_open())
+	{
+		GFX_draw_console();	
+	}
+
+	if(show_fps)
+	{
+		sprintf(buffer, "%f", current_fps);
+		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
+	}
+
+	sprintf(buffer, "Player X : %f", player->pos.x);
+	GFX_draw_tiny_string(point2(0, 220), buffer, GFX_Tint(1.0, 0.3, 0.0));
+	sprintf(buffer, "Player Y : %f", player->pos.y);
+	GFX_draw_tiny_string(point2(0, 226), buffer, GFX_Tint(1.0, 0.3, 0.0));
+
+	GFX_TEXTURE_PARAM selected_texture_param;
+
+	if(selecting_texture_for == 0)
+	{
+		sprintf(buffer, "Ceiling selected");
+		selected_texture_param = player->closest_sector->text_param_ceil;
+	}
+	else if(selecting_texture_for == 1)
+	{
+		sprintf(buffer, "Floor selected");
+		selected_texture_param = player->closest_sector->text_param_floor;
+	}
+	else if(selecting_texture_for == 2)
+	{
+		sprintf(buffer, "Closest Wall selected");
+		selected_texture_param = player->closest_edge->text_param;
+	}
+
+	GFX_draw_string(point2(0, 232), buffer, SDL_MapRGB(screen->format, 255, 200, 0));
+
+	sprintf(buffer, "Offset U : %i V : %i", selected_texture_param.u_offset, selected_texture_param.v_offset);
+	GFX_draw_tiny_string(point2(0, 200), buffer, GFX_Tint(1.0, 0.3, 0.0));
+	sprintf(buffer, "Scale U : %f V : %f", selected_texture_param.u_scale, selected_texture_param.v_scale);
+	GFX_draw_tiny_string(point2(0, 206), buffer, GFX_Tint(1.0, 0.3, 0.0));
+	sprintf(buffer, "Parallax : %i", selected_texture_param.parallax);
+	GFX_draw_tiny_string(point2(0, 212), buffer, GFX_Tint(1.0, 0.3, 0.0));
+
+	sprintf(buffer, "Current Sector: %i", player->closest_sector->sector_id);
+	GFX_draw_tiny_string(point2(0, 192), buffer, GFX_Tint(1.0, 0.3, 0.0));
+
+	sprintf(buffer, "Current Ceil Height: %f", player->closest_sector->ceiling_height);
+	GFX_draw_tiny_string(point2(0, 186), buffer, GFX_Tint(1.0, 0.3, 0.0));
+
+	sprintf(buffer, "Current Floor Height: %f", player->closest_sector->floor_height);
+	GFX_draw_tiny_string(point2(0, 180), buffer, GFX_Tint(1.0, 0.3, 0.0));
+
+	if(show_help)
+	{
+		GFX_draw_help();
+	}
+}
+
 void GFX_draw_ui()
 {	
+	GFX_draw_hand();
 	GFX_draw_ui_bar();
 
 	if(show_map)
@@ -174,6 +267,14 @@ void GFX_draw_ui()
 		sprintf(buffer, "%f", current_fps);
 		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
 	}
+}
+
+void GFX_draw_hand()
+{	
+	TINT tint;
+	tint = (loaded_level.sectors + player->current_sector)->tint;
+
+	GFX_blit(hand_tex.surface, screen, SCREEN_RECT, ZERO_POINT2, tint);
 }
 
 void UI_Init()

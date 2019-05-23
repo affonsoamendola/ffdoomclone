@@ -10,9 +10,16 @@
 #include "world.h"
 #include "gfx.h"
 #include "engine.h"
+#include "player.h"
+#include "console.h"
+#include "input.h"
 
 #define DEFAULT_FLOOR_HEIGHT 0.0f
 #define DEFAULT_CEIL_HEIGHT 1.0f
+
+#define EDIT_TEXTURE_CEIL 0
+#define EDIT_TEXTURE_FLOOR 1
+#define EDIT_TEXTURE_EDGE 2
 
 VECTOR2 editor_center;
 VECTOR2 editor_cursor;
@@ -24,6 +31,7 @@ VECTOR2 closest_edge_projection;
 
 VECTOR2 closest_vector;
 EDGE * closest_edge;
+SECTOR * closest_sector;
 
 float closest_vector_distance;
 float closest_edge_distance;
@@ -46,6 +54,8 @@ extern SDL_Surface * screen;
 extern float current_fps;
 extern bool show_fps;
 
+bool show_help = 0;
+
 extern bool edit_mode;
 extern bool game_mode;
 
@@ -56,6 +66,7 @@ int show_info = 0;
 
 int show_texture_select = 0;
 POINT2 selected_texture = (POINT2){0, 0};
+GFX_TEXTURE_PARAM selected_texture_param;
 int selecting_texture_for = 2; //0 = ceiling, 1 = floor, 2 = edge
 
 int grabbed_vector_index;
@@ -78,6 +89,8 @@ SECTOR * creating_sector;
 int new_sector_size = 0;
 
 int drawing_sector = 0;
+
+extern PLAYER * player;
 
 void move_cursor(VECTOR2 amount)
 {
@@ -410,58 +423,71 @@ void draw_ui()
 
 	if(show_texture_select)
 	{
-		draw_texture_select();
+		EDITOR_draw_texture_select();
+	}
+
+	if(get_console_open())
+	{
+		GFX_draw_console();
 	}
 }
 
-void open_texture_select(int ceil_floor_wall)
+void EDITOR_open_texture_select(int ceil_floor_wall)
 {
 	selecting_texture_for = ceil_floor_wall;
 
-	int selected_texture_id = 0;
-
 	if(selecting_texture_for == 0)
 	{
-		selected_texture_id = get_sector_at(closest_sector_index)->text_param_ceil.id;
+		selected_texture_param = get_sector_at(closest_sector_index)->text_param_ceil;
 	}
 
 	if(selecting_texture_for == 1)
 	{
-		selected_texture_id = get_sector_at(closest_sector_index)->text_param_floor.id;
+		selected_texture_param  = get_sector_at(closest_sector_index)->text_param_floor;
 	}
 
 	if(selecting_texture_for == 2)
 	{
-		selected_texture_id = get_edge_at(get_sector_at(closest_sector_index), closest_edge_index)->text_param.id;
+		selected_texture_param = get_edge_at(get_sector_at(closest_sector_index), closest_edge_index)->text_param;
 	}
 
-	selected_texture.y = selected_texture_id / 8;
-	selected_texture.x = selected_texture_id % 8;
+	selected_texture.y = selected_texture_param.id / 8;
+	selected_texture.x = selected_texture_param.id % 8;
 
 	show_texture_select = 1;
 	occupied = 1;
 }
 
-void draw_texture_select()
+void EDITOR_draw_texture_select()
 {
 	unsigned int pixel;
 
-	if(selecting_texture_for == 0)
+	if(selecting_texture_for == EDIT_TEXTURE_CEIL)
 	{
 		sprintf(buffer, "Selecting ceiling texture");
 		GFX_draw_string(point2(0, 0), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 	}
 
-	if(selecting_texture_for == 1)
+	if(selecting_texture_for == EDIT_TEXTURE_FLOOR)
 	{
 		sprintf(buffer, "Selecting floor texture");
 		GFX_draw_string(point2(0, 0), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 	}
 
-	if(selecting_texture_for == 2)
+	if(selecting_texture_for == EDIT_TEXTURE_EDGE)
 	{
 		sprintf(buffer, "Selecting wall texture");
 		GFX_draw_string(point2(0, 0), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
+	}
+
+	if(game_mode == 0)
+	{
+		sprintf(buffer, "Offset U = %i V = %i", selected_texture_param.u_offset, selected_texture_param.v_offset);
+		GFX_draw_string(point2(0, 8), buffer, GFX_Map_Color(GFX_Color(200, 70, 0)));
+		sprintf(buffer, "Scale U = %f V = %f", selected_texture_param.u_scale, selected_texture_param.v_scale);
+		GFX_draw_string(point2(0, 16), buffer, GFX_Map_Color(GFX_Color(200, 70, 0)));
+		sprintf(buffer, "Parallax = %i", selected_texture_param.parallax);
+		GFX_draw_string(point2(0, 24), buffer, GFX_Map_Color(GFX_Color(200, 70, 0)));
 	}
 
 	for(int x = 0; x < 8; x++)
@@ -493,7 +519,7 @@ void draw_texture_select()
 	}
 }
 
-void move_texture_select(POINT2 amount)
+void EDITOR_move_texture_select(POINT2 amount)
 {
 	POINT2 to_location;
 
@@ -502,7 +528,6 @@ void move_texture_select(POINT2 amount)
 	if(	to_location.x >= 0 && to_location.x < 8 &&
 		to_location.y >= 0 && to_location.y < 32)
 	{
-
 		if(loaded_textures[to_location.x + to_location.y * 8].loaded)
 		{
 			selected_texture = to_location;
@@ -510,32 +535,73 @@ void move_texture_select(POINT2 amount)
 	}
 }
 
-void apply_texture_select()
+void EDITOR_apply_texture_select()
 {
+	selected_texture_param.id = selected_texture.x + selected_texture.y * 8;
+
 	if(selecting_texture_for == 0)
 	{
-		get_sector_at(closest_sector_index)->text_param_ceil.id = selected_texture.x + selected_texture.y * 8 ;
+		get_sector_at(closest_sector_index)->text_param_ceil = selected_texture_param;
 	}
 
 	if(selecting_texture_for == 1)
 	{
-		get_sector_at(closest_sector_index)->text_param_floor.id = selected_texture.x + selected_texture.y * 8 ;
+		get_sector_at(closest_sector_index)->text_param_floor = selected_texture_param;
 	}
 
 	if(selecting_texture_for == 2)
 	{
-		get_edge_at(get_sector_at(closest_sector_index), closest_edge_index)->text_param.id = selected_texture.x + selected_texture.y * 8 ;
+		get_edge_at(get_sector_at(closest_sector_index), closest_edge_index)->text_param = selected_texture_param;
 	}
 
 	occupied = 0;
 	show_texture_select = 0;
 }
 
-void cancel_texture_select()
+void EDITOR_cancel_texture_select()
 {
 	occupied = 0;
 	show_texture_select = 0;
 }
+
+void change_closest_texture_params(int invert_parallax, POINT2 add_offset, VECTOR2 add_scale)
+{
+	GFX_TEXTURE_PARAM closest_texture_param;
+
+	switch(selecting_texture_for)
+	{
+		case EDIT_TEXTURE_FLOOR:
+			closest_texture_param = player->closest_sector->text_param_floor;
+			break;
+		case EDIT_TEXTURE_CEIL:
+			closest_texture_param = player->closest_sector->text_param_ceil;
+			break;
+		case EDIT_TEXTURE_EDGE:
+			closest_texture_param = player->closest_edge->text_param;
+			break;
+	}
+
+	if(invert_parallax) closest_texture_param.parallax = !closest_texture_param.parallax;
+
+	closest_texture_param.u_offset = closest_texture_param.u_offset + add_offset.x;
+	closest_texture_param.v_offset = closest_texture_param.v_offset + add_offset.y;
+
+	closest_texture_param.u_scale = closest_texture_param.u_scale + add_scale.x;
+	closest_texture_param.v_scale = closest_texture_param.v_scale + add_scale.y;
+
+	switch(selecting_texture_for)
+	{
+		case EDIT_TEXTURE_FLOOR:
+			player->closest_sector->text_param_floor = closest_texture_param;
+			break;
+		case EDIT_TEXTURE_CEIL:
+			player->closest_sector->text_param_ceil = closest_texture_param;
+			break;
+		case EDIT_TEXTURE_EDGE:
+			player->closest_edge->text_param = closest_texture_param;
+			break;
+	}
+}		
 
 void draw_closest_markers()
 {
@@ -646,69 +712,288 @@ SDL_Event event;
 
 void EDITOR_Handle_Input()
 {
-	unsigned char * keystate = SDL_GetKeyState(NULL); 
-
-	if(keystate[SDLK_LSHIFT])
+	if(get_console_open())
 	{
-		cursor_speed = run_cursor_speed;
-	}
-	else if(keystate[SDLK_LCTRL])
-	{
-		cursor_speed = crawl_cursor_speed;
+		INPUT_Handle_Console();
 	}
 	else
 	{
-		cursor_speed = walk_cursor_speed;
+		unsigned char * keystate = SDL_GetKeyState(NULL); 
+
+		if(keystate[SDLK_LSHIFT])
+		{
+			cursor_speed = run_cursor_speed;
+		}
+		else if(keystate[SDLK_LCTRL])
+		{
+			cursor_speed = crawl_cursor_speed;
+		}
+		else
+		{
+			cursor_speed = walk_cursor_speed;
+		}
+
+		if(keystate[SDLK_w] && show_texture_select == 0)
+		{
+			move_view(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_s] && show_texture_select == 0)
+		{
+			move_view(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_d] && show_texture_select == 0)
+		{
+			move_view(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_a] && show_texture_select == 0)
+		{
+			move_view(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
+		}
+
+		if(keystate[SDLK_UP] && show_texture_select == 0)
+		{
+			move_cursor(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_DOWN] && show_texture_select == 0)
+		{
+			move_cursor(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_RIGHT] && show_texture_select == 0)
+		{
+			move_cursor(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
+		}
+
+		if(keystate[SDLK_LEFT] && show_texture_select == 0)
+		{
+			move_cursor(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
+		}
+		
+		if(keystate[SDLK_PAGEUP] && show_texture_select == 0)
+		{
+			editor_zoom *= 1.0f + 2.0f * ENGINE_delta_time();
+		}
+		
+		if(keystate[SDLK_PAGEDOWN] && show_texture_select == 0)
+		{
+			editor_zoom *= 1.0f - 2.0f * ENGINE_delta_time();
+		}
+
+		while(SDL_PollEvent(&event) != 0)
+		{
+			if(event.type == SDL_QUIT)
+			{
+				e_running = false;
+			}
+			else if(event.type == SDL_KEYDOWN)
+			{
+				if(event.key.keysym.sym == '`')
+				{
+					set_console_open(!get_console_open());
+				}
+
+				if(event.key.keysym.sym == 'm')
+				{
+					if(grabbed == 0 && occupied == 0)
+						grab_vertex();
+					else if(grabbed == 1)
+						drop_vertex();
+				}
+
+				if(event.key.keysym.sym == 'p' && show_texture_select == 0)
+				{
+					if(occupied == 0)
+					{	
+						game_mode = !game_mode;
+					}
+				}
+				else if(event.key.keysym.sym == 'p' && show_texture_select)
+				{
+					selected_texture_param.parallax = !selected_texture_param.parallax; 
+				}
+
+				if(event.key.keysym.sym == 'i')
+				{
+					show_info = !show_info;
+				}
+
+				if(event.key.keysym.sym == 'g')
+					snap_to_grid = !snap_to_grid;
+
+				if(event.key.keysym.sym == 't' && occupied == 0)
+				{
+					EDITOR_open_texture_select(2);
+				}
+				else if(event.key.keysym.sym == 't' && show_texture_select)
+					EDITOR_cancel_texture_select();
+
+				if(event.key.keysym.sym == 'y' && occupied == 0)
+				{
+					EDITOR_open_texture_select(0);
+				}
+				else if(event.key.keysym.sym == 'y' && show_texture_select)
+					EDITOR_cancel_texture_select();
+
+				if(event.key.keysym.sym == 'r' && occupied == 0)
+				{
+					EDITOR_open_texture_select(1);
+				}
+				else if(event.key.keysym.sym == 'r' && show_texture_select)
+					EDITOR_cancel_texture_select();
+
+				if(event.key.keysym.sym == '+' || event.key.keysym.sym == '=')
+				{
+					grid_size += 0.1f;
+				}
+
+				if(event.key.keysym.sym == '_' || event.key.keysym.sym == '-')
+				{	
+					if(grid_size >= 0.15f) grid_size -= 0.1f;
+				}
+				
+				if(event.key.keysym.sym == SDLK_RETURN)
+				{
+					if(grabbed)
+						drop_vertex();
+
+					if(show_texture_select)
+						EDITOR_apply_texture_select();
+				}
+
+				if(event.key.keysym.sym == SDLK_ESCAPE)
+				{
+					if(grabbed)
+						cancel_grab();
+
+					if(drawing_sector)
+						cancel_new_sector();
+
+					if(show_texture_select)
+						EDITOR_cancel_texture_select();
+				}
+
+				if(event.key.keysym.sym == SDLK_DELETE && occupied == 0)
+				{
+					delete_vertex();
+				}
+
+				if(event.key.keysym.sym == SDLK_SPACE)
+				{
+					if(drawing_sector == 0 && occupied == 0)
+						new_sector();
+					else if(drawing_sector == 1)
+						new_edge();
+				}
+
+				if(show_texture_select)
+				{
+					if(event.key.keysym.sym == SDLK_UP)
+						EDITOR_move_texture_select(point2(0, -1));
+
+					if(event.key.keysym.sym == SDLK_DOWN)
+						EDITOR_move_texture_select(point2(0, 1));
+
+					if(event.key.keysym.sym == SDLK_RIGHT)
+						EDITOR_move_texture_select(point2(1, 0));
+
+					if(event.key.keysym.sym == SDLK_LEFT)
+						EDITOR_move_texture_select(point2(-1, 0));
+
+					if(keystate[SDLK_LSHIFT])
+					{
+						if(event.key.keysym.sym == SDLK_u)
+							selected_texture_param.v_scale -= 0.1; 
+
+						if(event.key.keysym.sym == SDLK_j)
+							selected_texture_param.v_scale += 0.1; 
+
+						if(event.key.keysym.sym == SDLK_k)
+							selected_texture_param.u_scale += 0.1; 
+
+						if(event.key.keysym.sym == SDLK_h)
+							selected_texture_param.u_scale -= 0.1; 
+					}
+					else
+					{
+						if(event.key.keysym.sym == SDLK_u)
+							selected_texture_param.v_offset -= 1; 
+
+						if(event.key.keysym.sym == SDLK_j)
+							selected_texture_param.v_offset += 1; 
+
+						if(event.key.keysym.sym == SDLK_k)
+							selected_texture_param.u_offset += 1; 
+
+						if(event.key.keysym.sym == SDLK_h)
+							selected_texture_param.u_offset -= 1; 
+					}
+				}
+			}
+		}
+	}
+}
+
+void EDIT_MODE_Handle_Input()
+{
+	unsigned char * keystate = SDL_GetKeyState(NULL); 
+		
+	if(keystate[SDLK_LSHIFT])
+	{
+		player->speed = player->run_speed;
+		player->turn_speed = player->run_turn_speed;
+	}
+	else
+	{
+		player->speed = player->walk_speed;
+		player->turn_speed = player->walk_turn_speed;
 	}
 
-	if(keystate[SDLK_w] && show_texture_select == 0)
+	if(keystate[SDLK_UP])
 	{
-		move_view(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+		PLAYER_Move(player, scale_v2(rot_v2(vector2(0, 1), -(player->facing)), player->speed * ENGINE_delta_time()));
 	}
 	
-	if(keystate[SDLK_s] && show_texture_select == 0)
+	if(keystate[SDLK_DOWN])
 	{
-		move_view(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
+		PLAYER_Move(player, scale_v2(rot_v2(vector2(0, -1), -(player->facing)), player->speed * ENGINE_delta_time()));
 	}
 	
-	if(keystate[SDLK_d] && show_texture_select == 0)
+	if(keystate[SDLK_RIGHT])
 	{
-		move_view(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
+		if(keystate[SDLK_LALT])
+		{
+			PLAYER_Move(player, scale_v2(rot_v2(vector2(1, 0), -(player->facing)), player->speed * ENGINE_delta_time()));
+		}
+		else
+		{
+			PLAYER_Turn(player, player->turn_speed * ENGINE_delta_time());
+		}
 	}
 	
-	if(keystate[SDLK_a] && show_texture_select == 0)
+	if(keystate[SDLK_LEFT])
 	{
-		move_view(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
+		if(keystate[SDLK_LALT])
+		{
+			PLAYER_Move(player, scale_v2(rot_v2(vector2(-1, 0), -(player->facing)), player->speed * ENGINE_delta_time()));
+		}
+		else
+		{
+			PLAYER_Turn(player, -player->turn_speed * ENGINE_delta_time());
+		}
 	}
 
-	if(keystate[SDLK_UP] && show_texture_select == 0)
+	if(keystate[SDLK_PAGEUP])
 	{
-		move_cursor(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+		player->pos_height += player->speed * ENGINE_delta_time();
 	}
 	
-	if(keystate[SDLK_DOWN] && show_texture_select == 0)
+	if(keystate[SDLK_PAGEDOWN])
 	{
-		move_cursor(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
-	}
-	
-	if(keystate[SDLK_RIGHT] && show_texture_select == 0)
-	{
-		move_cursor(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
-	}
-
-	if(keystate[SDLK_LEFT] && show_texture_select == 0)
-	{
-		move_cursor(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
-	}
-	
-	if(keystate[SDLK_PAGEUP] && show_texture_select == 0)
-	{
-		editor_zoom *= 1.0f + 2.0f * ENGINE_delta_time();
-	}
-	
-	if(keystate[SDLK_PAGEDOWN] && show_texture_select == 0)
-	{
-		editor_zoom *= 1.0f - 2.0f * ENGINE_delta_time();
+		player->pos_height -= player->speed * ENGINE_delta_time();
 	}
 
 	while(SDL_PollEvent(&event) != 0)
@@ -719,109 +1004,112 @@ void EDITOR_Handle_Input()
 		}
 		else if(event.type == SDL_KEYDOWN)
 		{
-			if(event.key.keysym.sym == 'm')
+			switch(event.key.keysym.sym)
 			{
-				if(grabbed == 0 && occupied == 0)
-					grab_vertex();
-				else if(grabbed == 1)
-					drop_vertex();
-			}
+				case '`':
+					set_console_open(!get_console_open());
+					break;
 
-			if(event.key.keysym.sym == 'p')
-			{
-				if(occupied == 0)
-				{	
-					edit_mode = !edit_mode;
-					game_mode = !game_mode;
-				}
-			}
+				case 'i':
+					show_fps = !show_fps;
+					break;
 
-			if(event.key.keysym.sym == 'i')
-			{
-				show_info = !show_info;
-			}
+				case 'p':
+					if(edit_mode == 1 && show_texture_select == 0) game_mode = !game_mode;
+					break;
 
-			if(event.key.keysym.sym == 'g')
-				snap_to_grid = !snap_to_grid;
+				case 'f':
+					if(edit_mode == 1 && show_texture_select == 0)
+						change_closest_texture_params(1, ZERO_POINT2, ZERO_VECTOR2);
+					break;
 
-			if(event.key.keysym.sym == 't' && occupied == 0)
-			{
-				open_texture_select(2);
-			}
-			else if(event.key.keysym.sym == 't' && show_texture_select)
-				cancel_texture_select();
+				case 'u':
+					if(edit_mode == 1 && show_texture_select == 0)
+						if(!keystate[SDLK_LSHIFT])
+							change_closest_texture_params(0, point2(0, -1), ZERO_VECTOR2);
+						else
+							change_closest_texture_params(0, ZERO_POINT2, vector2(0., -0.1));
+					break;
 
-			if(event.key.keysym.sym == 'y' && occupied == 0)
-			{
-				open_texture_select(0);
-			}
-			else if(event.key.keysym.sym == 'y' && show_texture_select)
-				cancel_texture_select();
+				case 'j':
+					if(edit_mode == 1 && show_texture_select == 0)
+						if(!keystate[SDLK_LSHIFT])
+							change_closest_texture_params(0, point2(0, 1), ZERO_VECTOR2);
+						else
+							change_closest_texture_params(0, ZERO_POINT2, vector2(0., 0.1));
+					break;
 
-			if(event.key.keysym.sym == 'r' && occupied == 0)
-			{
-				open_texture_select(1);
-			}
-			else if(event.key.keysym.sym == 'r' && show_texture_select)
-				cancel_texture_select();
+				case 'h':
+					if(edit_mode == 1 && show_texture_select == 0)
+						if(!keystate[SDLK_LSHIFT])
+							change_closest_texture_params(0, point2(-1, 0), ZERO_VECTOR2);
+						else
+							change_closest_texture_params(0, ZERO_POINT2, vector2(-0.1, 0.));
+					break;
 
-			if(event.key.keysym.sym == '+' || event.key.keysym.sym == '=')
-			{
-				grid_size += 0.1f;
-			}
+				case 'k':
+					if(edit_mode == 1 && show_texture_select == 0)
+						if(!keystate[SDLK_LSHIFT])
+							change_closest_texture_params(0, point2(1, 0), ZERO_VECTOR2);
+						else
+							change_closest_texture_params(0, ZERO_POINT2, vector2(0.1, 0.));
+					break;
 
-			if(event.key.keysym.sym == '_' || event.key.keysym.sym == '-')
-			{	
-				if(grid_size >= 0.15f) grid_size -= 0.1f;
-			}
-			
-			if(event.key.keysym.sym == SDLK_RETURN)
-			{
-				if(grabbed)
-					drop_vertex();
+				case 'r':
+					if(edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 0;
+					break;
 
-				if(show_texture_select)
-					apply_texture_select();
-			}
+				case 't':
+					if(edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 2;
+					break;
 
-			if(event.key.keysym.sym == SDLK_ESCAPE)
-			{
-				if(grabbed)
-					cancel_grab();
+				case 'y':
+					if(edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 1;
+					break;
 
-				if(drawing_sector)
-					cancel_new_sector();
+				case 'g':
+					if(edit_mode == 1 && show_texture_select == 0){EDITOR_open_texture_select(selecting_texture_for); player->movement_blocked = 1;}
+					break;
 
-				if(show_texture_select)
-					cancel_texture_select();
-			}
+				case SDLK_F1:
+					if(edit_mode) show_help = !show_help;
+					break;
 
-			if(event.key.keysym.sym == SDLK_DELETE && occupied == 0)
-			{
-				delete_vertex();
-			}
+				case SDLK_UP:
+					if(edit_mode) EDITOR_move_texture_select(point2(0, -1));
+					break;
 
-			if(event.key.keysym.sym == SDLK_SPACE)
-			{
-				if(drawing_sector == 0 && occupied == 0)
-					new_sector();
-				else if(drawing_sector == 1)
-					new_edge();
-			}
+				case SDLK_DOWN:
+					if(edit_mode) EDITOR_move_texture_select(point2(0, 1));
+					break;
 
-			if(show_texture_select)
-			{
-				if(event.key.keysym.sym == SDLK_UP)
-					move_texture_select(point2(0, -1));
+				case SDLK_RIGHT:
+					if(edit_mode) EDITOR_move_texture_select(point2(1, 0));
+					break;
 
-				if(event.key.keysym.sym == SDLK_DOWN)
-					move_texture_select(point2(0, 1));
+				case SDLK_LEFT:
+					if(edit_mode) EDITOR_move_texture_select(point2(-1, 0));
+					break;
 
-				if(event.key.keysym.sym == SDLK_RIGHT)
-					move_texture_select(point2(1, 0));
+				case SDLK_RETURN:
+					if(edit_mode && show_texture_select) {EDITOR_apply_texture_select(); player->movement_blocked = 0;}
+					break;
 
-				if(event.key.keysym.sym == SDLK_LEFT)
-					move_texture_select(point2(-1, 0));
+				case SDLK_HOME:
+					if(edit_mode)
+					{
+						if(selecting_texture_for == EDIT_TEXTURE_CEIL) player->closest_sector->ceiling_height += 0.1;
+						if(selecting_texture_for == EDIT_TEXTURE_FLOOR) player->closest_sector->floor_height += 0.1;
+					}
+					break;
+
+				case SDLK_END:
+					if(edit_mode)
+					{
+						if(selecting_texture_for == EDIT_TEXTURE_CEIL) player->closest_sector->ceiling_height -= 0.1;
+						if(selecting_texture_for == EDIT_TEXTURE_FLOOR) player->closest_sector->floor_height -= 0.1;
+					}
+					break;
 			}
 		}
 	}
@@ -846,6 +1134,7 @@ void EDITOR_Loop()
 
 	get_closest_vertex(editor_cursor, &closest_vector, &closest_vector_index, &closest_vector_distance);
 	get_closest_edge(editor_cursor, &closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &closest_edge_distance);
+	closest_sector = get_sector_at(closest_sector_index);
 }
 
 void EDITOR_Init()

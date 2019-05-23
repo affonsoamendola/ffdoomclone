@@ -18,7 +18,7 @@
 SDL_Surface* screen = NULL;
 bool e_running = false;
 
-bool edit_mode = true;
+bool edit_mode = false;
 bool game_mode = false;
 
 clock_t current_frame_start;
@@ -78,7 +78,7 @@ void ENGINE_Init()
 
 void ENGINE_Quit()
 {
-	printf("Quitting SDL...\n");
+	printf("\nQuitting SDL...");
 
 	SDL_FreeSurface(screen);
 
@@ -137,7 +137,6 @@ void ENGINE_Check_Tick()
 	}
 	else
 	{
-	//	printf("ADDED + %f\n", ENGINE_delta_time());
 		current_tick += ENGINE_delta_time();
 	}
 }
@@ -146,13 +145,13 @@ void ENGINE_Loop()
 {
 	current_frame_start = clock();
 
-	if(game_mode)
+	if(game_mode == 1)
 	{
 		GFX_Render();
 		INPUT_Handle();
 		WORLD_Update();
 	}
-	else if(edit_mode)
+	else if(game_mode == 0)
 	{
 		EDITOR_Render();
 		EDITOR_Loop();

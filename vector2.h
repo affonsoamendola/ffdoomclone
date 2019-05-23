@@ -3,6 +3,8 @@
 
 #include "point2.h"
 
+#define ZERO_VECTOR2 (VECTOR2){0., 0.}
+
 typedef struct _VECTOR2
 {
 	float x;

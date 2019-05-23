@@ -90,3 +90,98 @@ void COMMAND_set(char * variable, int value)
 		player->armor = value;
 	}
 }
+
+void COMMAND_set_tint(float r, float g, float b)
+{
+	player->closest_sector->tint = GFX_Tint(r, g, b);
+}
+
+void COMMAND_save_level(char * filename)
+{
+	CONSOLE_print("\nSaving...");
+	FILE * new_file;
+
+	new_file = fopen(filename, "w");
+
+	sprintf(buffer, "%i\n", loaded_level.v_num);
+	fputs(buffer, new_file);
+
+	sprintf(buffer, "%i\n\n", loaded_level.s_num);
+	fputs(buffer, new_file);
+
+	for(int v = 0; v < loaded_level.v_num; v++)
+	{
+		sprintf(buffer, "%f %f\n", loaded_level.vertexes[v].x, loaded_level.vertexes[v].y);
+		fputs(buffer, new_file);
+	}
+
+	fputs("\n", new_file);
+
+	for(int s = 0; s < loaded_level.s_num; s++)
+	{
+		SECTOR * current_sector;
+
+		current_sector = loaded_level.sectors + s;
+
+		sprintf(buffer, "%u\n", current_sector->e_num);
+		fputs(buffer, new_file);
+
+		sprintf(buffer, "%f %f\n", current_sector->floor_height, current_sector->ceiling_height);
+		fputs(buffer, new_file);
+
+		EDGE * current_edge;
+
+		for(int v = 0; v < current_sector->e_num; v++)
+		{
+			current_edge = current_sector->e + v;
+
+			sprintf(buffer, "%u ", current_edge->v_start);
+			fputs(buffer, new_file);
+		}
+
+		fputs("\n", new_file);
+
+		sprintf(buffer, "%f %f %f\n", current_sector->tint.r, current_sector->tint.g, current_sector->tint.b);
+		fputs(buffer, new_file);
+
+		for(int v = 0; v < current_sector->e_num; v++)
+		{
+			current_edge = current_sector->e + v;
+
+			sprintf(buffer, "%u %u %u %u %f %f\n", 	current_edge->text_param.id,
+													current_edge->text_param.parallax,
+													current_edge->text_param.u_offset,
+													current_edge->text_param.v_offset,
+													current_edge->text_param.u_scale,
+													current_edge->text_param.v_scale);
+			fputs(buffer, new_file);
+		}
+
+		sprintf(buffer, "%u %u %u %u %f %f\n", 	current_sector->text_param_ceil.id,
+												current_sector->text_param_ceil.parallax,
+												current_sector->text_param_ceil.u_offset,
+												current_sector->text_param_ceil.v_offset,
+												current_sector->text_param_ceil.u_scale,
+												current_sector->text_param_ceil.v_scale);
+		fputs(buffer, new_file);
+
+		sprintf(buffer, "%u %u %u %u %f %f\n", 	current_sector->text_param_floor.id,
+												current_sector->text_param_floor.parallax,
+												current_sector->text_param_floor.u_offset,
+												current_sector->text_param_floor.v_offset,
+												current_sector->text_param_floor.u_scale,
+												current_sector->text_param_floor.v_scale);
+		fputs(buffer, new_file);
+		fputs("\n", new_file);
+	}
+
+	fclose(new_file);
+
+	CONSOLE_print("\nSaved to ");
+	CONSOLE_print(filename);
+}
+
+void COMMAND_load_level(char * filename)
+{
+	level_load(filename);
+}

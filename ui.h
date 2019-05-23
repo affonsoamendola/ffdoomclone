@@ -6,4 +6,7 @@
 void UI_Tick();
 void UI_Init();
 
+void GFX_draw_ui_edit();
+void GFX_draw_ui();
+
 #endif

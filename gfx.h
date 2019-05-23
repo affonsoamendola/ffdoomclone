@@ -13,6 +13,8 @@
 
 #define TEX_ID_SIZE 256
 
+#define SCREEN_RECT (SDL_Rect){0, 0, 320, 240}
+
 typedef struct COLOR_
 {
 	char r;
@@ -107,7 +109,6 @@ void GFX_draw_console();
 void GFX_draw_map();
 
 void GFX_draw_hand();
-void GFX_draw_ui();
 
 void GFX_Draw_Editor();
 
