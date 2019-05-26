@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/affonso/git/ffdoomcloneCPP/engine.cpp
+iostream
+-
+SDL2.h
+-
+
+/home/affonso/git/ffdoomcloneCPP/main.cpp
+iostream
+-
+vector.hpp
+/home/affonso/git/ffdoomcloneCPP/vector.hpp
+point.hpp
+/home/affonso/git/ffdoomcloneCPP/point.hpp
+
+/home/affonso/git/ffdoomcloneCPP/point.cpp
+cmath
+-
+point.hpp
+/home/affonso/git/ffdoomcloneCPP/point.hpp
+vector.hpp
+/home/affonso/git/ffdoomcloneCPP/vector.hpp
+
+/home/affonso/git/ffdoomcloneCPP/point.hpp
+
+/home/affonso/git/ffdoomcloneCPP/vector.cpp
+cmath
+-
+vector.hpp
+/home/affonso/git/ffdoomcloneCPP/vector.hpp
+point.hpp
+/home/affonso/git/ffdoomcloneCPP/point.hpp
+
+/home/affonso/git/ffdoomcloneCPP/vector.hpp
+

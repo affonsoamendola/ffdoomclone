@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall  -rdynamic CMakeFiles/FFDOOMCLONE.dir/engine.cpp.o CMakeFiles/FFDOOMCLONE.dir/main.cpp.o CMakeFiles/FFDOOMCLONE.dir/point.cpp.o CMakeFiles/FFDOOMCLONE.dir/vector.cpp.o  -o FFDOOMCLONE -L/usr/lib/x86_64-linux-gnu  -lSDL2 

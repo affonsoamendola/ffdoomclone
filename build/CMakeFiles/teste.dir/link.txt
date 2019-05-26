@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall  -rdynamic CMakeFiles/teste.dir/engine.cpp.o CMakeFiles/teste.dir/main.cpp.o CMakeFiles/teste.dir/point.cpp.o CMakeFiles/teste.dir/vector.cpp.o  -o teste 

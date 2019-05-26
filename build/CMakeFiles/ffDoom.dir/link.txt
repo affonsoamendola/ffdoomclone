@@ -1,0 +1,1 @@
+/usr/bin/c++  -Wall  -rdynamic CMakeFiles/ffDoom.dir/Engine.cpp.o CMakeFiles/ffDoom.dir/GraphicsSystem.cpp.o CMakeFiles/ffDoom.dir/Point.cpp.o CMakeFiles/ffDoom.dir/Vector.cpp.o  -o ffDoom -L/usr/lib/x86_64-linux-gnu  -lSDL2 

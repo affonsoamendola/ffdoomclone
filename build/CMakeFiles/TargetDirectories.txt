@@ -1,0 +1,3 @@
+/home/affonso/git/ffdoomcloneCPP/build/CMakeFiles/rebuild_cache.dir
+/home/affonso/git/ffdoomcloneCPP/build/CMakeFiles/edit_cache.dir
+/home/affonso/git/ffdoomcloneCPP/build/CMakeFiles/ffDoom.dir
