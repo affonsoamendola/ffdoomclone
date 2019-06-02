@@ -399,7 +399,7 @@ void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixe
 }
 
 unsigned int GFX_get_pixel_from_texture(	GFX_TEXTURE_PARAM texture,
-											int text_x, int text_y)
+											float text_x, int text_y)
 {
 	int u;
 	int v;
@@ -407,8 +407,8 @@ unsigned int GFX_get_pixel_from_texture(	GFX_TEXTURE_PARAM texture,
 	int text_size_x = loaded_textures[texture.id].size_x;
 	int text_size_y = loaded_textures[texture.id].size_y;
 
-	u = (text_x / texture.u_scale) - texture.u_offset;
-	v = (text_y / texture.v_scale) - texture.v_offset;
+	u = (int)((float)text_x / texture.u_scale) - texture.u_offset;
+	v = (int)((float)text_y / texture.v_scale) - texture.v_offset;
 	
 	if(u >= text_size_x) u = u % text_size_x;
 	if(v >= text_size_y) v = v % text_size_y;
@@ -489,7 +489,7 @@ void GFX_set_pixel_from_texture_tint(	SDL_Surface *surface,
 void GFX_set_pixel_from_texture_depth(	SDL_Surface *surface,
 										GFX_TEXTURE_PARAM texture,
 										int screen_x, int screen_y,
-										int text_x, int text_y, float depth)
+										float text_x, int text_y, float depth)
 {
 	unsigned int pixel;
 

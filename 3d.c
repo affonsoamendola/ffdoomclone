@@ -20,7 +20,6 @@ extern LEVEL loaded_level;
 extern CAMERA * main_camera;
 extern SDL_Surface * screen;
 
-
 void G3D_render_3d()
 {
 	G3D_draw_level();
@@ -40,7 +39,6 @@ float get_view_angle_from_ss(int ssx)
 
 	return angle_x;
 }
-
 
 void G3D_draw_level()
 {
@@ -100,8 +98,6 @@ void G3D_draw_level()
 
 			TINT current_tint = current_sector->tint;
 
-			//if(start_screen_x == end_screen_x) continue;
-
 			VECTOR2 edge_v0 = get_vertex_at(current_edge->v_start);
 			VECTOR2 edge_v1 = get_vertex_at(current_edge->v_end);
 
@@ -114,6 +110,10 @@ void G3D_draw_level()
 
 			VECTOR2 ni_pos_0 = transformed_pos_0;
 			VECTOR2 ni_pos_1 = transformed_pos_1;
+
+			float edge_length = norm_v2(sub_v2(ni_pos_1, ni_pos_0));
+
+			float global_texture_scale_length = GLOBAL_TEXTURE_SCALE / edge_length;
 
 			float t_u0 = 0.;
 			float t_u1 = (float)(TEXTURE_SIZE_X);
@@ -184,8 +184,13 @@ void G3D_draw_level()
 			if(x0 >= x1 || x1 < start_screen_x || x0 > end_screen_x) continue;
 
 			//Get relative ceil and floor heights
+
 			float yceil = current_sector->ceiling_height - player->pos_height;
 			float yfloor = current_sector->floor_height - player->pos_height;
+
+			float sector_height = current_sector->ceiling_height - current_sector->floor_height;
+
+			float global_texture_scale_height = GLOBAL_TEXTURE_SCALE / sector_height;
 
 			//Project and get pixel position, like above.
 
@@ -212,12 +217,18 @@ void G3D_draw_level()
 			int ny1ceiling;
 			int ny1floor;
 
+			float ny_global_texture_scale_height_top;
+			float ny_global_texture_scale_height_bot;
+
 			if(current_edge->is_portal)
 			{
 				neighbor_sector = loaded_level.sectors + current_edge->neighbor_sector_id;
 
 				nyceil = neighbor_sector->ceiling_height - player->pos_height;
 				nyfloor = neighbor_sector->floor_height - player->pos_height;
+
+				ny_global_texture_scale_height_top = (-GLOBAL_TEXTURE_SCALE) / (neighbor_sector->ceiling_height - current_sector->ceiling_height);
+				ny_global_texture_scale_height_bot = (GLOBAL_TEXTURE_SCALE) / (neighbor_sector->floor_height - current_sector->floor_height);
 			}
 
 			//Do the same for neighboring sectors
@@ -274,7 +285,8 @@ void G3D_draw_level()
 										c_screen_y_ceil, screen_y_ceil, 
 										c_n_screen_y_ceil, n_screen_y_ceil, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-										current_edge->text_param, current_tint); 
+										current_edge->text_param, current_tint, 
+										ny_global_texture_scale_height_top, global_texture_scale_length); 
 					}
 
 					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
@@ -287,7 +299,8 @@ void G3D_draw_level()
 										c_n_screen_y_floor, n_screen_y_floor, 
 										c_screen_y_floor, screen_y_floor, 
 										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-										current_edge->text_param, current_tint); 
+										current_edge->text_param, current_tint,
+										ny_global_texture_scale_height_bot, global_texture_scale_length); 
 					}
 
 					y_undrawn_bot[x] = clamp_int(min_int(c_screen_y_floor, c_n_screen_y_floor), y_undrawn_bot[x], 0);
@@ -299,7 +312,8 @@ void G3D_draw_level()
 									c_screen_y_ceil, screen_y_ceil, 
 									c_screen_y_floor, screen_y_floor, 
 									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-									current_edge->text_param, current_tint);
+									current_edge->text_param, current_tint,
+									global_texture_scale_height, global_texture_scale_length);
 				}
 			}
 
@@ -325,11 +339,12 @@ void G3D_draw_wall(	int screen_x,
 					int bot_visible, int bot_invisible,
 					int x0, int x1, int u0, int u1, float z0, float z1,
 					GFX_TEXTURE_PARAM texture_parameters,
-					TINT tint)
+					TINT tint, 
+					float global_texture_scale_height, float global_texture_scale_length)
 {
-	int text_x = (int)((u0*((x1-screen_x)*z1) + u1*((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0));
+	int text_x = (int)((1./global_texture_scale_length)*((float)u0*((float)(x1-screen_x)*z1) + (float)u1*((float)(screen_x-x0)*z0)) / ((float)(x1-screen_x)*z1 + (float)(screen_x-x0)*z0));
 
-	float z = (z1 - z0) * ((((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0)) + z0;
+	double z = (z1 - z0) * ((((screen_x-x0)*z0)) / ((x1-screen_x)*z1 + (screen_x-x0)*z0)) + z0;
 
 	for(int screen_y = top_visible; screen_y < bot_visible; screen_y++)
 	{
@@ -343,7 +358,7 @@ void G3D_draw_wall(	int screen_x,
 		}
 		else
 		{
-			int text_y = (float)(screen_y - top_invisible)/(float)(bot_invisible - top_invisible) * (TEXTURE_SIZE_Y);
+			int text_y = (int)((float)(1./global_texture_scale_height)*(screen_y - top_invisible)/(float)(bot_invisible - top_invisible) * (TEXTURE_SIZE_Y));
 
 			GFX_set_pixel_from_texture_depth_tint(	screen,
 													texture_parameters,
@@ -546,7 +561,8 @@ void G3D_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 						c_screen_y_ceil, screen_y_ceil, 
 						c_screen_y_floor, screen_y_floor, 
 						x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
-						texture_parameters, tint);
+						texture_parameters, tint, 
+						1.0f, 1.0f);
 
 	}
 }

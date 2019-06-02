@@ -127,7 +127,7 @@ void GFX_set_pixel_from_texture_tint(	SDL_Surface *surface,
 void GFX_set_pixel_from_texture_depth(	SDL_Surface *surface,
 										GFX_TEXTURE_PARAM texture,
 										int screen_x, int screen_y,
-										int text_x, int text_y, float depth);
+										float text_x, int text_y, float depth);
 
 void GFX_set_pixel_from_texture(	SDL_Surface *surface,
 									GFX_TEXTURE_PARAM texture,
