@@ -153,6 +153,34 @@ VECTOR2 intersect_v2(VECTOR2 start_a, VECTOR2 end_a, VECTOR2 start_b, VECTOR2 en
 	return new_vector;
 }
 
+int intersect_check_v2(VECTOR2 v1, VECTOR2 v2, VECTOR2 v3, VECTOR2 v4, VECTOR2 * intersect_vector)
+{
+	double denominator = ((v4.x - v3.x) * (v1.y - v2.y) - (v1.x - v2.x) * (v4.y - v3.y));
+
+	if(denominator <= EPSILON && denominator >= -EPSILON) return -1;
+
+	VECTOR2 len_segment_1;
+
+	double t_a = 	((v3.y - v4.y) * (v1.x - v3.x) + (v4.x - v3.x) * (v1.y - v3.y)) / denominator;
+
+	//Long live Total Biscuit, we really miss you, 
+	//wish you could review my shitty game... maybe in another life.
+	double t_b = 	((v1.y - v2.y) * (v1.x - v3.x) + (v2.x - v1.x) * (v1.y - v3.y)) / denominator;
+
+	if(t_a >= 0. && t_a <= 1. && t_b >= 0. && t_b <= 1.)
+	{
+		if(intersect_vector != NULL)
+		{
+			len_segment_1 = sub_v2(v2, v1);
+
+			*intersect_vector = sum_v2(v1, scale_v2(len_segment_1, (float)t_a));
+		}
+
+		return 1;
+	}
+	else return 0;
+}
+
 int point_side_v2(VECTOR2 point, VECTOR2 v0, VECTOR2 v1)
 {
 	float cross;

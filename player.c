@@ -112,52 +112,39 @@ void PLAYER_Move(PLAYER * player, VECTOR2 amount)
 
 	current_sector = loaded_level.sectors + player->current_sector;
 
-	for(int e = 0; e < current_sector->e_num; e ++)
+	VECTOR2 intersection;
+
+	int dest_sector;
+	int collision_state;
+
+	if(!(player->movement_blocked))
 	{
-		EDGE * current_edge = get_edge_at(current_sector, e);
 
-		VECTOR2 edge_vertex_0 = get_vertex_from_sector(current_sector, e, 0);
-		VECTOR2 edge_vertex_1 = get_vertex_from_sector(current_sector, e, 1);
+		collision_state = WORLD_Check_Collision(	player->current_sector, player->pos, amount, &intersection, &dest_sector,
+													1, player->pos_height, player->height, PLAYER_KNEE);
 
-		if(intersect_box_v2(player->pos, to_pos, edge_vertex_0, edge_vertex_1))
+		if(collision_state == COLLIDED)
 		{
-			if(point_side_v2(to_pos, edge_vertex_0, edge_vertex_1) > 0)
-			{
-				if(current_edge->is_portal)
-				{
-					float neighbor_sector_floor;
-
-					neighbor_sector_floor = loaded_level.sectors[current_edge->neighbor_sector_id].floor_height;
-
-					if(current_sector->floor_height + player->pos_height - player->height + PLAYER_KNEE > neighbor_sector_floor)
-					{
-						allow_move = 1;
-						player->current_sector = current_edge->neighbor_sector_id;
-					}
-					else
-					{
-						if(player->noclip == 0)
-							allow_move = 0;
-						else
-							allow_move = 1;
-					}
-				}
-				else
-				{
-					if(player->noclip == 0)
-						allow_move = 0;
-				}
-			}
+			allow_move = false;
 		}
-	}
+		else if(collision_state == NO_COLLISION_SECTOR_CHANGE)
+		{
+			player->current_sector = dest_sector;
+			allow_move = true;
+		}
+		else
+		{
+			allow_move = true;
+		}
 
-	if(allow_move && !player->movement_blocked)
-	{
-		player->pos = to_pos;
-		
-		get_closest_vertex(player->pos, &player->closest_vector, &closest_vector_index, &player->closest_vector_distance);
-		get_closest_edge(player->pos, &player->closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &player->closest_edge_distance);
-		player->closest_sector = get_sector_at(closest_sector_index);
+		if(allow_move)
+		{
+			player->pos = to_pos;
+			
+			get_closest_vertex(player->pos, &player->closest_vector, &closest_vector_index, &player->closest_vector_distance);
+			get_closest_edge(player->pos, &player->closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &player->closest_edge_distance);
+			player->closest_sector = get_sector_at(closest_sector_index);
+		}	
 	}
 }
 

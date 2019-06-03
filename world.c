@@ -700,3 +700,94 @@ POINT2 convert_rs_to_ss(CAMERA * camera, VECTOR2 relative_space, float relative_
 
 	return screen_space;
 }
+
+//Checks collision in the world, takes a lot of parameters,
+//start_sector, is the sector which the start_pos is located, move amount is a vector which shows how much to move from the start pos
+//intersected pos is a pointer to a vector 2, will be filled with a position which is an intersection of start_pos+move_amounte and a wall
+//check_knees will check if a ledge is above a certain knee_height value, if it is, it wont allow movement and act like a wall
+//pos height is the current height of start_pos, and height is how tall its hitbox is, to check for head collisions with inverted ledges.
+
+//Returns NO_COLLISION if no collision, COLLIDED if collision, and NO_COLLISION_SECTOR_CHANGE if 
+int WORLD_Check_Collision(	int start_sector, VECTOR2 start_pos, VECTOR2 move_amount, VECTOR2 * intersected_position, int * end_sector, 
+							int check_knees, float pos_height, float height, float knee_height)
+{
+	SECTOR * current_sector; 
+	EDGE * current_edge;
+	EDGE * neighbor_edge;
+
+	VECTOR2 intersection_location;
+
+	VECTOR2 to_location;
+
+	to_location = sum_v2(start_pos, move_amount);
+
+	current_sector = get_sector_at(start_sector);
+	int changed_sector = 0;
+
+	for(int e = 0; e < current_sector->e_num; e++)
+	{
+		current_edge = get_edge_at(current_sector, e);
+
+		if(intersect_check_v2(start_pos, to_location, get_vertex_from_sector(current_sector, e, 0),  get_vertex_from_sector(current_sector, e, 1), &intersection_location) 
+			== 1)
+		{
+			if(current_edge->is_portal)
+			{
+				for(int i  = 0; i < 3; i++)
+				{
+					SECTOR * neighbor_sector = get_sector_at(current_edge->neighbor_sector_id);
+
+					if(check_knees)
+					{
+						if(pos_height + knee_height > neighbor_sector->floor_height)
+						{
+							changed_sector = 1;
+							*end_sector = current_edge->neighbor_sector_id;
+						}
+						else return COLLIDED;
+					}
+					else
+					{
+						if(pos_height > neighbor_sector->floor_height)
+						{
+							changed_sector = 1;
+							*end_sector = current_edge->neighbor_sector_id;
+						}
+						else return COLLIDED;
+					}
+
+					for(int e_n = 0; e_n < neighbor_sector->e_num; e_n++)
+					{
+						neighbor_edge = get_edge_at(neighbor_sector, e_n);
+
+						if(neighbor_edge->neighbor_sector_id != current_sector->sector_id)
+						{
+							if(intersect_check_v2(start_pos, to_location, get_vertex_from_sector(neighbor_sector, e_n, 0),  get_vertex_from_sector(neighbor_sector, e_n, 1), &intersection_location) 
+								== 1)
+							{
+								if(neighbor_edge->is_portal) 
+								{
+									current_sector = neighbor_sector;
+									current_edge = neighbor_edge;
+									break;
+								}
+								else
+								{
+									return COLLIDED;
+								}
+							}
+						}
+					}
+				}
+			}
+		 	else
+			{
+				return COLLIDED;
+			}
+			break;	
+		}
+	}
+
+	if(changed_sector) return NO_COLLISION_SECTOR_CHANGE;
+	else return NO_COLLISION;
+}

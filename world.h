@@ -4,6 +4,10 @@
 #include "vector2.h"
 #include "gfx.h"
 
+#define COLLIDED 1
+#define NO_COLLISION 0
+#define NO_COLLISION_SECTOR_CHANGE -1
+
 typedef struct EDGE_
 {
 	int v_start;
@@ -64,6 +68,9 @@ void WORLD_delete_vertex_at(int index);
 void WORLD_delete_sector_at(int index);
 
 void WORLD_remove_n_vertexes(int n);
+
+int WORLD_Check_Collision(	int start_sector, VECTOR2 start_pos, VECTOR2 move_amount, VECTOR2 * intersected_position, int * end_sector, 
+							int check_knees, float pos_height, float height, float knee_height);
 
 VECTOR2 convert_ss_to_ws(CAMERA * camera, POINT2 screen_space, float height);
 VECTOR2 convert_ss_to_rs(CAMERA * camera, POINT2 screen_space, float height);

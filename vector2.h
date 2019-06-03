@@ -30,6 +30,7 @@ float norm_v2(VECTOR2 vector);
 
 float distance_v2_to_segment(VECTOR2 point, VECTOR2 start, VECTOR2 end, VECTOR2 * closest_point);
 VECTOR2 intersect_v2(VECTOR2 start_a, VECTOR2 end_a, VECTOR2 start_b, VECTOR2 end_b);
+int intersect_check_v2(VECTOR2 v1, VECTOR2 v2, VECTOR2 v3, VECTOR2 v4, VECTOR2 * intersect_vector);
 int intersect_box_v2(VECTOR2 box_a_start, VECTOR2 box_a_end, VECTOR2 box_b_start, VECTOR2 box_b_end);
 int point_side_v2(VECTOR2 point, VECTOR2 v0, VECTOR2 v1);
 
