@@ -30,7 +30,6 @@ SDL_Rect current_rect;
 
 extern SDL_Surface * screen;
 
-
 void FACE_Init()
 {
 	current_anim = ANIM_IDLE;
