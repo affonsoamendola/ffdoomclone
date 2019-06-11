@@ -78,7 +78,7 @@ void INPUT_Handle_Console()
 		}
 		else if(event.type == SDL_KEYDOWN)
 		{
-			if(event.key.keysym.sym == '`')
+			if(event.key.keysym.sym == '`' || event.key.keysym.sym == '\'' || event.key.keysym.sym == 'q')
 			{
 				set_console_open(!get_console_open());
 			}
@@ -216,8 +216,11 @@ void INPUT_Handle()
 				switch(event.key.keysym.sym)
 				{
 					case '`':
+					case '\'':
+					case 'q':
 						set_console_open(!get_console_open());
 						break;
+
 
 					case 'i':
 						show_fps = !show_fps;

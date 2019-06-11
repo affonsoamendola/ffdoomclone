@@ -791,8 +791,8 @@ void EDITOR_Handle_Input()
 			}
 			else if(event.type == SDL_KEYDOWN)
 			{
-				if(event.key.keysym.sym == '`')
-				{
+				if(event.key.keysym.sym == '`' || event.key.keysym.sym == '\'' || event.key.keysym.sym == 'q')
+				{ 				
 					set_console_open(!get_console_open());
 				}
 
