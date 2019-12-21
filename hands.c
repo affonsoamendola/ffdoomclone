@@ -6,7 +6,6 @@
 #include "gfx.h"
 
 #include "hands.h"
-#include "hands_files.h"
 
 extern SDL_Surface * screen;
 

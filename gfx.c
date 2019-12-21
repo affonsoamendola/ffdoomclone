@@ -34,7 +34,7 @@ extern bool edit_mode;
 
 char buffer[128];
 
-char * default_font_location;
+char* default_font_location;
 
 CAMERA * main_camera;
 
