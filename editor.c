@@ -54,7 +54,7 @@ extern SDL_Surface * screen;
 extern float current_fps;
 extern bool show_fps;
 
-bool show_help = 0;
+bool show_help = 1;
 
 extern bool edit_mode;
 extern bool game_mode;
@@ -377,6 +377,26 @@ void draw_grid()
 
 void draw_ui()
 {
+	int location_x = 180;
+
+	if(show_info == 1)
+	{
+
+		GFX_draw_tiny_string(point2(location_x,  68), "Arrows : Move cursor.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x,  74), "WASD : Pan camera.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x,  80), "P : Go to play/3d mode.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x,  86), "M : Grab closest vertex.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x,  92), "G : Toggle snap to grid.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x,  98), "+ : Increase grid size.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x, 104), "- : Decrease grid size.", GFX_Tint(1.0, 0.3, 0.0));
+
+		GFX_draw_tiny_string(point2(location_x, 116), "Drawing sector mode", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x, 122), "Space : Start drawing sector mode.", GFX_Tint(1.0, 0.3, 0.0));
+		GFX_draw_tiny_string(point2(location_x, 128), "Space : Add vertex.", GFX_Tint(1.0, 0.3, 0.0));
+
+		GFX_draw_tiny_string(point2(location_x, 140), "Del : Delete closest vertex.", GFX_Tint(1.0, 0.3, 0.0));
+	}
+	
 	if(snap_to_grid == 1)
 		GFX_draw_string(point2(0,0), "Snap to grid", GFX_Map_Color(GFX_Color(255, 0, 100)));
 	if(drawing_sector == 1)

@@ -48,8 +48,9 @@ void GFX_draw_console()
 	for(int y = 0; y < 10; y ++)
 	{
 		GFX_draw_string(point2(0, 72 - y * 8), get_console_history(y), SDL_MapRGB(screen->format, 200, 200, 200));
-		GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(screen->format, 255, 255, 255));
 	}
+	
+	GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(screen->format, 255, 255, 255));
 }
 
 void GFX_draw_map()
@@ -177,8 +178,16 @@ void GFX_draw_help()
 	GFX_draw_tiny_string(point2(location_x, 92), "Y : Select floor.", GFX_Tint(1.0, 0.3, 0.0));
 	GFX_draw_tiny_string(point2(location_x, 98), "G : Open texture selector.", GFX_Tint(1.0, 0.3, 0.0));
 
-	GFX_draw_tiny_string(point2(location_x, 106), "Home : Increase selected height.", GFX_Tint(1.0, 0.3, 0.0));
-	GFX_draw_tiny_string(point2(location_x, 112), "End : Decrease selected height.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 110), "U : Pan selected texture up.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 116), "J : Pan selected texture down.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 122), "H : Pan selected texture right.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 128), "K : Pan selected texture left.", GFX_Tint(1.0, 0.3, 0.0));
+
+	GFX_draw_tiny_string(point2(location_x, 140), "Home : Increase selected height.", GFX_Tint(1.0, 0.3, 0.0));
+	GFX_draw_tiny_string(point2(location_x, 146), "End : Decrease selected height.", GFX_Tint(1.0, 0.3, 0.0));
+
+    GFX_draw_tiny_string(point2(location_x, 158), "F : Toggle Parallax on selected.", GFX_Tint(1.0, 0.3, 0.0));
+    GFX_draw_tiny_string(point2(location_x, 164), "P : Go to map vertex editor.", GFX_Tint(1.0, 0.3, 0.0));
 }
 
 void GFX_draw_ui_edit()

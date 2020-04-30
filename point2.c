@@ -50,6 +50,21 @@ POINT2 scale_p2(POINT2 point, float scalar)
 	return new_point;
 }
 
+POINT2 clamp_p2(POINT2 in, POINT2 min, POINT2 max)
+{
+	POINT2 out;
+
+	if(in.x < min.x) { out.x = min.x;}
+	else if(in.x > max.x) { out.x = max.x;}
+	else { out.x = in.x; }
+
+	if(in.y < min.y) { out.y = min.y;}
+	else if(in.y > max.y) { out.y = max.y;}
+	else { out.y = in.y; }
+
+	return out;
+}
+
 void swap_p2(POINT2* a, POINT2* b)
 {
 	POINT2 temp;

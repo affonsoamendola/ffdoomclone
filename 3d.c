@@ -20,6 +20,72 @@ extern LEVEL loaded_level;
 extern CAMERA * main_camera;
 extern SDL_Surface * screen;
 
+void  G3D_transform_no_height(	VECTOR2 origin, float origin_rotation,
+								VECTOR2 position, VECTOR2* out_pos)
+{
+	VECTOR2 transformed_pos;
+
+	transformed_pos = sub_v2(position, origin);
+	transformed_pos = rot_v2(transformed_pos, origin_rotation);
+
+	*out_pos = transformed_pos;
+}
+
+void  G3D_transform(	VECTOR2 origin, float origin_rotation, float origin_height,
+						VECTOR2 position, float height,
+						VECTOR2* out_pos, float* out_height)
+{
+	G3D_transform_no_height(origin, origin_rotation, position, out_pos);
+	
+	*out_height = height - origin_height;
+}
+
+void G3D_project_no_height( VECTOR2 local_position, CAMERA* camera,
+							POINT2* out_screen_coordinates, 
+							float* out_x_scale, float* out_y_scale)
+{
+	float x_scale;
+	float y_scale;
+
+	float proj_x;
+
+	POINT2 screen_coordinates;
+
+	x_scale = camera->camera_parameters_x / local_position.y;
+	y_scale = camera->camera_parameters_y / local_position.y;
+
+	proj_x = local_position.x * x_scale;
+
+	screen_coordinates.x = (int)(proj_x) + SCREEN_RES_X/2;
+	screen_coordinates.y = SCREEN_RES_Y/2;
+
+	*out_x_scale = x_scale;
+	*out_y_scale = y_scale;
+	*out_screen_coordinates = screen_coordinates;
+}
+
+void G3D_project( 	VECTOR2 local_position, float height, CAMERA* camera,
+					POINT2* out_screen_coordinates, float* out_x_scale, float* out_y_scale)
+{
+	POINT2 screen_coordinates;
+	float x_scale;
+	float y_scale;
+
+	G3D_project_no_height( 	local_position, camera,
+							&screen_coordinates, 
+							&x_scale, &y_scale);
+
+	float proj_height;
+
+	proj_height = height * y_scale;
+
+	screen_coordinates.y = SCREEN_RES_Y/2 - (int)(proj_height);
+
+	*out_x_scale = x_scale;
+	*out_y_scale = y_scale;
+	*out_screen_coordinates = screen_coordinates;
+}
+
 void G3D_render_3d()
 {
 	G3D_draw_level();
@@ -102,11 +168,10 @@ void G3D_draw_level()
 			VECTOR2 edge_v1 = get_vertex_at(current_edge->v_end);
 
 			//Transform current edges to player point of view (player at 0,0)
-			transformed_pos_0 = sub_v2(edge_v0, player->pos);
-			transformed_pos_1 = sub_v2(edge_v1, player->pos);
-			
-			transformed_pos_0 = rot_v2(transformed_pos_0, player->facing);
-			transformed_pos_1 = rot_v2(transformed_pos_1, player->facing);
+			G3D_transform_no_height(	player->pos, player->facing,
+										edge_v0, &transformed_pos_0);
+			G3D_transform_no_height(	player->pos, player->facing,
+										edge_v1, &transformed_pos_1);	
 
 			VECTOR2 ni_pos_0 = transformed_pos_0;
 			VECTOR2 ni_pos_1 = transformed_pos_1;
@@ -126,8 +191,13 @@ void G3D_draw_level()
 			{
 				if(transformed_pos_0.y <= 0)
 				{	
-					VECTOR2 i0 = intersect_v2(vector2(-(main_camera->hither_x), main_camera->hither_z), vector2(-(main_camera->yon_x), main_camera->yon_z), transformed_pos_0, transformed_pos_1);
-					VECTOR2 i1 = intersect_v2(vector2(main_camera->hither_x, main_camera->hither_z), vector2(main_camera->yon_x, main_camera->yon_z), transformed_pos_0, transformed_pos_1);
+					VECTOR2 i0 = intersect_v2(	vector2(-(main_camera->hither_x), main_camera->hither_z), 
+												vector2(-(main_camera->yon_x), main_camera->yon_z), 
+												transformed_pos_0, transformed_pos_1);
+
+					VECTOR2 i1 = intersect_v2(	vector2(main_camera->hither_x, main_camera->hither_z), 
+												vector2(main_camera->yon_x, main_camera->yon_z), 
+												transformed_pos_0, transformed_pos_1);
 
 					if(i0.y > 0 && i1.y > 0)
 					{
@@ -145,8 +215,13 @@ void G3D_draw_level()
 				if(transformed_pos_1.y <= 0)
 				//if(transformed_pos_1.x <= -(hither_x/hither_z)*transformed_pos_1.z)
 				{	
-					VECTOR2 i0 = intersect_v2(vector2(-(main_camera->hither_x), main_camera->hither_z), vector2(-(main_camera->yon_x), main_camera->yon_z), transformed_pos_0, transformed_pos_1);
-					VECTOR2 i1 = intersect_v2(vector2(main_camera->hither_x, main_camera->hither_z), vector2(main_camera->yon_x, main_camera->yon_z), transformed_pos_0, transformed_pos_1);
+					VECTOR2 i0 = intersect_v2(	vector2(-(main_camera->hither_x), main_camera->hither_z), 
+												vector2(-(main_camera->yon_x), main_camera->yon_z), 
+												transformed_pos_0, transformed_pos_1);
+
+					VECTOR2 i1 = intersect_v2(	vector2(main_camera->hither_x, main_camera->hither_z), 
+												vector2(main_camera->yon_x, main_camera->yon_z), 
+												transformed_pos_0, transformed_pos_1);
 						
 					if(i0.y > 0 && i1.y > 0)
 					{
@@ -161,50 +236,54 @@ void G3D_draw_level()
 						transformed_pos_1 = i1;	
 				}
 
-				t_u0 = (transformed_pos_0.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);
-				t_u1 = (transformed_pos_1.x - ni_pos_0.x) * (TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);			
+				t_u0 = 	(transformed_pos_0.x - ni_pos_0.x) * 
+						(TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);
+
+				t_u1 = (transformed_pos_1.x - ni_pos_0.x) * 
+						(TEXTURE_SIZE_X)/(ni_pos_1.x - ni_pos_0.x);			
 			}
 
-			//Do projection scales
-			float xscale0 = main_camera->camera_parameters_x / transformed_pos_0.y;
-			float yscale0 = main_camera->camera_parameters_y / transformed_pos_0.y;
+			POINT2 screen_floor_0;
+			POINT2 screen_floor_1;
 
-			float xscale1 = main_camera->camera_parameters_x / transformed_pos_1.y;
-			float yscale1 = main_camera->camera_parameters_y / transformed_pos_1.y;
-
-			//Transform to pixel locations (and project)
-
-			float proj_x0 = transformed_pos_0.x * xscale0;
-			float proj_x1 = transformed_pos_1.x * xscale1;
-
-			int x0 = (int)(proj_x0) + SCREEN_RES_X/2;
-			int x1 = (int)(proj_x1) + SCREEN_RES_X/2;
-
-			//If outside screen, get out
-			if(x0 >= x1 || x1 < start_screen_x || x0 > end_screen_x) continue;
+			POINT2 screen_ceiling_0;
+			POINT2 screen_ceiling_1;
 
 			//Get relative ceil and floor heights
 
-			float yceil = current_sector->ceiling_height - player->pos_height;
-			float yfloor = current_sector->floor_height - player->pos_height;
+			float y_ceil = current_sector->ceiling_height - player->pos_height;
+			float y_floor = current_sector->floor_height - player->pos_height;
 
 			float sector_height = current_sector->ceiling_height - current_sector->floor_height;
 
 			float global_texture_scale_height = GLOBAL_TEXTURE_SCALE / sector_height;
 
+			float x_scale_0;
+			float y_scale_0;
+
+			float x_scale_1;
+			float y_scale_1;
+
+			G3D_project(transformed_pos_0, y_floor, main_camera,
+						&screen_floor_0, &x_scale_0, &y_scale_0);
+
+			G3D_project(transformed_pos_1, y_floor, main_camera,
+						&screen_floor_1, &x_scale_1, &y_scale_1);
+			
+			//If outside screen, get out
+			if(	screen_floor_0.x >= screen_floor_1.x || 
+				screen_floor_1.x < start_screen_x || 
+				screen_floor_0.x > end_screen_x) continue;
+
 			//Project and get pixel position, like above.
+			screen_ceiling_0 = screen_floor_0;
+			screen_ceiling_1 = screen_floor_1;
 
-			float proj_y0_ceiling = yceil * yscale0;
-			float proj_y0_floor = yfloor * yscale0;
+			float proj_y0_ceiling = y_ceil * y_scale_0;
+			float proj_y1_ceiling = y_ceil * y_scale_1;
 
-			float proj_y1_ceiling = yceil * yscale1;
-			float proj_y1_floor = yfloor * yscale1;
-
-			int y0ceiling = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
-			int y0floor = SCREEN_RES_Y/2 - (int)(proj_y0_floor);
-
-			int y1ceiling = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
-			int y1floor = SCREEN_RES_Y/2 - (int)(proj_y1_floor);
+			screen_ceiling_0.y = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
+			screen_ceiling_1.y = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
 
 			SECTOR * neighbor_sector;
 
@@ -232,39 +311,41 @@ void G3D_draw_level()
 			}
 
 			//Do the same for neighboring sectors
-			ny0ceiling = SCREEN_RES_Y/2 - (int)(nyceil * yscale0);
-			ny0floor = SCREEN_RES_Y/2 - (int)(nyfloor * yscale0);
+			ny0ceiling = SCREEN_RES_Y/2 - (int)(nyceil * y_scale_0);
+			ny0floor = SCREEN_RES_Y/2 - (int)(nyfloor * y_scale_0);
 
-			ny1ceiling = SCREEN_RES_Y/2 - (int)(nyceil * yscale1);
-			ny1floor = SCREEN_RES_Y/2 - (int)(nyfloor * yscale1);
+			ny1ceiling = SCREEN_RES_Y/2 - (int)(nyceil * y_scale_1);
+			ny1floor = SCREEN_RES_Y/2 - (int)(nyfloor * y_scale_1);
 
 			int x_begin;
 			int x_end;
 
-			x_begin = max_int(x0, start_screen_x);
-			x_end = min_int(x1, end_screen_x);
+			x_begin = max_int(screen_floor_0.x, start_screen_x);
+			x_end = min_int(screen_floor_1.x, end_screen_x);
 
 			for(int x = x_begin; x < x_end; x++)
 			{
-				float relative_x = (float)(x-x0)/(float)(x1-x0);
+				float relative_x = (float)(x-screen_floor_0.x)/
+									(float)(screen_floor_1.x-screen_floor_0.x);
 
-				int screen_y_ceil = relative_x * (y1ceiling - y0ceiling) + y0ceiling;
-				int screen_y_floor = relative_x * (y1floor - y0floor) + y0floor;
+				int screen_y_ceil = relative_x * (screen_ceiling_1.y - screen_ceiling_0.y) + screen_ceiling_0.y;
+				int screen_y_floor = relative_x * (screen_floor_1.y - screen_floor_0.y) + screen_floor_0.y;
 
 				int c_screen_y_ceil = clamp_int(screen_y_ceil, y_undrawn_bot[x], y_undrawn_top[x]);
 				int c_screen_y_floor = clamp_int(screen_y_floor, y_undrawn_bot[x], y_undrawn_top[x]);			
 
-				int text_x = (int)((t_u0*((x1-x)*transformed_pos_1.y) + t_u1*((x-x0)*transformed_pos_0.y)) / ((x1-x)*transformed_pos_1.y + (x-x0)*transformed_pos_0.y));
+				int text_x = (int)((t_u0*((screen_floor_1.x-x)*transformed_pos_1.y) + t_u1*((x-screen_floor_0.x)*transformed_pos_0.y)) / 
+									((screen_floor_1.x-x)*transformed_pos_1.y + (x-screen_floor_0.x)*transformed_pos_0.y));
 	
 				VECTOR2 world_space;
 				
 				G3D_draw_visplane(	x, y_undrawn_top[x], c_screen_y_ceil,
-									1, yceil - 0.02, 
+									1, y_ceil - 0.02, 
 									current_sector->text_param_ceil, 
 									current_tint);
 
 				G3D_draw_visplane(	x, c_screen_y_floor, y_undrawn_bot[x],
-									0, yfloor + 0.02, 
+									0, y_floor + 0.02, 
 									current_sector->text_param_floor, 
 									current_tint);
 
@@ -284,7 +365,7 @@ void G3D_draw_level()
 						G3D_draw_wall(	x, 
 										c_screen_y_ceil, screen_y_ceil, 
 										c_n_screen_y_ceil, n_screen_y_ceil, 
-										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+										screen_floor_0.x, screen_floor_1.x+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 										current_edge->text_param, current_tint, 
 										ny_global_texture_scale_height_top, global_texture_scale_length); 
 					}
@@ -298,7 +379,7 @@ void G3D_draw_level()
 						G3D_draw_wall(	x, 
 										c_n_screen_y_floor, n_screen_y_floor, 
 										c_screen_y_floor, screen_y_floor, 
-										x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+										screen_floor_0.x, screen_floor_1.x+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 										current_edge->text_param, current_tint,
 										ny_global_texture_scale_height_bot, global_texture_scale_length); 
 					}
@@ -311,7 +392,7 @@ void G3D_draw_level()
 					G3D_draw_wall(	x, 
 									c_screen_y_ceil, screen_y_ceil, 
 									c_screen_y_floor, screen_y_floor, 
-									x0, x1+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
+									screen_floor_0.x, screen_floor_1.x+1, t_u0, t_u1, transformed_pos_0.y, transformed_pos_1.y,
 									current_edge->text_param, current_tint,
 									global_texture_scale_height, global_texture_scale_length);
 				}
@@ -371,13 +452,16 @@ void G3D_draw_wall(	int screen_x,
 	}	
 }
 
-void G3D_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
+
+//Draws a sprite on screen, taking into account the depth buffer.
+void G3D_draw_sprite(	VECTOR2 sprite_position, 
+						VECTOR2 sprite_size, 
+						float height)
 {
-	VECTOR2 transformed_pos;
+	
 	GFX_TEXTURE_PARAM texture;
 
 	texture.id = 11;
-
 	texture.parallax = 0;
 
 	texture.u_offset = 0;
@@ -386,54 +470,54 @@ void G3D_draw_sprite(VECTOR2 sprite_position, VECTOR2 sprite_size, float height)
 	texture.u_scale = 1.;
 	texture.v_scale = 1.;
 
-	float sprite_height;
+	VECTOR2 transformed_pos;
+	float transformed_height;
 
-	transformed_pos = sub_v2(sprite_position, player->pos);
-	transformed_pos = rot_v2(transformed_pos, player->facing);
+	//Transforms the sprite coordinates to local coordinates,
+	//in relation to the player, the Y parameter becomes distance from player.
+	G3D_transform(	player->pos, player->facing, player->pos_height,
+					sprite_position, height,
+					&transformed_pos, &transformed_height);
 
-	float transformed_height = height - player->pos_height;
+	POINT2 screen_coords;
+	float x_scale;
+	float y_scale;
 
-	float xscale = main_camera->camera_parameters_x / transformed_pos.y;
-	float yscale = main_camera->camera_parameters_y / transformed_pos.y;
+	//Projects sprite position to screen coordinates.
+	G3D_project( 	transformed_pos, transformed_height, main_camera,
+					&screen_coords, &x_scale, &y_scale);
 
-	float proj_x = transformed_pos.x * xscale;
-	float proj_height = transformed_height * yscale;
+	//Scales the sprite in accordance to distance.
+	int ss_sprite_size_x = (int)(sprite_size.x * x_scale);
+	int ss_sprite_size_y = (int)(sprite_size.y * y_scale);
 
-	float proj_sprite_size_x = sprite_size.x * xscale;
-	float proj_sprite_size_y = sprite_size.y * yscale;
+	POINT2 screen_0 = point2(	screen_coords.x - ss_sprite_size_x/2,
+								screen_coords.y - ss_sprite_size_y);
 
-	int ss_sprite_x = (int)(proj_x) + SCREEN_RES_X/2;
-	int ss_sprite_y = SCREEN_RES_Y/2 - (int)(proj_height);
-	int ss_sprite_size_x = (int)proj_sprite_size_x;
-	int ss_sprite_size_y = (int)proj_sprite_size_y;
+	POINT2 screen_1 = point2(	screen_coords.x + ss_sprite_size_x/2,
+								screen_coords.y);
 
-	int screen_x0 = ss_sprite_x - ss_sprite_size_x/2;
-	int screen_x1 = ss_sprite_x + ss_sprite_size_x/2;
+	//Clamps the sprite image.
+	POINT2 clamped_screen_0 = clamp_p2(screen_0, point2(0, 0), point2(SCREEN_RES_X, SCREEN_RES_Y));
+	POINT2 clamped_screen_1 = clamp_p2(screen_1, point2(0, 0), point2(SCREEN_RES_X, SCREEN_RES_Y));
 
-	int screen_y0 = ss_sprite_y - ss_sprite_size_y;
-	int screen_y1 = ss_sprite_y;
 
-	int c_screen_x0 = clamp_int(screen_x0, SCREEN_RES_X, 0);
-	int c_screen_x1 = clamp_int(screen_x1, SCREEN_RES_X, 0);
-
-	int c_screen_y0 = clamp_int(screen_y0, SCREEN_RES_Y, 0);
-	int c_screen_y1 = clamp_int(screen_y1, SCREEN_RES_Y, 0);
-
+	//Applies a tint just to test if tinting it works.
 	TINT tint;
 
 	tint.r = 0.1;
 	tint.g = 0.1;
 	tint.b = 0.6;
 
-	for(int x = c_screen_x0; x < c_screen_x1; x++)
+	for(int x = clamped_screen_0.x; x < clamped_screen_1.x; x++)
 	{
-		for(int y = c_screen_y0; y < c_screen_y1; y++)
+		for(int y = clamped_screen_0.y; y < clamped_screen_1.y; y++)
 		{
 			if(transformed_pos.y < get_z_buffer(main_camera, x, y))
 			{
 				GFX_set_pixel_from_texture_tint(	screen, texture, x, y,
-													(int)((float)(x-screen_x0)/(float)(screen_x1-screen_x0) * 128),
-													(int)((float)(y-screen_y0)/(float)(screen_y1-screen_y0) * 256),
+													(int)((float)(x-screen_0.x)/(float)(screen_1.x-screen_0.x) * 128),
+													(int)((float)(y-screen_0.y)/(float)(screen_1.y-screen_0.y) * 256),
 													tint);
 			}
 		}

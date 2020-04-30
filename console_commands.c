@@ -35,6 +35,52 @@ void COMMAND_intro()
 	CONSOLE_print("\n----------------------------------------");
 }
 
+void COMMAND_help(int page)
+{
+	if(page == 1)
+	{
+		CONSOLE_print("\n----------------------------------------");
+		CONSOLE_print("\nCommand List Page 1/3");
+		CONSOLE_print("\nhelp [page]:");
+		CONSOLE_print("\n  shows command list's specified page");
+		CONSOLE_print("\nver: shows current game version");
+		CONSOLE_print("\nintro: shows console intro again");
+		CONSOLE_print("\nsector show [sector value]:");
+		CONSOLE_print("\n  shows the sector's vertexes info");
+		CONSOLE_print("\nnoclip: enables no-clip mode");
+		CONSOLE_print("\n----------------------------------------");
+	}
+	else
+	if(page == 2)
+	{
+		CONSOLE_print("\n----------------------------------------");
+		CONSOLE_print("\nCommand List Page 2/3");
+		CONSOLE_print("\nvertex list: ");
+		CONSOLE_print("\n  list all vertexes in the current level");
+		CONSOLE_print("\nset tint [r] [g] [b]:");
+		CONSOLE_print("\n  sets the tint value of the player's   ");
+		CONSOLE_print("\n  sector to the [r] [g] [b] values      ");
+		CONSOLE_print("\n  specified, from 0 to 1");
+		CONSOLE_print("\nset health [value]: sets health to value");
+		CONSOLE_print("\n----------------------------------------");
+	}
+	else
+	if(page == 3)
+	{
+		CONSOLE_print("\n----------------------------------------");
+		CONSOLE_print("\nCommand List Page 3/3");
+		CONSOLE_print("\nset armor [value]: sets armor to value");
+		CONSOLE_print("\nedit: enables edit mode");
+		CONSOLE_print("\nsave [filename]: ");
+		CONSOLE_print("\n  saves current edited level as filename");
+		CONSOLE_print("\nload [filename]: ");
+		CONSOLE_print("\n  loads level from filename");
+		CONSOLE_print("\n");
+		CONSOLE_print("\n----------------------------------------");
+	}
+	
+}
+
 void COMMAND_sector_show(int sector_index)
 {
 	if(sector_index >= 0 && sector_index < loaded_level.s_num)
@@ -185,3 +231,4 @@ void COMMAND_load_level(char * filename)
 {
 	level_load(filename);
 }
+

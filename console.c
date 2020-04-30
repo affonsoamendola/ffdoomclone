@@ -151,6 +151,18 @@ void parse_token(char** token)
 		COMMAND_intro();
 	}
 
+	if(command_check("help", token, 0))
+	{
+		int page = 1;
+
+		int token_page_value = atoi(get_token_value(token, 1));
+
+		if(token_page_value > 0 && token_page_value < 4)
+			page = token_page_value;
+
+		COMMAND_help(page);
+	}
+
 	if(command_check("sector", token, 0))
 	{
 		if(command_check("show", token, 1))
