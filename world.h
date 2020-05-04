@@ -1,52 +1,64 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include "vector2.h"
+#include "ff_vector2.h"
 #include "gfx.h"
 
+/*
 #define COLLIDED 1
 #define NO_COLLISION 0
 #define NO_COLLISION_SECTOR_CHANGE -1
+*/
 
-typedef struct EDGE_
+typedef struct Edge_
 {
-	int v_start;
-	int v_end;
+	uint32_t vertex_start;
+	uint32_t vertex_end;
 
-	GFX_TEXTURE_PARAM text_param;
+	TextureParam texture_param;
 
-	int is_portal;
-	int neighbor_sector_id;
-}
-EDGE;
+	bool is_portal;
+	uint32_t neighbor_sector_id;
+} Edge;
 
-typedef struct SECTOR_
+typedef struct Sector_
 {
-	int sector_id;
-	int e_num;
+	uint32_t sector_id;
 
 	float ceiling_height;
 	float floor_height;
 
-	TINT tint;
+	Color sector_tint;
 
-	GFX_TEXTURE_PARAM text_param_ceil;
-	GFX_TEXTURE_PARAM text_param_floor;
+	TextureParam ceiling_texture_param;
+	TextureParam floor_texture_param;
 
-	EDGE * e;
-}
-SECTOR;
+	uint32_t edge_size;
+	Edge* edges;
+} Sector;
 
-typedef struct LEVEL_
+typedef struct Entity_
 {
-	int v_num;
-	VECTOR2 * vertexes;
-	int s_num;
-	SECTOR * sectors;
-}
-LEVEL;
+} Entity;
 
-void WORLD_Init();
+typedef struct World_
+{
+	uint32_t vertex_size;
+	Vector2f* vertexes;
+
+	uint32_t sector_size;
+	Sector* sectors;
+
+	uint32_t entities_size;
+	Entity* entities;
+} World;
+
+extern World world;
+
+
+World* WORLD_init();
+void WORLD_quit();
+/*
 void WORLD_Update();
 
 void level_load(const char * file_location);
@@ -81,5 +93,5 @@ POINT2 convert_ws_to_ss(CAMERA * camera, VECTOR2 world_space, float height);
 void convert_ws_to_rs(	VECTOR2 world_space, float world_height,
 						VECTOR2 * relative_space, float * relative_height);
 POINT2 convert_rs_to_ss(CAMERA * camera, VECTOR2 relative_space, float relative_height);
-
+*/
 #endif

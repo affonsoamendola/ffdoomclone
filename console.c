@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,116 +8,88 @@
 
 #include "console.h"
 #include "console_commands.h"
-
-bool console_open = false;
-
-char** console_history;
-
-int console_cursor_location = 0;
-
+/*
 extern bool edit_mode;
 extern PLAYER * player;
+/*
+Console console;
 
 void set_console_open(bool value)
 {
-	console_open = value;
+
+	console.open = value;
 }
 
-bool get_console_open()
+bool is_console_open()
 {
-	return console_open;
+
+	return console.open;
 }
 
 char* get_console_history(int history_index)
 {
-	if(history_index >= 0 && history_index < HISTORY_SIZE)
+	if(history_index >= 0 && history_index < CONSOLE_HISTORY_SIZE)
 	{
-		return *(console_history + history_index);
+		return console.history + history_index * CONSOLE_CHAR_LIMIT;
 	}
 	else
 	{
-		return 0;
+		return NULL;
 	}
 }
 
-void CONSOLE_scroll(int lines)
+void scroll_console(int lines)
 {
-	console_cursor_location = 0;
+	console.cursor_location = 0;
 
-	for(int i = 0; i < lines; i++)
+	char buffer[CONSOLE_CHAR_LIMIT * (CONSOLE_HISTORY_SIZE - 1)];
+
+	for(int i = 0; i < lines; i ++)
 	{
-		free(*(console_history + HISTORY_SIZE - 1));
-
-		for(int j = HISTORY_SIZE - 1; j > 0; j--)
-		{
-			*(console_history + j) = *(console_history + j - 1);
-		}
-
-		*(console_history) = malloc(CONSOLE_CHAR_LIMIT);
-
-		for(int j = 0; j < CONSOLE_CHAR_LIMIT; j++)
-		{
-			*(*(console_history)+j) = '\0';
-		}
+		memcpy(buffer, console.history, CONSOLE_CHAR_LIMIT * (CONSOLE_HISTORY_SIZE - 1));
+		memcpy(console.history + CONSOLE_CHAR_LIMIT, buffer, CONSOLE_CHAR_LIMIT * (CONSOLE_HISTORY_SIZE - 1));
+		memset(console.history, '\0', CONSOLE_CHAR_LIMIT);
 	}
 }
 
-void CONSOLE_print(char* text)
+void printf_console(const char * char_string, ...)
 {
-	int location_pointer = 0;
+	char buffer[CONSOLE_CHAR_LIMIT] = {0};
 
-	printf("%s\0", text);
+	va_list args;
+	va_start(args, char_string);
+	
+	vsnprintf(buffer, CONSOLE_CHAR_LIMIT, char_string, args);
 
-	while(*(text + location_pointer) != '\0')
+	va_end(args);
+
+	int cursor_location = 0;
+
+	for(int i = 0; i < CONSOLE_CHAR_LIMIT && buffer[i] != '\0'; i++)
 	{
-		if(*(text + location_pointer) >= 32 && *(text + location_pointer) <= 126)
+		char character = buffer[i];
+
+		if(character == '\n') 
 		{
-			*(*(console_history) + console_cursor_location) = *(text + location_pointer); 
-			console_cursor_location += 1;
+			scroll_console(1);
+			cursor_location = 0;
 		}
-		
-		if(*(text + location_pointer) == '\n')
-		{
-			CONSOLE_scroll(1);
-		}
-
-		location_pointer += 1;
-	}
-}
-
-char buffer[128];
-
-void CONSOLE_printi(int i)
-{
-	sprintf(buffer, "%i", i);
-	CONSOLE_print(buffer);
-}
-
-void CONSOLE_Init()
-{
-	console_history = malloc(HISTORY_SIZE * sizeof(char*));
-
-	for(int i = 0; i < HISTORY_SIZE; i ++)
-	{
-		*(console_history + i) = malloc(CONSOLE_CHAR_LIMIT * sizeof(char));
-
-		for(int j = 0; j < CONSOLE_CHAR_LIMIT; j++)
-		{
-			*(*(console_history + i) + j) = '\0';
+		else
+		{			
+			*(console.history + cursor_location) = character; 
+			cursor_location++;
 		}
 	}
 }
 
-void CONSOLE_Quit()
+Console* console_init()
 {
-	for(int i = 0; i < HISTORY_SIZE; i ++)
-	{
-		free(console_history[i]);
-	}
+	console.open = false;
+	console.cursor_location = 0;
+	memset(console.history, '\0', CONSOLE_CHAR_LIMIT * CONSOLE_HISTORY_SIZE);
 
-	free(console_history);
+	return &console;
 }
-
 
 bool command_check(char * command, char** token, int token_number)
 {
@@ -137,145 +108,90 @@ char* get_token_value(char** token, int index)
 	return *(token + index);
 }
 
-void parse_token(char** token)
+#define COMMANDS_AMOUNT 11
+ConsoleCommand console_commands[COMMANDS_AMOUNT] = 
 {
-	if(command_check("ver", token, 0))
-	{
+	{"ver", 0, COMMAND_ver},
+	{"intro", 0, COMMAND_intro},
+	{"help", 1, COMMAND_help},
+	{"sector_show", 1, COMMAND_sector_show},
+	{"vertex_list", 0, COMMAND_vertex_list},
+	{"noclip", 0, COMMAND_vertex_list},
+	{"set_tint", 3, COMMAND_set_tint},
+	{"set", 2, COMMAND_set},
+	{"save_level", 1, COMMAND_save_level},
+	{"load_level", 1, COMMAND_load_level},
+	{"edit", 0, COMMAND_edit}
+};
 
-		COMMAND_ver();
-	}
-
-	if(command_check("intro", token, 0))
-	{
-
-		COMMAND_intro();
-	}
-
-	if(command_check("help", token, 0))
-	{
-		int page = 1;
-
-		int token_page_value = atoi(get_token_value(token, 1));
-
-		if(token_page_value > 0 && token_page_value < 4)
-			page = token_page_value;
-
-		COMMAND_help(page);
-	}
-
-	if(command_check("sector", token, 0))
-	{
-		if(command_check("show", token, 1))
-		{
-			COMMAND_sector_show(atoi(get_token_value(token, 2)));
-		}
-	}
-
-	if(command_check("vertex", token, 0))
-	{
-		if(command_check("list", token, 1))
-		{
-			COMMAND_vertex_list();
-		}
-	}
-
-	if(command_check("noclip", token, 0))
-	{
-		COMMAND_noclip();
-	}
-
-	if(command_check("set", token, 0))
-	{
-		if(strcmp(get_token_value(token,1), "tint") == 0)
-		{
-			float r;
-			float g;
-			float b;
-
-			sscanf(get_token_value(token,2), "%f", &r);
-			sscanf(get_token_value(token,3), "%f", &g);
-			sscanf(get_token_value(token,4), "%f", &b);
-
-			COMMAND_set_tint(r, g, b);
-		}
-		else
-		{
-			COMMAND_set(get_token_value(token, 1), atoi(get_token_value(token, 2)));
-		}
-	}
-
-	if(command_check("edit", token, 0))
-	{
-		edit_mode = !edit_mode;
-		player->noclip = !player->noclip;
-	}
-
-	if(command_check("save", token, 0))
-	{
-		COMMAND_save_level(get_token_value(token, 1));
-	}
-
-	if(command_check("load", token, 0))
-	{
-		COMMAND_load_level(get_token_value(token, 1));
-	}
-}
-
-void parse_console(char* text_input)
+void parse_tokens(char** tokens, int args_num)
 {
-	char** token;
-	
-	int parser_location = 0;
-	int token_location = 0;
-
-	int current_token = 0;
-
-	token = malloc(sizeof(char*)*8);
-
-	for(int i = 0; i < 8; i++)
+	ConsoleCommand command;
+	for(int i = 0; i < COMMANDS_AMOUNT; i++)
 	{
-		*(token + i) = malloc(sizeof(char)*32);
-		
-		for(int j = 0; j < 32; j ++)
+		if(strcmp(console_commands[i].command, tokens[0]) == 0)
 		{
-			*(*(token + i) + j) = '\0';
-		}
-	}
-
-	while(*(text_input + parser_location) == ' ')
-	{
-		parser_location ++;
-	}
-	
-	while(*(text_input+parser_location) != '\0')
-	{
-		if(*(text_input+parser_location) == ' ')
-		{
-			current_token++;
-			token_location = 0;
-
-			while(*(text_input+parser_location) == ' ')
+			if((args_num-1) >= console_commands[i].arg_num)
 			{
-				parser_location++;
-			}
-
-			if(*(text_input+parser_location) == '\0')
-			{
+				console_commands[i].function(tokens + 1);
 				break;
 			}
+			else
+			{
+				printf_console(	"The %s command takes %d arguments.", 
+								console_commands[i].command, 
+								console_commands[i].arg_num);
+			}
 		}
-
-		*(*(token + current_token) + token_location) = *(text_input + parser_location);
-
-		token_location++;
-		parser_location++;
 	}
-
-	parse_token(token);
 }
 
+#define MAX_ARGSIZE 32
+void parse_console(const char* text_input)
+{	
+	char** tokens;
 
+	int text_location = 0;
+	int args_num = 0;
 
+	tokens = malloc(1 * sizeof(char*));
 
+	while(text_location < CONSOLE_CHAR_LIMIT)
+	{
+		while(text_input[text_location] == ' ')
+		{
+			text_location++;
+		}
 
+		if(text_input[text_location] == '\0') break;
 
+		args_num++;
+		tokens = realloc(tokens, args_num * sizeof(char*));
+		tokens[args_num-1] = malloc(MAX_ARGSIZE * sizeof(char));
+		memset(tokens[args_num-1], '\0', MAX_ARGSIZE);
+
+		for(int parser_location = 0; 
+			
+			parser_location < CONSOLE_CHAR_LIMIT &&
+			text_input[text_location] != '\0' &&
+			text_input[text_location] != ' '; 
+
+			parser_location++)
+		{
+			if(parser_location < MAX_ARGSIZE-1) 
+			{
+				tokens[args_num-1][parser_location] = text_input[text_location];
+			}
+			
+			text_location++;
+		}
+	}
+
+	parse_tokens(tokens, args_num);
+
+	for(int i = 0; i < args_num; i++)
+	{
+		free(tokens[i]);
+	}
+	free(tokens);
+}*/

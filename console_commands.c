@@ -9,83 +9,88 @@
 #include "console.h"
 #include "vector3.h"
 #include "player.h"
-
+/*
 char buffer[128];
 
+extern bool edit_mode;
 extern LEVEL loaded_level;
-
 extern PLAYER * player;
-
-void COMMAND_ver()
+/*
+void COMMAND_ver(char** tokens)
 {
-	CONSOLE_print("\nRT76800");	
-	CONSOLE_print("\nVersion ");
-	CONSOLE_print(ENGINE_version());
+
+	printf_console("RT76800\nVersion %s", ENGINE_VERSION);
 }
 
-void COMMAND_intro()
+void COMMAND_intro(char** tokens)
 {
-	CONSOLE_print("\n----------------------------------------");
-	CONSOLE_print("\nFofonso's DoomClone Engine\n");
-	CONSOLE_print("\nCodename DN F3D");
-	CONSOLE_print("\nCopyright Affonso Amendola, 2019");	
-	CONSOLE_print("\nVersion ");
-	CONSOLE_print(ENGINE_version());
-	CONSOLE_print("\n\nBe Excellent to Each Other");
-	CONSOLE_print("\n----------------------------------------");
+	printf_console("----------------------------------------\n");
+	printf_console("Fofonso's DoomClone Engine\n");
+	printf_console("Codename DN F3D\n");
+	printf_console("Copyright Affonso Amendola, 2019\n");	
+	printf_console("Version %s\n\n", ENGINE_VERSION);
+	printf_console("Be Excellent to Each Other\n");
+	printf_console("----------------------------------------");
 }
 
-void COMMAND_help(int page)
+void COMMAND_help(char** tokens)
 {
-	if(page == 1)
+	int page;
+
+	sscanf(*tokens, "%d", &page);
+
+	if(page <= 1)
 	{
-		CONSOLE_print("\n----------------------------------------");
-		CONSOLE_print("\nCommand List Page 1/3");
-		CONSOLE_print("\nhelp [page]:");
-		CONSOLE_print("\n  shows command list's specified page");
-		CONSOLE_print("\nver: shows current game version");
-		CONSOLE_print("\nintro: shows console intro again");
-		CONSOLE_print("\nsector show [sector value]:");
-		CONSOLE_print("\n  shows the sector's vertexes info");
-		CONSOLE_print("\nnoclip: enables no-clip mode");
-		CONSOLE_print("\n----------------------------------------");
+		printf_console("----------------------------------------\n");
+		printf_console("Command List Page 1/3\n");
+		printf_console("help [page]:\n");
+		printf_console("  shows command list's specified page\n");
+		printf_console("ver: shows current game version\n");
+		printf_console("intro: shows console intro again\n");
+		printf_console("sector show [sector value]:\n");
+		printf_console("  shows the sector's vertexes info\n");
+		printf_console("noclip: enables no-clip mode\n");
+		printf_console("----------------------------------------");
 	}
 	else
 	if(page == 2)
 	{
-		CONSOLE_print("\n----------------------------------------");
-		CONSOLE_print("\nCommand List Page 2/3");
-		CONSOLE_print("\nvertex list: ");
-		CONSOLE_print("\n  list all vertexes in the current level");
-		CONSOLE_print("\nset tint [r] [g] [b]:");
-		CONSOLE_print("\n  sets the tint value of the player's   ");
-		CONSOLE_print("\n  sector to the [r] [g] [b] values      ");
-		CONSOLE_print("\n  specified, from 0 to 1");
-		CONSOLE_print("\nset health [value]: sets health to value");
-		CONSOLE_print("\n----------------------------------------");
+		printf_console("----------------------------------------\n");
+		printf_console("Command List Page 2/3\n");
+		printf_console("vertex list: \n");
+		printf_console("  list all vertexes in the current level\n");
+		printf_console("set tint [r] [g] [b]:\n");
+		printf_console("  sets the tint value of the player's   \n");
+		printf_console("  sector to the [r] [g] [b] values      \n");
+		printf_console("  specified, from 0 to 1\n");
+		printf_console("set health [value]: sets health to value\n");
+		printf_console("----------------------------------------");
 	}
 	else
-	if(page == 3)
+	if(page >= 3)
 	{
-		CONSOLE_print("\n----------------------------------------");
-		CONSOLE_print("\nCommand List Page 3/3");
-		CONSOLE_print("\nset armor [value]: sets armor to value");
-		CONSOLE_print("\nedit: enables edit mode");
-		CONSOLE_print("\nsave [filename]: ");
-		CONSOLE_print("\n  saves current edited level as filename");
-		CONSOLE_print("\nload [filename]: ");
-		CONSOLE_print("\n  loads level from filename");
-		CONSOLE_print("\n");
-		CONSOLE_print("\n----------------------------------------");
+		printf_console("----------------------------------------\n");
+		printf_console("Command List Page 3/3\n");
+		printf_console("set armor [value]: sets armor to value\n");
+		printf_console("edit: enables edit mode\n");
+		printf_console("save [filename]: \n");
+		printf_console("  saves current edited level as filename\n");
+		printf_console("load [filename]: \n");
+		printf_console("  loads level from filename\n");
+		printf_console("\n");
+		printf_console("----------------------------------------");
 	}
-	
 }
 
-void COMMAND_sector_show(int sector_index)
+void COMMAND_sector_show(char** tokens)
 {
+	int sector_index;
+
+	sscanf(*tokens, "%d", &sector_index);
+
 	if(sector_index >= 0 && sector_index < loaded_level.s_num)
 	{
-		CONSOLE_print("\nx  y  is_portal neighbor_sector_id");
+		printf_console("\nx  y  is_portal neighbor_sector_id");
 
 		for(int e = 0; e < (loaded_level.sectors+sector_index)->e_num; e++)
 		{
@@ -94,57 +99,71 @@ void COMMAND_sector_show(int sector_index)
 			current_edge = *(((loaded_level.sectors+sector_index)->e+e));
 
 			sprintf(buffer, "\n%u  %u  %u         %u", current_edge.v_start, current_edge.v_end, current_edge.is_portal, current_edge.neighbor_sector_id);
-			CONSOLE_print(buffer);
+			printf_console(buffer);
 		}
 	}
-	CONSOLE_print("\n");
+	printf_console("\n");
 }
 
-void COMMAND_vertex_list()
+void COMMAND_vertex_list(char** tokens)
 {
 	for(int v = 0; v < loaded_level.v_num; v++)
 	{
 		sprintf(buffer, "\n%f %f", (loaded_level.vertexes + v)->x, (loaded_level.vertexes + v)->y);
-		CONSOLE_print(buffer);
+		printf_console(buffer);
 	}
 }
 
-void COMMAND_noclip()
+void COMMAND_noclip(char** tokens)
 {
 	player->noclip = !(player->noclip);
 
 	if(player->noclip == 1)
-		CONSOLE_print("\nFLY YOU FOOL");
+		printf_console("\nFLY YOU FOOL");
 
 	if(player->noclip == 0)
-		CONSOLE_print("\nYOU ARE GROUNDED");
+		printf_console("\nYOU ARE GROUNDED");
 }
 
-void COMMAND_set(char * variable, int value)
+void COMMAND_set(char** tokens)
 {
+	char* variable = tokens[0];
+	int value;
+
+	sscanf(tokens[1], "%d", &value);
+
 	if(strcmp(variable, "health") == 0)
 	{
-		CONSOLE_print("\nSetting health to ");
-		CONSOLE_printi(value);
+		printf_console("\nSetting health to %i", value);
+
 		player->health = value;
 	}
 
 	if(strcmp(variable, "armor") == 0)
 	{
-		CONSOLE_print("\nSetting armor to ");
-		CONSOLE_printi(value);
+		printf_console("\nSetting armor to %i");
 		player->armor = value;
 	}
 }
 
-void COMMAND_set_tint(float r, float g, float b)
+void COMMAND_set_tint(char** tokens)
 {
+	float r;
+	float g;
+	float b;
+
+	sscanf(tokens[0], "%f", &r);
+	sscanf(tokens[1], "%f", &g);
+	sscanf(tokens[2], "%f", &b);
+
 	player->closest_sector->tint = GFX_Tint(r, g, b);
 }
 
-void COMMAND_save_level(char * filename)
+void COMMAND_save_level(char** tokens)
 {
-	CONSOLE_print("\nSaving...");
+	char* filename = *tokens;
+
+	printf_console("\nSaving...");
 	FILE * new_file;
 
 	new_file = fopen(filename, "w");
@@ -223,12 +242,16 @@ void COMMAND_save_level(char * filename)
 
 	fclose(new_file);
 
-	CONSOLE_print("\nSaved to ");
-	CONSOLE_print(filename);
+	printf_console("\nSaved to %s", filename);
 }
 
-void COMMAND_load_level(char * filename)
+void COMMAND_load_level(char** tokens)
 {
-	level_load(filename);
+	level_load(*tokens);
 }
 
+void COMMAND_edit()
+{
+	engine.edit_mode = !engine.edit_mode;
+	player->noclip = !player->noclip;
+}*/

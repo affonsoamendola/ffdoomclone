@@ -1,4 +1,4 @@
-
+/*
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -19,7 +19,7 @@ extern PLAYER * player;
 extern LEVEL loaded_level;
 extern CAMERA * main_camera;
 extern SDL_Surface * screen;
-
+/*
 void  G3D_transform_no_height(	VECTOR2 origin, float origin_rotation,
 								VECTOR2 position, VECTOR2* out_pos)
 {
@@ -56,8 +56,8 @@ void G3D_project_no_height( VECTOR2 local_position, CAMERA* camera,
 
 	proj_x = local_position.x * x_scale;
 
-	screen_coordinates.x = (int)(proj_x) + SCREEN_RES_X/2;
-	screen_coordinates.y = SCREEN_RES_Y/2;
+	screen_coordinates.x = (int)(proj_x) + engine.gfx->screen_res_x/2;
+	screen_coordinates.y = engine.gfx->screen_res_y/2;
 
 	*out_x_scale = x_scale;
 	*out_y_scale = y_scale;
@@ -79,7 +79,7 @@ void G3D_project( 	VECTOR2 local_position, float height, CAMERA* camera,
 
 	proj_height = height * y_scale;
 
-	screen_coordinates.y = SCREEN_RES_Y/2 - (int)(proj_height);
+	screen_coordinates.y = engine.gfx->screen_res_y/2 - (int)(proj_height);
 
 	*out_x_scale = x_scale;
 	*out_y_scale = y_scale;
@@ -94,7 +94,7 @@ void G3D_render_3d()
 
 float get_view_plane_pos_x(int ssx)
 {
-	float pos_x = ((float)(ssx - SCREEN_RES_X/2)/(float)(SCREEN_RES_X/2)) *  main_camera->hither_x;
+	float pos_x = ((float)(ssx - engine.gfx->screen_res_x/2)/(float)(engine.gfx->screen_res_x/2)) *  main_camera->hither_x;
 
 	return pos_x;
 }
@@ -120,18 +120,18 @@ void G3D_draw_level()
 	int start_screen_x;
 	int end_screen_x;
 
-	int y_undrawn_top[SCREEN_RES_X], y_undrawn_bot[SCREEN_RES_X];
+	int y_undrawn_top[engine.gfx->screen_res_x], y_undrawn_bot[engine.gfx->screen_res_x];
 
 	clear_z_buffer(main_camera);
 
-	for(int x = 0; x < SCREEN_RES_X; x++)
+	for(int x = 0; x < engine.gfx->screen_res_x; x++)
 	{
 		y_undrawn_top[x] = 0;
-		y_undrawn_bot[x] = SCREEN_RES_Y; 
+		y_undrawn_bot[x] = engine.gfx->screen_res_y; 
 	} 
 
 	start_screen_x = 0;
-	end_screen_x = SCREEN_RES_X - 1;
+	end_screen_x = engine.gfx->screen_res_x - 1;
 
 	current_sector_id = player->current_sector;
 
@@ -282,8 +282,8 @@ void G3D_draw_level()
 			float proj_y0_ceiling = y_ceil * y_scale_0;
 			float proj_y1_ceiling = y_ceil * y_scale_1;
 
-			screen_ceiling_0.y = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
-			screen_ceiling_1.y = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
+			screen_ceiling_0.y = engine.gfx->screen_res_y/2 - (int)(proj_y0_ceiling);
+			screen_ceiling_1.y = engine.gfx->screen_res_y/2 - (int)(proj_y1_ceiling);
 
 			SECTOR * neighbor_sector;
 
@@ -311,11 +311,11 @@ void G3D_draw_level()
 			}
 
 			//Do the same for neighboring sectors
-			ny0ceiling = SCREEN_RES_Y/2 - (int)(nyceil * y_scale_0);
-			ny0floor = SCREEN_RES_Y/2 - (int)(nyfloor * y_scale_0);
+			ny0ceiling = engine.gfx->screen_res_y/2 - (int)(nyceil * y_scale_0);
+			ny0floor = engine.gfx->screen_res_y/2 - (int)(nyfloor * y_scale_0);
 
-			ny1ceiling = SCREEN_RES_Y/2 - (int)(nyceil * y_scale_1);
-			ny1floor = SCREEN_RES_Y/2 - (int)(nyfloor * y_scale_1);
+			ny1ceiling = engine.gfx->screen_res_y/2 - (int)(nyceil * y_scale_1);
+			ny1floor = engine.gfx->screen_res_y/2 - (int)(nyfloor * y_scale_1);
 
 			int x_begin;
 			int x_end;
@@ -370,7 +370,7 @@ void G3D_draw_level()
 										ny_global_texture_scale_height_top, global_texture_scale_length); 
 					}
 
-					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), SCREEN_RES_Y-1, y_undrawn_top[x]);
+					y_undrawn_top[x] = clamp_int(max_int(c_screen_y_ceil, c_n_screen_y_ceil), engine.gfx->screen_res_y-1, y_undrawn_top[x]);
 
 					//If wall between 2 sectors floor is visible
 					if(c_n_screen_y_floor < c_screen_y_floor)
@@ -432,7 +432,7 @@ void G3D_draw_wall(	int screen_x,
 		if(texture_parameters.parallax)
 		{
 			int offset = (player->facing)/(2.*PI) * SKYBOX_SIZE_X;
-			GFX_set_pixel_from_texture(	screen,
+			GFX_set_pixel_from_texture(	engine.screen,
 										texture_parameters,
 										screen_x, screen_y,
 										screen_x + offset, screen_y);
@@ -441,7 +441,7 @@ void G3D_draw_wall(	int screen_x,
 		{
 			int text_y = (int)((float)(1./global_texture_scale_height)*(screen_y - top_invisible)/(float)(bot_invisible - top_invisible) * (TEXTURE_SIZE_Y));
 
-			GFX_set_pixel_from_texture_depth_tint(	screen,
+			GFX_set_pixel_from_texture_depth_tint(	engine.screen,
 													texture_parameters,
 													screen_x, screen_y,
 													text_x, text_y, 
@@ -498,8 +498,8 @@ void G3D_draw_sprite(	VECTOR2 sprite_position,
 								screen_coords.y);
 
 	//Clamps the sprite image.
-	POINT2 clamped_screen_0 = clamp_p2(screen_0, point2(0, 0), point2(SCREEN_RES_X, SCREEN_RES_Y));
-	POINT2 clamped_screen_1 = clamp_p2(screen_1, point2(0, 0), point2(SCREEN_RES_X, SCREEN_RES_Y));
+	POINT2 clamped_screen_0 = clamp_p2(screen_0, point2(0, 0), point2(engine.gfx->screen_res_x, engine.gfx->screen_res_y));
+	POINT2 clamped_screen_1 = clamp_p2(screen_1, point2(0, 0), point2(engine.gfx->screen_res_x, engine.gfx->screen_res_y));
 
 
 	//Applies a tint just to test if tinting it works.
@@ -515,7 +515,7 @@ void G3D_draw_sprite(	VECTOR2 sprite_position,
 		{
 			if(transformed_pos.y < get_z_buffer(main_camera, x, y))
 			{
-				GFX_set_pixel_from_texture_tint(	screen, texture, x, y,
+				GFX_set_pixel_from_texture_tint(	engine.screen, texture, x, y,
 													(int)((float)(x-screen_0.x)/(float)(screen_1.x-screen_0.x) * 128),
 													(int)((float)(y-screen_0.y)/(float)(screen_1.y-screen_0.y) * 256),
 													tint);
@@ -601,11 +601,11 @@ void G3D_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 	float proj_x0 = transformed_pos_0.x * xscale0;
 	float proj_x1 = transformed_pos_1.x * xscale1;
 
-	int x0 = (int)(proj_x0) + SCREEN_RES_X/2;
-	int x1 = (int)(proj_x1) + SCREEN_RES_X/2;
+	int x0 = (int)(proj_x0) + engine.gfx->screen_res_x/2;
+	int x1 = (int)(proj_x1) + engine.gfx->screen_res_x/2;
 
 	//If outside screen, get out
-	if(x0 >= x1 || x1 < 0 || x0 > SCREEN_RES_X) return;
+	if(x0 >= x1 || x1 < 0 || x0 > engine.gfx->screen_res_x) return;
 
 	//Get relative ceil and floor heights
 	float yceil = top_height - player->pos_height;
@@ -619,17 +619,17 @@ void G3D_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 	float proj_y1_ceiling = yceil * yscale1;
 	float proj_y1_floor = yfloor * yscale1;
 
-	int y0ceiling = SCREEN_RES_Y/2 - (int)(proj_y0_ceiling);
-	int y0floor = SCREEN_RES_Y/2 - (int)(proj_y0_floor);
+	int y0ceiling = engine.gfx->screen_res_y/2 - (int)(proj_y0_ceiling);
+	int y0floor = engine.gfx->screen_res_y/2 - (int)(proj_y0_floor);
 
-	int y1ceiling = SCREEN_RES_Y/2 - (int)(proj_y1_ceiling);
-	int y1floor = SCREEN_RES_Y/2 - (int)(proj_y1_floor);
+	int y1ceiling = engine.gfx->screen_res_y/2 - (int)(proj_y1_ceiling);
+	int y1floor = engine.gfx->screen_res_y/2 - (int)(proj_y1_floor);
 
 	int x_begin;
 	int x_end;
 
 	x_begin = max_int(x0, 0);
-	x_end = min_int(x1, SCREEN_RES_X);
+	x_end = min_int(x1, engine.gfx->screen_res_x);
 
 	for(int x = x_begin; x < x_end; x++)
 	{
@@ -638,8 +638,8 @@ void G3D_draw_sprite_wall (	VECTOR2 start_pos, VECTOR2 end_pos,
 		int screen_y_ceil = relative_x * (y1ceiling - y0ceiling) + y0ceiling;
 		int screen_y_floor = relative_x * (y1floor - y0floor) + y0floor;
 
-		int c_screen_y_ceil = clamp_int(screen_y_ceil, SCREEN_RES_Y, 0);
-		int c_screen_y_floor = clamp_int(screen_y_floor, SCREEN_RES_Y, 0);			
+		int c_screen_y_ceil = clamp_int(screen_y_ceil, engine.gfx->screen_res_y, 0);
+		int c_screen_y_floor = clamp_int(screen_y_floor, engine.gfx->screen_res_y, 0);			
 
 		G3D_draw_wall(	x, 
 						c_screen_y_ceil, screen_y_ceil, 
@@ -679,7 +679,7 @@ void G3D_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 			if(texture_parameters.parallax)
 			{
 				int offset = (player->facing)/(2.*PI) * SKYBOX_SIZE_X;
-				GFX_set_pixel_from_texture(	screen,
+				GFX_set_pixel_from_texture(	engine.screen,
 											texture_parameters,
 											screen_x, screen_y,
 											screen_x + offset, screen_y);
@@ -689,7 +689,7 @@ void G3D_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 				relative_space = convert_ss_to_rs(main_camera, point2(screen_x, screen_y), visplane_height);
 				world_space = convert_rs_to_ws(relative_space);
 
-				GFX_set_pixel_from_texture_depth_tint(	screen,
+				GFX_set_pixel_from_texture_depth_tint(	engine.screen,
 														texture_parameters,
 														screen_x, screen_y,
 														(int)(world_space.x * 128.), (int)(world_space.y * 128.),
@@ -699,3 +699,4 @@ void G3D_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 		}
 	}
 }
+*/

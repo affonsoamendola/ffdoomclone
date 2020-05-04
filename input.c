@@ -2,8 +2,137 @@
 #include <stdlib.h>
 
 #include "engine.h"
+#include "input.h"
 
-#include "SDL.h"
+#include "ff_vector2.h"
+
+//Relates a Key to an Action
+ActionKeyPair action_dictionary[] = 
+{
+	{SDLK_ESCAPE, ACTION_QUIT}
+};
+const static uint32_t action_dictionary_size = sizeof(action_dictionary)/sizeof(action_dictionary[0]);
+
+//Relates an Action to a function (And its data)
+Action default_registered_actions[] =
+{
+	{ACTION_QUIT, signal_quit, &engine}
+};
+const static uint32_t default_registered_actions_size = sizeof(default_registered_actions)/sizeof(Action);
+
+Input input;
+
+//Inits state.
+void init_input()
+{
+	printf("Initting Input\n");
+	//Gets a snapshot of the keyboardstate
+	input.is_scancode_down = SDL_GetKeyboardState(NULL);
+	input.mouse_sensitivity = 0.4f;
+
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+
+	set_input_actions(default_registered_actions, default_registered_actions_size);
+}
+
+//Called once per frame
+void update_input()
+{
+	SDL_Event event;
+
+	input.mouse_buttons = SDL_GetMouseState(&input.mouse_x, &input.mouse_y);
+	
+	//Polls all events (also updates input.is_scancode_down by calling SDL_PumpEvents internally)
+	while(SDL_PollEvent(&event))
+	{
+		switch(event.type)
+		{
+			case SDL_QUIT:
+				signal_quit(&engine);
+				break;
+			case SDL_KEYDOWN:
+				on_keydown(event.key.keysym.sym);
+				break;
+			case SDL_MOUSEMOTION:
+				on_mouse_movement(scale_v2(vector2f(event.motion.xrel, -event.motion.yrel), input.mouse_sensitivity));
+				break;
+			case SDL_MOUSEWHEEL:
+				on_mouse_wheel(event.wheel.y);
+				break;
+		}		
+	}
+}
+
+//Sets current input action context.
+void set_input_actions(Action* actions, const uint32_t number_of_actions)
+{
+	input.registered_actions = actions;
+	input.registered_actions_size = number_of_actions;
+}
+
+//Performs action of action_code specified (Only keydowns)
+void on_action(ActionCode action_code)
+{
+	for(int i = 0; i < input.registered_actions_size; i++)
+	{
+		if(action_code == input.registered_actions[i].action)
+		{
+			input.registered_actions[i].function.default_func(input.registered_actions[i].user_data);
+		}
+	}
+}
+
+//Searches the Action Dictionary and Registered actions for the key that was pressed
+//And executes it.
+void on_keydown(SDL_Keycode keycode)
+{
+	bool has_action = false;
+	ActionCode found_action;
+
+	for(int i = 0; i < action_dictionary_size; i++)
+	{
+		if(keycode == action_dictionary[i].keycode)
+		{
+			has_action = true;
+			found_action = action_dictionary[i].action;
+			break;
+		}
+	}
+
+	if(has_action) on_action(found_action);
+}
+
+//Performs a Mouse_movement action.
+void on_mouse_movement(const Vector2f amount)
+{
+	for(int i = 0; i < input.registered_actions_size; i++)
+	{
+		if(input.registered_actions[i].action == ACTION_MOUSE_MOVE)
+		{
+			input.registered_actions[i].function.mouse_move_func(input.registered_actions[i].user_data, amount);
+		}
+
+		if(	input.registered_actions[i].action == ACTION_MOUSE_DRAG_RIGHT && 
+			is_mouse_held(INPUT_MOUSE_RIGHT))
+		{
+			input.registered_actions[i].function.mouse_move_func(input.registered_actions[i].user_data, neg_v2(amount));
+		}
+	}
+}
+
+void on_mouse_wheel(const int direction)
+{
+	for(int i = 0; i < input.registered_actions_size; i++)
+	{
+		if(input.registered_actions[i].action == ACTION_SCROLL_WHEEL)
+		{
+			input.registered_actions[i].function.mouse_wheel_func(input.registered_actions[i].user_data, direction);
+		}
+	}
+}
+
+/*
+#include "SDL2/SDL.h"
 #include "console.h"
 #include "time.h"
 #include "vector2.h"
@@ -13,7 +142,7 @@
 #include "world.h"
 
 #include "input.h"
-
+/*
 extern bool e_running;
 
 extern bool game_mode;
@@ -74,13 +203,13 @@ void INPUT_Handle_Console()
 	{
 		if(event.type == SDL_QUIT)
 		{
-			e_running = false;
+			engine.running = false;
 		}
 		else if(event.type == SDL_KEYDOWN)
 		{
 			if(event.key.keysym.sym == '`' || event.key.keysym.sym == '\'' || event.key.keysym.sym == 'q')
 			{
-				set_console_open(!get_console_open());
+				set_console_open(!is_console_open());
 			}
 			else if(event.key.keysym.sym == SDLK_BACKSPACE && console_buffer_cursor_pos > 0)
 			{
@@ -121,9 +250,8 @@ void INPUT_Handle_Console()
 			
 			if(event.key.keysym.sym == SDLK_RETURN)
 			{
-				CONSOLE_scroll(1);
-				CONSOLE_print("\n");
-    			CONSOLE_print(console_buffer);
+				printf_console("\n");
+    			printf_console(console_buffer);
 				parse_console(console_buffer);
 				console_buffer_cursor_pos = 0;
 				clear_console_buffer();
@@ -136,13 +264,13 @@ void INPUT_Handle()
 {
 	float delta_time;
 
-	delta_time = (float)(clock() - current_frame_start)/(float)CLOCKS_PER_SEC;
+	delta_time = (float)(clock() - engine.current_frame_start)/(float)CLOCKS_PER_SEC;
 
-	if(get_console_open())
+	if(is_console_open())
 	{
 		INPUT_Handle_Console();
 	}
-	else if(edit_mode == 1)
+	else if(engine.edit_mode == 1)
 	{
 		EDIT_MODE_Handle_Input();
 	}
@@ -163,23 +291,23 @@ void INPUT_Handle()
 
 		if(keystate[SDLK_UP])
 		{
-			PLAYER_Move(player, scale_v2(rot_v2(vector2(0, 1), -(player->facing)), player->speed * ENGINE_delta_time()));
+			PLAYER_Move(player, scale_v2(rot_v2(vector2(0, 1), -(player->facing)), player->speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_DOWN])
 		{
-			PLAYER_Move(player, scale_v2(rot_v2(vector2(0, -1), -(player->facing)), player->speed * ENGINE_delta_time()));
+			PLAYER_Move(player, scale_v2(rot_v2(vector2(0, -1), -(player->facing)), player->speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_RIGHT])
 		{
 			if(keystate[SDLK_LALT])
 			{
-				PLAYER_Move(player, scale_v2(rot_v2(vector2(1, 0), -(player->facing)), player->speed * ENGINE_delta_time()));
+				PLAYER_Move(player, scale_v2(rot_v2(vector2(1, 0), -(player->facing)), player->speed * engine_delta_time()));
 			}
 			else
 			{
-				PLAYER_Turn(player, player->turn_speed * ENGINE_delta_time());
+				PLAYER_Turn(player, player->turn_speed * engine_delta_time());
 			}
 		}
 		
@@ -187,29 +315,29 @@ void INPUT_Handle()
 		{
 			if(keystate[SDLK_LALT])
 			{
-				PLAYER_Move(player, scale_v2(rot_v2(vector2(-1, 0), -(player->facing)), player->speed * ENGINE_delta_time()));
+				PLAYER_Move(player, scale_v2(rot_v2(vector2(-1, 0), -(player->facing)), player->speed * engine_delta_time()));
 			}
 			else
 			{
-				PLAYER_Turn(player, -player->turn_speed * ENGINE_delta_time());
+				PLAYER_Turn(player, -player->turn_speed * engine_delta_time());
 			}
 		}
 		
 		if(keystate[SDLK_PAGEUP])
 		{
-			player->pos_height += player->speed * ENGINE_delta_time();
+			player->pos_height += player->speed * engine_delta_time();
 		}
 		
 		if(keystate[SDLK_PAGEDOWN])
 		{
-			player->pos_height -= player->speed * ENGINE_delta_time();
+			player->pos_height -= player->speed * engine_delta_time();
 		}
 			
 		while(SDL_PollEvent(&event) != 0)
 		{
 			if(event.type == SDL_QUIT)
 			{
-				e_running = false;
+				engine.running = false;
 			}
 			else if(event.type == SDL_KEYDOWN)
 			{
@@ -218,7 +346,7 @@ void INPUT_Handle()
 					case '`':
 					case '\'':
 					case 'q':
-						set_console_open(!get_console_open());
+						set_console_open(!is_console_open());
 						break;
 
 
@@ -231,7 +359,7 @@ void INPUT_Handle()
 						break;
 
 					case 'p':
-						if(edit_mode == 1 && show_texture_select == 0) game_mode = !game_mode;
+						if(engine.edit_mode == 1 && show_texture_select == 0) engine.game_mode = !engine.game_mode;
 						break;
 
 					case '0':
@@ -286,4 +414,4 @@ void INPUT_Init()
 void INPUT_Quit()
 {
 	free(console_buffer);
-}
+}*/

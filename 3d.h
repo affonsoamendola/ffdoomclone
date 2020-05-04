@@ -1,6 +1,6 @@
 #ifndef _3D_H
 #define _3D_H
-
+/*
 #define GLOBAL_TEXTURE_SCALE 1.0f
 
 void G3D_render_3d();
@@ -35,5 +35,5 @@ void G3D_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 						int is_ceiling, float visplane_height, 
 						GFX_TEXTURE_PARAM texture_parameters,
 						TINT tint);
-
+*/
 #endif 

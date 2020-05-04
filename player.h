@@ -32,7 +32,7 @@
 #define WEAPON_7_MAX_AMMO 110
 #define WEAPON_8_MAX_AMMO 50
 #define WEAPON_9_MAX_AMMO 25
-
+/*
 typedef struct PLAYER_
 {
 	VECTOR2 pos;
@@ -88,5 +88,5 @@ void PLAYER_Update();
 void PLAYER_Jump();
 void PLAYER_Move(PLAYER * player, VECTOR2 amount);
 void PLAYER_Turn(PLAYER * player, float amount);
-
+*/
 #endif

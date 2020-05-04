@@ -1,15 +1,34 @@
-GAMENAME = rt76800
 CC = gcc
 RM = rm -rf
-INCLUDE = /usr/include/SDL
 
-all: build
-	
-build:
-	$(CC)  *.c  -g -o $(GAMENAME) -I$(INCLUDE) -lSDL -lSDL_image -lm
+BINARY := ffdoomclone
+SOURCES := $(wildcard *.c)
+OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
+DEPENDS := $(patsubst %.c,%.d,$(SOURCES))
+CCFLAGS := `pkg-config --static --cflags sdl2 SDL2_image` -I../ff-stb/C
+LDFLAGS := `pkg-config --static --libs sdl2 SDL2_image`
+# ADD MORE WARNINGS!
+WARNING := 
 
-run:
-	./$(GAMENAME)
+# .PHONY means these rules get executed even if
+# files of those names exist.
+.PHONY: all clean
+
+# The first rule is the default, ie. "make",
+# "make all" and "make parking" mean the same
+all: $(BINARY)
+
+run: $(BINARY)
+	./$(BINARY)
 
 clean:
-	$(RM) ./$(GAMENAME) *.o
+	$(RM) *.o *.d $(BINARY)
+
+# Linking the executable from the object files
+$(BINARY): $(OBJECTS)
+	$(CC) $(WARNING) $(CCFLAGS) $(LDFLAGS) $^ -o $@
+
+-include $(DEPENDS)
+
+%.o: %.c Makefile
+	$(CC) $(WARNING) $(CCFLAGS) $(LDFLAGS) -MMD -MP -c $< -o $@

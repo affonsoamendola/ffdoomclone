@@ -13,7 +13,7 @@ extern SDL_Surface * screen;
 #define MUG_ANIM_FRAME_COUNT 1
 #define PISTOL_ANIM_FRAME_COUNT 5
 
-GFX_TEXTURE ** hands_textures;
+//GFX_TEXTURE ** hands_textures;
 
 void HANDS_Init()
 {

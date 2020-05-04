@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "SDL.h"
-#include "SDL_image.h"
+#include "SDL2/SDL.h"
+#include "SDL2/SDL_image.h"
 
 #include "input.h"
 #include "console.h"
@@ -15,26 +15,30 @@
 
 #include "engine.h"
 
-SDL_Surface* screen = NULL;
-bool e_running = false;
+Engine engine;
 
-bool edit_mode = false;
-bool game_mode = false;
-
-clock_t current_frame_start;
-clock_t last_frame_end;
-
-float current_fps = 0;
-
-void ENGINE_Init()
+//Initializes engine structure;
+void engine_init()
 {
-	printf("Initting SDL...\n");
+	//Default values
+	engine.is_running = true;
+
+	engine.game_mode = MODE_EDITOR;
+
+	engine.delta_time = 0.0f;
+  	engine.fps_samples = 0.0f;
+    engine.fps_samples_num = 0.0f;
+    engine.performance_freq = SDL_GetPerformanceFrequency();
+
+    engine.show_fps = false;
+
+	//Initializes basic systems
+	printf("Initting SDL2...\n");
 	if((SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)==-1))
 	{
 		printf("Could not initialize SDL: %s\n", SDL_GetError());
 		exit(-1);
 	}
-	printf("SDL Initted.\n");
 
 	printf("Initting SDL_Image...\n");
 	if((IMG_Init(IMG_INIT_JPG|IMG_INIT_PNG)==-1))
@@ -42,146 +46,79 @@ void ENGINE_Init()
 		printf("Could not initialize SDL_Image: %s\n", SDL_GetError());
 		exit(-1);
 	}
-	printf("SDL_Image Initted.\n");
 
-	screen = SDL_SetVideoMode(SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE, 32, SDL_SWSURFACE);
+	init_input();
 
-	if(screen == NULL)
-	{
-		printf("Could not set up video mode 320x240x8: %s\n", SDL_GetError());
-	}
+	//Initializes engine subsystems, and sets pointers to their structs.
+	//	engine.console = console_init();
+	GFX_init();
+	WORLD_init();
+	
+	init_editor();
 
-	printf("Initting Console Subsystem...\n");
+	//EDITOR_Init();
 
-	CONSOLE_Init();
-
-	printf("Initting GFX Subsystem...\n");
-
-	GFX_Init();
-
-	printf("Initting Input Subsystem...\n");
-
-	INPUT_Init();
-
-	printf("Initting World Subsystem...\n");
-
-	WORLD_Init();
-
-	printf("Initting Editor Subsystem...\n");
-
-	EDITOR_Init();
-
-	COMMAND_intro();
-
-	e_running = true;
+	//COMMAND_intro(NULL);
 }
 
-void ENGINE_Quit()
+void engine_quit()
 {
-	printf("\nQuitting SDL...");
-
-	SDL_FreeSurface(screen);
-
-	CONSOLE_Quit();
-	INPUT_Quit();
-	GFX_Quit();
+	WORLD_quit();
+	GFX_quit();
 	IMG_Quit();
 	SDL_Quit();
 	exit(0);
 }
 
-float ENGINE_delta_time()
-{
-	clock_t current_time;
-
-	current_time = clock();
-
-	return (float)(current_time - current_frame_start) / (float)CLOCKS_PER_SEC;
+void signal_quit(void* engine)
+{	
+	((Engine*)engine)->is_running = false;
 }
 
-float current_tick = 0;
-
-#define BLINK_RATE 2
-
-int current_blink_state = 0;
-int blink_counter = 0;
-
-void ENGINE_Tick_Blink()
+void engine_loop()
 {
-	blink_counter += 1;
+	const Uint64 frame_start = SDL_GetPerformanceCounter();
 
-	if(blink_counter > BLINK_RATE)
+	update_input();
+	update_editor();
+
+	GFX_render_start();
+	if(engine.game_mode == MODE_EDITOR)
 	{
-		current_blink_state = !current_blink_state;
-		blink_counter = 0;
+		draw_editor();
 	}
-}
+	GFX_draw_string_color_f(point2(250, 1), 3, DEBUG_TEXT_COLOR, "    FPS: %-.1f", engine_fps());
+	GFX_draw_string_color_f(point2(250, 7), 3, DEBUG_TEXT_COLOR, "Avg FPS: %-.1f", engine_average_fps());
+	GFX_render_end();
 
-void ENGINE_Tick()
-{
-	GFX_Tick();
-	ENGINE_Tick_Blink();
-}
-
-int ENGINE_Blink_State()
-{
-	return current_blink_state;
-}
-
-void ENGINE_Check_Tick()
-{
-	if(current_tick > 0.02)
-	{
-		current_tick = 0.;
-		ENGINE_Tick();
-	}
-	else
-	{
-		current_tick += ENGINE_delta_time();
-	}
-}
-
-void ENGINE_Loop()
-{
-	current_frame_start = clock();
-
-	if(game_mode == 1)
-	{
-		GFX_Render();
-		INPUT_Handle();
-		WORLD_Update();
-	}
-	else if(game_mode == 0)
-	{
-		EDITOR_Render();
-		EDITOR_Loop();
-		EDITOR_Handle_Input();
-	}
-
-	ENGINE_Check_Tick();
-
-	current_fps = (float)CLOCKS_PER_SEC / (float)(clock() - current_frame_start);
-}
+	//Stops the timer.
+    const Uint64 frame_end = SDL_GetPerformanceCounter();
+    
+    //Gets frame delta time in seconds.
+    engine.delta_time = ( frame_end - frame_start ) / (double)(engine.performance_freq);
+   	//Adds a sample of the FPS for the average calculation
+    engine.fps_samples += 1.0/engine.delta_time;
+    //Adds increments the amount of samples.
+    engine.fps_samples_num += 1.0f;
+    //If the samples get to a high number, cut down on the value.
+    //I believe this will drift the results after a while, so
+    //I'm not completely sure of the numerical stability of this.
+    //TODO: Test numerical stability of this.
+    if(engine.fps_samples_num >= 10000.0) 
+    {
+    	engine.fps_samples /= 10000.0;
+    	engine.fps_samples_num /= 10000.0;
+    }
+}   
 
 int main(int argc, char** argv)
 {
-	ENGINE_Init();
+	engine_init();
 
-	while(e_running == true)
+	while(engine.is_running == true)
 	{
-		ENGINE_Loop();
+		engine_loop();
 	}
 
-	ENGINE_Quit();
-}
-
-char* ENGINE_version()
-{
-	char* text;
-
-	text = malloc(sizeof(char)*16);
-
-	text = ENGINE_VERSION;
-
-	return text;
+	engine_quit();
 }

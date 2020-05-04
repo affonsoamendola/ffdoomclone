@@ -1,45 +1,60 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "list.h"
-#include "console.h"
-#include "vector2.h"
-#include "player.h"
+//#include "list.h"
+//#include "console.h"
+#include "ff_vector2.h"
+//#include "player.h"
 
 #include "world.h"
 
-LEVEL loaded_level;
+World world;
 
-extern PLAYER * player;
-
-void WORLD_Init()
+World* WORLD_init()
 {
-	CONSOLE_print("Initting Player...\n");
+	world.vertex_size = 0;
+	world.vertexes = malloc(sizeof(Vector2f));
+
+	world.sector_size = 0;
+	world.sectors = malloc(sizeof(Sector));
+
+	world.entities_size = 0;
+	world.entities = malloc(sizeof(Entity));
+
+	return &world;
+	/*
+	printf_console("Initting Player...\n");
 	
 	level_load("level");
-	PLAYER_Init(&player);
+	PLAYER_Init(&player);*/
 }
 
+void WORLD_quit()
+{
+	free(world.vertexes);
+	free(world.sectors);
+	free(world.entities);
+}
+/*
 void WORLD_Update()
 {
 	
 	PLAYER_Update();
 }
-
-VECTOR2 get_vertex_at(int index)
+*/
+Vector2f WORLD_get_vertex_at(const uint32_t index)
 {
-	if(index >= 0 && index < loaded_level.v_num)
+	if(index < world.vertex_size)
 	{
-		return *(loaded_level.vertexes + index);
+		return *(world.vertexes + index);
 	}
 	else
 	{
-		return vector2(0, 0);
+		return vector2f(0, 0);
 	}
 }
-
-void delete_edge_at(int sector_index, int edge_index)
+/*
+void WORLD_delete_edge_at(int sector_index, int edge_index)
 {
 	EDGE * new_e;
 	SECTOR * sector;
@@ -71,7 +86,7 @@ void delete_edge_at(int sector_index, int edge_index)
 		sector->e = new_e;
 	}
 }
-
+/*
 void WORLD_delete_sector_at(int index)
 {
 	SECTOR * new_sectors;
@@ -381,41 +396,26 @@ void level_load(const char * file_location)
 	if(success == 1)
 	{
 		loaded_level = new_level;
-		CONSOLE_print("\nLoaded ");
-		CONSOLE_print((char *)file_location);
+		printf_console("\nLoaded ");
+		printf_console((char *)file_location);
 	}
 	else
 	{
-		CONSOLE_print("\nError loading level at ");
-		CONSOLE_print((char *)file_location);
+		printf_console("\nError loading level at ");
+		printf_console((char *)file_location);
 	}
 }
-
-int WORLD_add_vertex(VECTOR2 vertex)
+*/
+uint32_t WORLD_add_vertex(const Vector2f vertex)
 {
-	int new_index;
+	world.vertexes = realloc(world.vertexes, sizeof(Vector2f) * (world.vertex_size + 1));
 
-	new_index = loaded_level.v_num;
+	world.vertexes[world.vertex_size] = vertex;
+	world.vertex_size += 1;
 
-	VECTOR2 * new_vertexes;
-
-	new_vertexes = malloc(sizeof(VECTOR2) * (new_index + 1));
-
-	for(int i = 0; i < new_index; i++)
-	{
-		new_vertexes[i] = loaded_level.vertexes[i];
-	}
-
-	new_vertexes[new_index] = vertex;
-
-	free(loaded_level.vertexes);
-	loaded_level.vertexes = new_vertexes;
-
-	loaded_level.v_num += 1;
-
-	return new_index;
+	return world.vertex_size;
 }
-
+/*
 void WORLD_remove_n_vertexes(int n)
 {
 	VECTOR2 * new_vertexes;
@@ -617,8 +617,8 @@ VECTOR2 convert_ss_to_ws(CAMERA * camera, POINT2 screen_space, float height)
 {
 	VECTOR2 world_space;
 
-	world_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
-	world_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * world_space.y) / camera->camera_parameters_x;
+	world_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - engine.screen_res_y/2);
+	world_space.x = ((float)(screen_space.x - engine.screen_res_x/2) * world_space.y) / camera->camera_parameters_x;
 
 	world_space = rot_v2(world_space, -(player->facing));
 	world_space = sum_v2(world_space, player->pos);
@@ -630,8 +630,8 @@ VECTOR2 convert_ss_to_rs(CAMERA * camera, POINT2 screen_space, float height)
 {
 	VECTOR2 relative_space;
 
-	relative_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - SCREEN_RES_Y/2);
-	relative_space.x = ((float)(screen_space.x - SCREEN_RES_X/2) * relative_space.y) / camera->camera_parameters_x;
+	relative_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - engine.screen_res_y/2);
+	relative_space.x = ((float)(screen_space.x - engine.screen_res_x/2) * relative_space.y) / camera->camera_parameters_x;
 
 	return relative_space;
 }
@@ -664,8 +664,8 @@ POINT2 convert_ws_to_ss(CAMERA * camera, VECTOR2 world_space, float height)
 	float proj_x = transformed_pos.x * xscale;
 	float proj_height = transformed_height * yscale;
 
-	int x = (int)(proj_x) + SCREEN_RES_X/2;
-	int y = SCREEN_RES_Y/2 - (int)(proj_height);
+	int x = (int)(proj_x) + engine.screen_res_x/2;
+	int y = engine.screen_res_y/2 - (int)(proj_height);
 
 	screen_space.x = x;
 	screen_space.y = y;
@@ -692,8 +692,8 @@ POINT2 convert_rs_to_ss(CAMERA * camera, VECTOR2 relative_space, float relative_
 	float proj_x = relative_space.x * xscale;
 	float proj_height = relative_height * yscale;
 
-	int x = (int)(proj_x) + SCREEN_RES_X/2;
-	int y = SCREEN_RES_Y/2 - (int)(proj_height);
+	int x = (int)(proj_x) + engine.screen_res_x/2;
+	int y = engine.screen_res_y/2 - (int)(proj_height);
 
 	screen_space.x = x;
 	screen_space.y = y;
@@ -791,3 +791,4 @@ int WORLD_Check_Collision(	int start_sector, VECTOR2 start_pos, VECTOR2 move_amo
 	if(changed_sector) return NO_COLLISION_SECTOR_CHANGE;
 	else return NO_COLLISION;
 }
+*/

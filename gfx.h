@@ -1,62 +1,14 @@
 #ifndef GFX_H
 #define GFX_H
 
-#include "point2.h"
-#include "vector2.h"
-#include "SDL.h"
+#include "ff_stb.h"
+#include "ff_point2.h"
+#include "ff_rect.h"
+#include "ff_vector2.h"
+#include "ff_color.h"
+#include "SDL2/SDL.h"
 
-#define TEXTURE_SIZE_X 128
-#define TEXTURE_SIZE_Y 128
-
-#define SKYBOX_SIZE_X 640
-#define SKYBOX_SIZE_Y 120
-
-#define TEX_ID_SIZE 256
-
-#define SCREEN_RECT (SDL_Rect){0, 0, 320, 240}
-
-typedef struct COLOR_
-{
-	char r;
-	char g;
-	char b;
-}
-COLOR;
-
-typedef struct TINT_
-{
-	float r;
-	float g;
-	float b;
-}
-TINT;
-
-typedef struct GFX_TEXTURE_PARAM_
-{
-	int id;
-
-	int parallax;
-
-	int u_offset;
-	int v_offset;
-
-	float u_scale;
-	float v_scale;
-}
-GFX_TEXTURE_PARAM;
-
-#define DEFAULT_TEXTURE_PARAM (GFX_TEXTURE_PARAM){0, 0, 0, 0, 1.0f, 1.0f}
-
-typedef struct GFX_TEXTURE_
-{
-	int loaded;
-	SDL_Surface * surface;
-
-	int size_x;
-	int size_y;
-}
-GFX_TEXTURE;
-
+/*
 typedef struct CAMERA_
 {
 	float * z_buffer;
@@ -78,40 +30,155 @@ typedef struct CAMERA_
 	float camera_parameters_y;
 }
 CAMERA;
+*/
 
-unsigned int GFX_get_pixel(SDL_Surface* surface, int x, int y);
-void GFX_set_pixel(SDL_Surface *surface, int x, int y, unsigned int pixel, int transparency);
 
-void GFX_blit(SDL_Surface * src, SDL_Surface * dst, SDL_Rect src_rect, POINT2 dst_pos, TINT tint);
+typedef struct Texture_
+{
+	SDL_Texture* texture;
 
-float get_z_buffer(CAMERA * camera, int x, int y);
-void set_z_buffer(CAMERA * camera, int x, int y, float value);
-void clear_z_buffer(CAMERA * camera);
+	unsigned int w;
+	unsigned int h;
 
-void GFX_fill_rectangle(POINT2 start, POINT2 end, unsigned int pixel);
-void GFX_clear_screen();
+	SDL_BlendMode blend_mode;
+	Color modulation;
+} Texture;
 
-void GFX_load_font(const char * location);
-void GFX_load_texture(char * location, int id);
-void GFX_load_texture_at(char* location, GFX_TEXTURE * holder);
+typedef struct TextureParam_
+{
+	uint32_t texture_id;
+	Color color_modulation;
 
-void GFX_draw_char(POINT2 position, char character, unsigned int pixel);
-void GFX_draw_string(POINT2 position, char* string, unsigned int pixel);
+	bool is_parallax;
 
-void GFX_draw_7_segment(POINT2 position, int number, TINT tint);
+	int u_offset;
+	int v_offset;
 
-void GFX_draw_tiny_char(POINT2 position, char character, TINT tint);
-void GFX_draw_tiny_string(POINT2 position, char* string, TINT tint);
+	float u_scale;
+	float v_scale;
 
-void GFX_draw_line(SDL_Surface *surface, POINT2 p1, POINT2 p2, unsigned int pixel);
+} TextureParam;
 
-void GFX_draw_console();
-void GFX_draw_map();
+typedef struct Font_
+{
+	Texture texture;
 
-void GFX_draw_hand();
+	unsigned int char_w;
+	unsigned int char_h;
+} Font;
 
-void GFX_Draw_Editor();
+typedef struct FontRegistry_
+{
+	uint32_t size;
+	Font* fonts;
+} FontRegistry;
 
+typedef struct TextureRegistry_
+{
+	uint32_t size;
+	Texture* textures;
+} TextureRegistry;
+
+typedef struct GFX_
+{
+	int screen_res_x;
+	int screen_res_y;
+
+	float aspect_ratio;
+	int pixel_scale;
+
+	char* window_title;
+
+	SDL_Window* window;
+	SDL_Texture* screen_surface;
+	Color* screen_pixels;
+
+	SDL_Renderer* renderer;
+
+	FontRegistry font_registry;
+	TextureRegistry texture_registry;
+} GFX;
+
+typedef enum GFX_BLEND_MODE_
+{
+	GFX_NO_BLEND = 0,
+	GFX_ALPHA_BLEND = 1,
+	GFX_SUM_BLEND = 2,
+	GFX_SUB_BLEND = 3,
+	GFX_ALPHA_TINT_BLEND = 4,
+	GFX_SUM_TINT_BLEND = 5,
+	GFX_SUB_TINT_BLEND = 6
+} GFX_BLEND_MODE;
+
+extern GFX gfx;
+
+//New Functions
+GFX* GFX_init();
+void GFX_quit();
+
+void GFX_render_start();
+void GFX_render_end();
+void GFX_update_pixels();
+
+Color GFX_get_pixel(const int x, const int y);
+void GFX_set_pixel(const int x, const int y, const Color color);
+void GFX_set_pixel_clipped(	const int x, const int y, 
+							const Color color);
+
+void GFX_blit(	Color* src, Color* dst, 
+				const Rect src_rect, const uint32_t src_pitch, 
+				const Point2 dst_pos, const uint32_t dst_pitch);
+
+void GFX_blit_alpha(	Color* src, Color* dst, 
+						const Rect src_rect, const uint32_t src_pitch, 
+						const Point2 dst_pos, const uint32_t dst_pitch);
+
+void GFX_blit_blend(	Color* src, Color* dst, 
+						const Rect src_rect, const uint32_t src_pitch, 
+						const Rect dst_rect, const uint32_t dst_pitch,
+						const GFX_BLEND_MODE blend_mode, void* blend_data);
+
+#define GFX_BLIT_ALL rect(0,0,0,0)
+#define GFX_NO_SCALE point2(1,1)
+
+Texture* GFX_get_texture_id(uint32_t texture_id);
+
+void GFX_blit_texture(	Texture* src, Texture* dst, 
+						Rect src_rect, Point2 dst_offset,
+						Point2 scale);
+
+void GFX_blit_texture_id( 	uint32_t texture_id_src, Texture* dst,
+							Rect src_rect, Point2 dst_offset,
+							Point2 scale);
+
+int GFX_load_font_list(const char* location, FontRegistry* font_registry);
+void GFX_free_font_list(FontRegistry* font_registry);
+
+Font GFX_load_font(const char* location, uint32_t size_x, uint32_t size_y);
+void GFX_free_font(Font font);
+
+void GFX_draw_char(const Point2 position, uint32_t font_id, char character);
+void GFX_draw_char_color(const Point2 position, uint32_t font_id, char character, Color color);
+
+void GFX_draw_string(const Point2 position, uint32_t font_id, char* string);
+void GFX_draw_string_color(const Point2 position, uint32_t font_id, char* string, Color color);
+
+void GFX_draw_string_f(const Point2 position, uint32_t font_id, char* format_string, ...);
+void GFX_draw_string_color_f(const Point2 position, uint32_t font_id, Color color, char* format_string, ...);
+
+
+int GFX_load_texture_list(const char* location, TextureRegistry* texture_registry);
+void GFX_free_texture_list(TextureRegistry* texture_registry);
+
+Texture GFX_load_texture(const char* location);
+void GFX_free_texture(Texture texture);
+
+void GFX_texture_override_color_mod(Texture texture, const Color color);
+void GFX_texture_return_color_mod(Texture texture);
+
+void GFX_fill_screen(const Color color);
+
+/*
 void GFX_set_pixel_from_texture_depth_tint(	SDL_Surface *surface,
 											GFX_TEXTURE_PARAM texture,
 											int screen_x, int screen_y,
@@ -147,17 +214,7 @@ void GFX_draw_visplane(	int screen_x, int visible_top, int visible_bot,
 						TINT tint);
 
 
-unsigned int GFX_Scale_Pixel(unsigned int pixel, float scale);
-unsigned int GFX_Tint_Pixel(unsigned int pixel, TINT tint);
-
-TINT GFX_Tint(float r, float g, float b);
-COLOR GFX_Color(int r, int g, int b);
-COLOR GFX_Color_scale(COLOR color, float factor);
-unsigned int GFX_Map_Color(COLOR color);
-
-void GFX_Render();
-void GFX_Init();
 void GFX_Tick();
-void GFX_Quit(); 
 
+*/
 #endif

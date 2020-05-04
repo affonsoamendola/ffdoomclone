@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "SDL.h"
-#include "point2.h"
-#include "vector2.h"
+#include "SDL2/SDL.h"
+#include "ff_point2.h"
+#include "ff_vector2.h"
 #include "console.h"
 #include "world.h"
 #include "gfx.h"
@@ -16,7 +16,7 @@
 #include "ui.h"
 
 #include "engine.h"
-
+/*
 extern SDL_Surface * screen;
 extern LEVEL loaded_level;
 extern PLAYER * player;
@@ -42,15 +42,15 @@ extern bool show_help;
 
 void GFX_draw_console()
 {
-	GFX_fill_rectangle(point2(0, 0), point2(319, 79), SDL_MapRGB(screen->format, 40, 40, 40));
-	GFX_fill_rectangle(point2(0, 80), point2(319, 87), SDL_MapRGB(screen->format, 60, 60, 60));
+	GFX_fill_rectangle(point2(0, 0), point2(319, 79), SDL_MapRGB(engine.screen->format, 40, 40, 40));
+	GFX_fill_rectangle(point2(0, 80), point2(319, 87), SDL_MapRGB(engine.screen->format, 60, 60, 60));
 
 	for(int y = 0; y < 10; y ++)
 	{
-		GFX_draw_string(point2(0, 72 - y * 8), get_console_history(y), SDL_MapRGB(screen->format, 200, 200, 200));
+		GFX_draw_string(point2(0, 72 - y * 8), get_console_history(y), SDL_MapRGB(engine.screen->format, 200, 200, 200));
 	}
 	
-	GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(screen->format, 255, 255, 255));
+	GFX_draw_string(point2(0, 80), get_console_buffer(), SDL_MapRGB(engine.screen->format, 255, 255, 255));
 }
 
 void GFX_draw_map()
@@ -76,19 +76,19 @@ void GFX_draw_map()
 			last_v_vector = sub_v2(last_v_vector, player->pos);
 			current_v_vector = sub_v2(current_v_vector, player->pos);
 
-			current_line_start = point2((int)(last_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(last_v_vector.y*map_scale));
-			current_line_end = point2((int)(current_v_vector.x*map_scale) + SCREEN_RES_X/2, SCREEN_RES_Y/2 - (int)(current_v_vector.y*map_scale));
+			current_line_start = point2((int)(last_v_vector.x*map_scale) + engine.screen_res_x/2, engine.screen_res_y/2 - (int)(last_v_vector.y*map_scale));
+			current_line_end = point2((int)(current_v_vector.x*map_scale) + engine.screen_res_x/2, engine.screen_res_y/2 - (int)(current_v_vector.y*map_scale));
 
 			if(current_edge.is_portal)
 			{
-				color = SDL_MapRGB(screen->format, 60, 60, 60);
+				color = SDL_MapRGB(engine.screen->format, 60, 60, 60);
 			}
 			else
 			{
-				color = SDL_MapRGB(screen->format, 180, 180, 180);
+				color = SDL_MapRGB(engine.screen->format, 180, 180, 180);
 			}
 
-			GFX_draw_line(screen, current_line_start, current_line_end, color);
+			GFX_draw_line(engine.screen, current_line_start, current_line_end, color);
 		}
 	}
 }
@@ -146,12 +146,12 @@ void GFX_draw_ui_bar()
 {
 	unsigned int pixel;
 
-	for(int x = 0; x < SCREEN_RES_X; x ++)
+	for(int x = 0; x < engine.screen_res_x; x ++)
 	{
 		for(int y = 0; y < 40; y ++)
 		{
 			pixel = GFX_get_pixel(ui_tex.surface, x, y);
-			GFX_set_pixel(screen, x, y + SCREEN_RES_Y - 40, pixel, 1);
+			GFX_set_pixel(engine.screen, x, y + engine.screen_res_y - 40, pixel, 1);
 		}
 	}	
 
@@ -197,15 +197,15 @@ void GFX_draw_ui_edit()
 		EDITOR_draw_texture_select();
 	}
 
-	if(get_console_open())
+	if(is_console_open())
 	{
 		GFX_draw_console();	
 	}
 
 	if(show_fps)
 	{
-		sprintf(buffer, "%f", current_fps);
-		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
+		sprintf(buffer, "%f", engine.current_fps);
+		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(engine.screen->format, 255, 255, 0));
 	}
 
 	sprintf(buffer, "Player X : %f", player->pos.x);
@@ -231,7 +231,7 @@ void GFX_draw_ui_edit()
 		selected_texture_param = player->closest_edge->text_param;
 	}
 
-	GFX_draw_string(point2(0, 232), buffer, SDL_MapRGB(screen->format, 255, 200, 0));
+	GFX_draw_string(point2(0, 232), buffer, SDL_MapRGB(engine.screen->format, 255, 200, 0));
 
 	sprintf(buffer, "Offset U : %i V : %i", selected_texture_param.u_offset, selected_texture_param.v_offset);
 	GFX_draw_tiny_string(point2(0, 200), buffer, GFX_Tint(1.0, 0.3, 0.0));
@@ -262,19 +262,19 @@ void GFX_draw_ui()
 
 	if(show_map)
 	{
-		GFX_set_pixel(screen, SCREEN_RES_X/2, SCREEN_RES_Y/2, SDL_MapRGB(screen->format, 255, 0, 0), 1);
+		GFX_set_pixel(engine.screen, engine.screen_res_x/2, engine.screen_res_y/2, SDL_MapRGB(engine.screen->format, 255, 0, 0), 1);
 		GFX_draw_map();
 	}
 	
-	if(get_console_open())
+	if(is_console_open())
 	{
 		GFX_draw_console();	
 	}
 
 	if(show_fps)
 	{
-		sprintf(buffer, "%f", current_fps);
-		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
+		sprintf(buffer, "%f", engine.current_fps);
+		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(engine.screen->format, 255, 255, 0));
 	}
 }
 
@@ -283,7 +283,7 @@ void GFX_draw_hand()
 	TINT tint;
 	tint = (loaded_level.sectors + player->current_sector)->tint;
 
-	GFX_blit(hand_tex.surface, screen, SCREEN_RECT, ZERO_POINT2, tint);
+	GFX_blit(hand_tex.surface, engine.screen, SCREEN_RECT, ZERO_POINT2, tint);
 }
 
 void UI_Init()
@@ -294,4 +294,4 @@ void UI_Init()
 void UI_Tick()
 {
 	FACE_Tick();
-}
+}*/

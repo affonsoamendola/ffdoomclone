@@ -1,9 +1,9 @@
-#include "vector2.h"
+#include "ff_vector2.h"
 #include "world.h"
 #include "engine.h"
 
 #include "player.h"
-
+/*
 extern LEVEL loaded_level;
 
 extern VECTOR2 editor_cursor;
@@ -19,7 +19,7 @@ extern SECTOR * closest_sector;
 
 extern float closest_vector_distance;
 extern float closest_edge_distance;
-
+/*
 PLAYER * player;
 
 void PLAYER_Init(PLAYER ** player)
@@ -96,8 +96,8 @@ void PLAYER_Update()
 
 		if(player->is_grounded == 0)
 		{
-			player->h_velocity = player->h_velocity + (GRAVITY * ENGINE_delta_time());
-			player->pos_height = player->pos_height + (player->h_velocity * ENGINE_delta_time());
+			player->h_velocity = player->h_velocity + (GRAVITY * engine_delta_time());
+			player->pos_height = player->pos_height + (player->h_velocity * engine_delta_time());
 		}
 	}
 }
@@ -166,3 +166,4 @@ void PLAYER_Jump()
 		player->h_velocity = JUMP_VELOCITY;
 	}
 }
+*/

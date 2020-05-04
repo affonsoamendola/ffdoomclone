@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,14 +5,150 @@
 
 #include "editor.h"
 
-#include "vector2.h"
-#include "world.h"
+#include "ff_vector2.h"
 #include "gfx.h"
 #include "engine.h"
-#include "player.h"
-#include "console.h"
+#include "effect.h"
 #include "input.h"
 
+Editor editor;
+
+//Relates an Action to a function (And its data)
+Action editor_actions[] =
+{
+	{ACTION_QUIT, signal_quit, &engine},
+	{ACTION_MOUSE_MOVE, (ActionFunction)move_editor_cursor, &editor.cursor_location},
+	{ACTION_MOUSE_DRAG_RIGHT, (ActionFunction)move_editor_view, &editor.center},
+	{ACTION_SCROLL_WHEEL, (ActionFunction)scroll_wheel_zoom, &editor.zoom}
+};
+const static uint32_t editor_actions_size = sizeof(editor_actions)/sizeof(Action);
+
+//Initializes state.
+void init_editor()
+{
+	printf("Initting Editor\n");
+
+	editor.cursor_location = ZERO_VECTOR2F;
+	editor.center = ZERO_VECTOR2F;
+
+	editor.cursor_color = COLOR_WHITE;
+	editor.current_cursor_color = COLOR_WHITE;
+	editor.cursor_effect = create_effect_breathe(0.7, 1.0, 4.0);
+
+	editor.zoom = 100.0f;
+	editor.zoom_speed = 10.0f;
+
+	editor.grid_size = 0.1f;
+	editor.grid_color = color(75, 75, 75, 255);
+
+	set_input_actions(editor_actions, editor_actions_size);
+}
+
+//Ran once per frame, updates state.
+void update_editor()
+{
+	float breathe = 0.0f;
+
+	update_effect(&editor.cursor_effect, &breathe);
+	editor.current_cursor_color = scale_f_color(editor.cursor_color, breathe);
+
+	get_editor_bounds(&editor.viewport_top_left, &editor.viewport_bottom_right);
+	editor.viewport_size_x = fabs(editor.viewport_bottom_right.x - editor.viewport_top_left.x); 
+	editor.viewport_size_y = fabs(editor.viewport_bottom_right.y - editor.viewport_top_left.y); 
+}
+
+void scroll_wheel_zoom(void* zoom, int direction)
+{
+	printf("SCROLL %d\n", direction);
+	*(float*)zoom += editor.zoom_speed*direction;
+}
+
+//Draws all of the text on the editor
+void draw_text_overlay()
+{
+	GFX_draw_string_color_f(point2(4, 220), 3, DEBUG_TEXT_COLOR, "mx= %+-4.2f my= %+-4.2f", editor.cursor_location.x, editor.cursor_location.y);
+}
+
+//Main draw function for the editor.
+void draw_editor()
+{
+	draw_grid();
+	draw_editor_cursor(editor.cursor_location, editor.current_cursor_color);
+	GFX_update_pixels(); // Flushes pixel data.
+	draw_text_overlay();
+}	
+
+//Draws Grid
+void draw_grid()
+{
+	int grid_points_x = editor.viewport_size_x/editor.grid_size;
+	int grid_points_y = editor.viewport_size_y/editor.grid_size;
+
+	Vector2f top_left_grid = get_closest_grid(sum_v2(editor.viewport_top_left, vector2f(editor.grid_size/2., -editor.grid_size/2.)), editor.grid_size);
+
+	for(int x = 0; x <= grid_points_x; x++)
+	{
+		for(int y = 0; y <= grid_points_y; y++)
+		{
+			Point2 screen_pos = editor_ws_to_ss(sum_v2(top_left_grid, vector2f(x*editor.grid_size, -y*editor.grid_size)),
+												editor.center,
+												editor.zoom);
+
+			GFX_set_pixel_clipped(screen_pos.x, screen_pos.y, editor.grid_color);
+		}
+	}
+}
+
+//Draws cursor
+void draw_editor_cursor(const Vector2f location, const Color color)
+{
+	Point2 cursor_screen_pos = editor_ws_to_ss(location, editor.center, editor.zoom);
+
+	for(int i = -5; i <= 5; i++)
+	{
+		if(i < -1 || i > +1)
+		{
+			GFX_set_pixel_clipped(	cursor_screen_pos.x + i, cursor_screen_pos.y, 
+									color);
+		}
+	}
+
+	for(int j = -5; j <= 5; j++)
+	{
+		if(j < -1 || j > +1)
+		{
+			GFX_set_pixel_clipped(	cursor_screen_pos.x, cursor_screen_pos.y + j, 
+									color);
+		}
+	}
+}
+
+void clip_cursor(const Vector2f top_left, const Vector2f bot_right)
+{
+	if(editor.cursor_location.x < top_left.x) editor.cursor_location.x = top_left.x;
+	if(editor.cursor_location.y > top_left.y) editor.cursor_location.y = top_left.y;
+	if(editor.cursor_location.x > bot_right.x) editor.cursor_location.x = bot_right.x;
+	if(editor.cursor_location.y < bot_right.y) editor.cursor_location.y = bot_right.y;
+}
+
+//Moves cursor, but only if mouse right isnt held (In that case there is a dragging going on)
+void move_editor_cursor(void* editor_cursor_, Vector2f amount)
+{
+	if(!is_mouse_held(INPUT_MOUSE_RIGHT))
+	{
+		Vector2f* editor_cursor = (Vector2f*)(editor_cursor_);
+		*editor_cursor = sum_v2(*editor_cursor, scale_v2(amount, 1.0/editor.zoom));
+		clip_cursor(editor.viewport_top_left, editor.viewport_bottom_right);
+	}
+}
+
+//Moves editor view.
+void move_editor_view(void* editor_center, Vector2f amount)
+{
+	*(Vector2f*)editor_center = sum_v2(*(Vector2f*)editor_center, scale_v2(amount, 1.0/editor.zoom));
+}
+
+/*
 #define DEFAULT_FLOOR_HEIGHT 0.0f
 #define DEFAULT_CEIL_HEIGHT 1.0f
 
@@ -92,75 +227,14 @@ int drawing_sector = 0;
 
 extern PLAYER * player;
 
-void move_cursor(VECTOR2 amount)
-{
-	editor_cursor = sum_v2(editor_cursor, amount);
 
-	if(	editor_cursor.x < top_left_border.x || editor_cursor.y >= top_left_border.y ||
-		editor_cursor.x >= bottom_right_border.x || editor_cursor.y < bottom_right_border.y)
-	{
-		move_view(amount);
-	}
-}
-
-void clip_cursor()
-{
-	if(editor_cursor.x < top_left_border.x)
-		editor_cursor.x = top_left_border.x;
-
-	if(editor_cursor.x > bottom_right_border.x)
-		editor_cursor.x = bottom_right_border.x;
-
-	if(editor_cursor.y > top_left_border.y)
-		editor_cursor.y = top_left_border.y;
-
-	if(editor_cursor.y < bottom_right_border.y)
-		editor_cursor.y = bottom_right_border.y;
-}
-
-void update_borders()
-{
-	top_left_border = convert_editor_ss_to_ws(point2(0, 0));
-	bottom_right_border = convert_editor_ss_to_ws(point2(SCREEN_RES_X, SCREEN_RES_Y));
-}
-
-void move_view(VECTOR2 amount)
-{
-	editor_center = sum_v2(editor_center, amount);
-}
-
-VECTOR2 get_closest_grid(VECTOR2 pos)
-{
-	int x;
-	int y;
-
-	VECTOR2 closest_grid;
-
-	x = round(pos.x/grid_size);
-	y = round(pos.y/grid_size);
-
-	closest_grid.x = (float)x * grid_size;
-	closest_grid.y = (float)y * grid_size;
-
-	return closest_grid;
-}
-
-void set_grid_size(float size)
-{
-	grid_size = size;
-}
-
-void set_zoom(float zoom)
-{
-	editor_zoom = zoom;
-}
 
 POINT2 convert_ws_to_editor_ss(VECTOR2 pos)
 {
 	POINT2 editor_ss;
 
-	editor_ss.x = (pos.x - editor_center.x)*editor_zoom + SCREEN_RES_X/2;
-	editor_ss.y = SCREEN_RES_Y/2 - (pos.y - editor_center.y)*editor_zoom;
+	editor_ss.x = (pos.x - editor_center.x)*editor_zoom + engine.gfx->screen_res_x/2;
+	editor_ss.y = engine.gfx->screen_res_y/2 - (pos.y - editor_center.y)*editor_zoom;
 
 	return editor_ss;
 }
@@ -169,8 +243,8 @@ VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
 {
 	VECTOR2 ws;
 
-	ws.x = (pos.x - SCREEN_RES_X/2)/editor_zoom + editor_center.x;
-	ws.y = -((pos.y - SCREEN_RES_Y/2)/editor_zoom - editor_center.y);
+	ws.x = (pos.x - engine.gfx->screen_res_x/2)/editor_zoom + editor_center.x;
+	ws.y = -((pos.y - engine.gfx->screen_res_y/2)/editor_zoom - editor_center.y);
 
 	return ws;
 }
@@ -267,24 +341,24 @@ void delete_vertex()
 
 	WORLD_delete_vertex_at(closest_vector_index);
 }
-
+/*
 void draw_cursor()
 {
 	POINT2 cursor_ss;
 
 	cursor_ss = convert_ws_to_editor_ss(editor_cursor);
 
-	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y + 3, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y + 2, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y - 2, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(screen, cursor_ss.x, cursor_ss.y - 3, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y + 3, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y + 2, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y - 2, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y - 3, GFX_Map_Color(cursor_color), 0);
 
-	GFX_set_pixel(screen, cursor_ss.x + 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(screen, cursor_ss.x + 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(screen, cursor_ss.x - 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(screen, cursor_ss.x - 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x + 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x + 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x - 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
+	GFX_set_pixel(engine.screen, cursor_ss.x - 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
 }
-
+*
 void draw_editor_map()
 {
 	int last_v;
@@ -310,14 +384,14 @@ void draw_editor_map()
 
 			if(current_edge.is_portal)
 			{
-				color = SDL_MapRGB(screen->format, 60, 60, 60);
+				color = SDL_MapRGB(engine.screen->format, 60, 60, 60);
 			}
 			else
 			{
-				color = SDL_MapRGB(screen->format, 180, 180, 180);
+				color = SDL_MapRGB(engine.screen->format, 180, 180, 180);
 			}
 
-			GFX_draw_line(screen, current_line_start, current_line_end, color);
+			GFX_draw_line(engine.screen, current_line_start, current_line_end, color);
 		}
 	}
 }
@@ -331,7 +405,7 @@ void draw_new_sector_preview()
 		for(int i = 0; i < creating_sector->e_num; i++)
 		{
 			current_edge = creating_sector->e[i];
-			GFX_draw_line(	screen, 
+			GFX_draw_line(	engine.screen, 
 							convert_ws_to_editor_ss(get_vertex_from_sector(creating_sector, i, 0)),
 							convert_ws_to_editor_ss(get_vertex_from_sector(creating_sector, i, 1)),
 							GFX_Map_Color(GFX_Color(255, 0, 0)));
@@ -344,36 +418,13 @@ void draw_new_sector_preview()
 		else
 			preview_cursor = editor_cursor;
 
-		GFX_draw_line(	screen, 
+		GFX_draw_line(	engine.screen, 
 						convert_ws_to_editor_ss(new_vector_start),
 						convert_ws_to_editor_ss(preview_cursor),
 						GFX_Map_Color(GFX_Color(255, 0, 0)));
 	}
 }
 
-void draw_grid()
-{
-	int grid_x_amount;
-	int grid_y_amount;
-
-	grid_x_amount = (int)((bottom_right_border.x - top_left_border.x) / grid_size);
-	grid_y_amount = (int)((top_left_border.y - bottom_right_border.y) / grid_size);
-
-	VECTOR2 top_left_grid;
-	POINT2 grid_screen_location;
-
-	top_left_grid = get_closest_grid(sum_v2(top_left_border, vector2(grid_size/2., grid_size/2.)));
-
-	for(int x = 0; x < grid_x_amount + 3; x++)
-	{
-		for(int y = 0; y < grid_y_amount + 3; y++)
-		{
-			grid_screen_location = convert_ws_to_editor_ss(sum_v2(top_left_grid, vector2((float)x*grid_size, -(float)y*grid_size)));
-			
-			GFX_set_pixel(screen, grid_screen_location.x, grid_screen_location.y, GFX_Map_Color(GFX_Color(30, 30, 30)), 0);
-		}
-	}
-}
 
 void draw_ui()
 {
@@ -446,7 +497,7 @@ void draw_ui()
 		EDITOR_draw_texture_select();
 	}
 
-	if(get_console_open())
+	if(is_console_open())
 	{
 		GFX_draw_console();
 	}
@@ -500,7 +551,7 @@ void EDITOR_draw_texture_select()
 		GFX_draw_string(point2(0, 0), buffer, GFX_Map_Color(GFX_Color(255, 100, 0)));
 	}
 
-	if(game_mode == 0)
+	if(engine.game_mode == 0)
 	{
 		sprintf(buffer, "Offset U = %i V = %i", selected_texture_param.u_offset, selected_texture_param.v_offset);
 		GFX_draw_string(point2(0, 8), buffer, GFX_Map_Color(GFX_Color(200, 70, 0)));
@@ -525,12 +576,12 @@ void EDITOR_draw_texture_select()
 						if(selected_texture.x != x || selected_texture.y != y)
 							draw_texture = 1;
 						else
-							draw_texture = ENGINE_Blink_State();
+							draw_texture = engine_blink_state();
 
 						if(draw_texture)
 						{
 							pixel = GFX_get_pixel(loaded_textures[x + y*8].surface, t_x * 4, t_y * 4);
-							GFX_set_pixel(screen, 32 + 32 * x + t_x, 32 + 32 * y + t_y, pixel, 0);
+							GFX_set_pixel(engine.screen, 32 + 32 * x + t_x, 32 + 32 * y + t_y, pixel, 0);
 						}
 					}
 				}
@@ -642,18 +693,18 @@ void draw_closest_markers()
 		line_color = GFX_Map_Color(GFX_Color(210, 0, 0));
 	}
 
-	GFX_draw_line(screen, convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_start)), convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_end)), line_color);
+	GFX_draw_line(engine.screen, convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_start)), convert_ws_to_editor_ss(get_vertex_at(closest_edge->v_end)), line_color);
 
-	GFX_set_pixel(screen, closest_projection_ss.x, closest_projection_ss.y, GFX_Map_Color(GFX_Color(0, 0, 255)), 0);
+	GFX_set_pixel(engine.screen, closest_projection_ss.x, closest_projection_ss.y, GFX_Map_Color(GFX_Color(0, 0, 255)), 0);
 
-	GFX_set_pixel(screen, closest_vector_ss.x, closest_vector_ss.y, GFX_Map_Color(GFX_Color(255, 0, 0)), 0);
+	GFX_set_pixel(engine.screen, closest_vector_ss.x, closest_vector_ss.y, GFX_Map_Color(GFX_Color(255, 0, 0)), 0);
 }
 
 void EDITOR_Render()
 {
-	if(SDL_MUSTLOCK(screen))
+	if(SDL_MUSTLOCK(engine.screen))
 	{
-		if(SDL_LockSurface(screen) < 0)
+		if(SDL_LockSurface(engine.screen) < 0)
 		{
 			printf("Couldnt lock screen: %s\n", SDL_GetError());
 			return;
@@ -674,16 +725,16 @@ void EDITOR_Render()
 
 	if(show_fps)
 	{
-		sprintf(buffer, "%f", current_fps);
-		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(screen->format, 255, 255, 0));
+		sprintf(buffer, "%f", engine.current_fps);
+		GFX_draw_string(point2(0, 0), buffer, SDL_MapRGB(engine.screen->format, 255, 255, 0));
 	}
 
-	if(SDL_MUSTLOCK(screen))
+	if(SDL_MUSTLOCK(engine.screen))
 	{
-		SDL_UnlockSurface(screen);
+		SDL_UnlockSurface(engine.screen);
 	}
 
-	SDL_UpdateRect(screen, 0, 0, SCREEN_RES_X * PIXEL_SCALE, SCREEN_RES_Y * PIXEL_SCALE);
+	SDL_UpdateRect(engine.screen, 0, 0, engine.gfx->screen_res_x * engine.pixel_scale, engine.gfx->screen_res_y * engine.pixel_scale);
 }
 
 void grab_vertex()
@@ -732,7 +783,7 @@ SDL_Event event;
 
 void EDITOR_Handle_Input()
 {
-	if(get_console_open())
+	if(is_console_open())
 	{
 		INPUT_Handle_Console();
 	}
@@ -755,65 +806,65 @@ void EDITOR_Handle_Input()
 
 		if(keystate[SDLK_w] && show_texture_select == 0)
 		{
-			move_view(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+			move_view(scale_v2(vector2(0, 1), cursor_speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_s] && show_texture_select == 0)
 		{
-			move_view(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
+			move_view(scale_v2(vector2(0, -1), cursor_speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_d] && show_texture_select == 0)
 		{
-			move_view(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
+			move_view(scale_v2(vector2(1, 0), cursor_speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_a] && show_texture_select == 0)
 		{
-			move_view(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
+			move_view(scale_v2(vector2(-1, 0), cursor_speed * engine_delta_time()));
 		}
 
 		if(keystate[SDLK_UP] && show_texture_select == 0)
 		{
-			move_cursor(scale_v2(vector2(0, 1), cursor_speed * ENGINE_delta_time()));
+			move_cursor(scale_v2(vector2(0, 1), cursor_speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_DOWN] && show_texture_select == 0)
 		{
-			move_cursor(scale_v2(vector2(0, -1), cursor_speed * ENGINE_delta_time()));
+			move_cursor(scale_v2(vector2(0, -1), cursor_speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_RIGHT] && show_texture_select == 0)
 		{
-			move_cursor(scale_v2(vector2(1, 0), cursor_speed * ENGINE_delta_time()));
+			move_cursor(scale_v2(vector2(1, 0), cursor_speed * engine_delta_time()));
 		}
 
 		if(keystate[SDLK_LEFT] && show_texture_select == 0)
 		{
-			move_cursor(scale_v2(vector2(-1, 0), cursor_speed * ENGINE_delta_time()));
+			move_cursor(scale_v2(vector2(-1, 0), cursor_speed * engine_delta_time()));
 		}
 		
 		if(keystate[SDLK_PAGEUP] && show_texture_select == 0)
 		{
-			editor_zoom *= 1.0f + 2.0f * ENGINE_delta_time();
+			editor_zoom *= 1.0f + 2.0f * engine_delta_time();
 		}
 		
 		if(keystate[SDLK_PAGEDOWN] && show_texture_select == 0)
 		{
-			editor_zoom *= 1.0f - 2.0f * ENGINE_delta_time();
+			editor_zoom *= 1.0f - 2.0f * engine_delta_time();
 		}
 
 		while(SDL_PollEvent(&event) != 0)
 		{
 			if(event.type == SDL_QUIT)
 			{
-				e_running = false;
+				engine.running = false;
 			}
 			else if(event.type == SDL_KEYDOWN)
 			{
 				if(event.key.keysym.sym == '`' || event.key.keysym.sym == '\'' || event.key.keysym.sym == 'q')
 				{ 				
-					set_console_open(!get_console_open());
+					set_console_open(!is_console_open());
 				}
 
 				if(event.key.keysym.sym == 'm')
@@ -828,7 +879,7 @@ void EDITOR_Handle_Input()
 				{
 					if(occupied == 0)
 					{	
-						game_mode = !game_mode;
+						engine.game_mode = !engine.game_mode;
 					}
 				}
 				else if(event.key.keysym.sym == 'p' && show_texture_select)
@@ -974,23 +1025,23 @@ void EDIT_MODE_Handle_Input()
 
 	if(keystate[SDLK_UP])
 	{
-		PLAYER_Move(player, scale_v2(rot_v2(vector2(0, 1), -(player->facing)), player->speed * ENGINE_delta_time()));
+		PLAYER_Move(player, scale_v2(rot_v2(vector2(0, 1), -(player->facing)), player->speed * engine_delta_time()));
 	}
 	
 	if(keystate[SDLK_DOWN])
 	{
-		PLAYER_Move(player, scale_v2(rot_v2(vector2(0, -1), -(player->facing)), player->speed * ENGINE_delta_time()));
+		PLAYER_Move(player, scale_v2(rot_v2(vector2(0, -1), -(player->facing)), player->speed * engine_delta_time()));
 	}
 	
 	if(keystate[SDLK_RIGHT])
 	{
 		if(keystate[SDLK_LALT])
 		{
-			PLAYER_Move(player, scale_v2(rot_v2(vector2(1, 0), -(player->facing)), player->speed * ENGINE_delta_time()));
+			PLAYER_Move(player, scale_v2(rot_v2(vector2(1, 0), -(player->facing)), player->speed * engine_delta_time()));
 		}
 		else
 		{
-			PLAYER_Turn(player, player->turn_speed * ENGINE_delta_time());
+			PLAYER_Turn(player, player->turn_speed * engine_delta_time());
 		}
 	}
 	
@@ -998,36 +1049,36 @@ void EDIT_MODE_Handle_Input()
 	{
 		if(keystate[SDLK_LALT])
 		{
-			PLAYER_Move(player, scale_v2(rot_v2(vector2(-1, 0), -(player->facing)), player->speed * ENGINE_delta_time()));
+			PLAYER_Move(player, scale_v2(rot_v2(vector2(-1, 0), -(player->facing)), player->speed * engine_delta_time()));
 		}
 		else
 		{
-			PLAYER_Turn(player, -player->turn_speed * ENGINE_delta_time());
+			PLAYER_Turn(player, -player->turn_speed * engine_delta_time());
 		}
 	}
 
 	if(keystate[SDLK_PAGEUP])
 	{
-		player->pos_height += player->speed * ENGINE_delta_time();
+		player->pos_height += player->speed * engine_delta_time();
 	}
 	
 	if(keystate[SDLK_PAGEDOWN])
 	{
-		player->pos_height -= player->speed * ENGINE_delta_time();
+		player->pos_height -= player->speed * engine_delta_time();
 	}
 
 	while(SDL_PollEvent(&event) != 0)
 	{
 		if(event.type == SDL_QUIT)
 		{
-			e_running = false;
+			engine.running = false;
 		}
 		else if(event.type == SDL_KEYDOWN)
 		{
 			switch(event.key.keysym.sym)
 			{
 				case '`':
-					set_console_open(!get_console_open());
+					set_console_open(!is_console_open());
 					break;
 
 				case 'i':
@@ -1035,16 +1086,16 @@ void EDIT_MODE_Handle_Input()
 					break;
 
 				case 'p':
-					if(edit_mode == 1 && show_texture_select == 0) game_mode = !game_mode;
+					if(engine.edit_mode == 1 && show_texture_select == 0) engine.game_mode = !engine.game_mode;
 					break;
 
 				case 'f':
-					if(edit_mode == 1 && show_texture_select == 0)
+					if(engine.edit_mode == 1 && show_texture_select == 0)
 						change_closest_texture_params(1, ZERO_POINT2, ZERO_VECTOR2);
 					break;
 
 				case 'u':
-					if(edit_mode == 1 && show_texture_select == 0)
+					if(engine.edit_mode == 1 && show_texture_select == 0)
 						if(!keystate[SDLK_LSHIFT])
 							change_closest_texture_params(0, point2(0, -1), ZERO_VECTOR2);
 						else
@@ -1052,7 +1103,7 @@ void EDIT_MODE_Handle_Input()
 					break;
 
 				case 'j':
-					if(edit_mode == 1 && show_texture_select == 0)
+					if(engine.edit_mode == 1 && show_texture_select == 0)
 						if(!keystate[SDLK_LSHIFT])
 							change_closest_texture_params(0, point2(0, 1), ZERO_VECTOR2);
 						else
@@ -1060,7 +1111,7 @@ void EDIT_MODE_Handle_Input()
 					break;
 
 				case 'h':
-					if(edit_mode == 1 && show_texture_select == 0)
+					if(engine.edit_mode == 1 && show_texture_select == 0)
 						if(!keystate[SDLK_LSHIFT])
 							change_closest_texture_params(0, point2(-1, 0), ZERO_VECTOR2);
 						else
@@ -1068,7 +1119,7 @@ void EDIT_MODE_Handle_Input()
 					break;
 
 				case 'k':
-					if(edit_mode == 1 && show_texture_select == 0)
+					if(engine.edit_mode == 1 && show_texture_select == 0)
 						if(!keystate[SDLK_LSHIFT])
 							change_closest_texture_params(0, point2(1, 0), ZERO_VECTOR2);
 						else
@@ -1076,47 +1127,47 @@ void EDIT_MODE_Handle_Input()
 					break;
 
 				case 'r':
-					if(edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 0;
+					if(engine.edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 0;
 					break;
 
 				case 't':
-					if(edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 2;
+					if(engine.edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 2;
 					break;
 
 				case 'y':
-					if(edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 1;
+					if(engine.edit_mode == 1 && show_texture_select == 0) selecting_texture_for = 1;
 					break;
 
 				case 'g':
-					if(edit_mode == 1 && show_texture_select == 0){EDITOR_open_texture_select(selecting_texture_for); player->movement_blocked = 1;}
+					if(engine.edit_mode == 1 && show_texture_select == 0){EDITOR_open_texture_select(selecting_texture_for); player->movement_blocked = 1;}
 					break;
 
 				case SDLK_F1:
-					if(edit_mode) show_help = !show_help;
+					if(engine.edit_mode) show_help = !show_help;
 					break;
 
 				case SDLK_UP:
-					if(edit_mode) EDITOR_move_texture_select(point2(0, -1));
+					if(engine.edit_mode) EDITOR_move_texture_select(point2(0, -1));
 					break;
 
 				case SDLK_DOWN:
-					if(edit_mode) EDITOR_move_texture_select(point2(0, 1));
+					if(engine.edit_mode) EDITOR_move_texture_select(point2(0, 1));
 					break;
 
 				case SDLK_RIGHT:
-					if(edit_mode) EDITOR_move_texture_select(point2(1, 0));
+					if(engine.edit_mode) EDITOR_move_texture_select(point2(1, 0));
 					break;
 
 				case SDLK_LEFT:
-					if(edit_mode) EDITOR_move_texture_select(point2(-1, 0));
+					if(engine.edit_mode) EDITOR_move_texture_select(point2(-1, 0));
 					break;
 
 				case SDLK_RETURN:
-					if(edit_mode && show_texture_select) {EDITOR_apply_texture_select(); player->movement_blocked = 0;}
+					if(engine.edit_mode && show_texture_select) {EDITOR_apply_texture_select(); player->movement_blocked = 0;}
 					break;
 
 				case SDLK_HOME:
-					if(edit_mode)
+					if(engine.edit_mode)
 					{
 						if(selecting_texture_for == EDIT_TEXTURE_CEIL) player->closest_sector->ceiling_height += 0.1;
 						if(selecting_texture_for == EDIT_TEXTURE_FLOOR) player->closest_sector->floor_height += 0.1;
@@ -1124,7 +1175,7 @@ void EDIT_MODE_Handle_Input()
 					break;
 
 				case SDLK_END:
-					if(edit_mode)
+					if(engine.edit_mode)
 					{
 						if(selecting_texture_for == EDIT_TEXTURE_CEIL) player->closest_sector->ceiling_height -= 0.1;
 						if(selecting_texture_for == EDIT_TEXTURE_FLOOR) player->closest_sector->floor_height -= 0.1;
@@ -1164,3 +1215,4 @@ void EDITOR_Init()
 
 	closest_edge = get_edge_from_level(0, 0);
 }
+*/
