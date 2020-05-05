@@ -1,0 +1,1 @@
+anim.o: anim.c

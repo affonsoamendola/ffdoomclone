@@ -340,12 +340,6 @@ Color GFX_get_pixel(const int x, const int y)
 void GFX_set_pixel(	const int x, const int y, 
 					const Color color)
 {
-	memcpy(gfx.screen_pixels + (y*gfx.screen_res_x + x), &color, 4);
-}
-
-void GFX_set_pixel_clipped(	const int x, const int y, 
-							const Color color)
-{
 	if(x >= 0 && x < gfx.screen_res_x && y >= 0 && y < gfx.screen_res_y)
 	{
 		memcpy(gfx.screen_pixels + (y*gfx.screen_res_x + x), &color, 4);

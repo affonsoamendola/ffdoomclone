@@ -47,15 +47,24 @@ void engine_init()
 		exit(-1);
 	}
 
+	init_console();
+	printf_console("Console Initted.\n");
+	printf_console("Initting Input...\n");
 	init_input();
-
+	printf_console("Input Initted.\n");
 	//Initializes engine subsystems, and sets pointers to their structs.
 	//	engine.console = console_init();
+	printf_console("Initting GFX...\n");
 	GFX_init();
-	WORLD_init();
-	
+	printf_console("GFX Initted.\n");
+	printf_console("Initting World...\n");
+	init_world();
+	printf_console("World Initted.\n");
+	printf_console("Initting Editor...\n");
 	init_editor();
+	printf_console("Editor Initted.\n");
 
+	command_intro(NULL);
 	//EDITOR_Init();
 
 	//COMMAND_intro(NULL);
@@ -63,7 +72,7 @@ void engine_init()
 
 void engine_quit()
 {
-	WORLD_quit();
+	quit_world();
 	GFX_quit();
 	IMG_Quit();
 	SDL_Quit();
@@ -72,6 +81,7 @@ void engine_quit()
 
 void signal_quit(void* engine)
 {	
+	
 	((Engine*)engine)->is_running = false;
 }
 
@@ -87,6 +97,8 @@ void engine_loop()
 	{
 		draw_editor();
 	}
+	if(console.open) draw_console();
+
 	GFX_draw_string_color_f(point2(250, 1), 3, DEBUG_TEXT_COLOR, "    FPS: %-.1f", engine_fps());
 	GFX_draw_string_color_f(point2(250, 7), 3, DEBUG_TEXT_COLOR, "Avg FPS: %-.1f", engine_average_fps());
 	GFX_render_end();

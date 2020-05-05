@@ -9,28 +9,38 @@
 #include "world.h"
 
 World world;
-
-World* WORLD_init()
+/*
+Vector2f vertex_test[] = {{1.0, 1.0}, {2.0, 2.0}, {1.0, 3.0}, {4.0, 5.0}};
+Edge edge_test[] = {{vertex_test+0, vertex_test+1, {0}, false, NULL, NULL},
+					{vertex_test+1, vertex_test+2, {0}, false, NULL, NULL},
+					{vertex_test+2, vertex_test+3, {0}, false, NULL, NULL}};
+*/
+void init_world()
 {
+	/*
+	world.vertex_size = sizeof(vertex_test)/sizeof(Vector2f);
+	world.vertexes = (Vector2f*)&vertex_test;
+
+	world.edge_size = sizeof(edge_test)/sizeof(Edge);
+	world.edges = (Edge*)&edge_test;
+	*/
+	
 	world.vertex_size = 0;
 	world.vertexes = malloc(sizeof(Vector2f));
 
+	world.edge_size = 0;
+	world.edges = malloc(sizeof(Edge));
+	
 	world.sector_size = 0;
 	world.sectors = malloc(sizeof(Sector));
 
 	world.entities_size = 0;
 	world.entities = malloc(sizeof(Entity));
-
-	return &world;
-	/*
-	printf_console("Initting Player...\n");
-	
-	level_load("level");
-	PLAYER_Init(&player);*/
 }
 
-void WORLD_quit()
+void quit_world()
 {
+	free(world.edges);
 	free(world.vertexes);
 	free(world.sectors);
 	free(world.entities);
@@ -42,6 +52,41 @@ void WORLD_Update()
 	PLAYER_Update();
 }
 */
+
+void level_remove_sector(Sector* sector)
+{
+	bool is_last_edge_portal = (sector->edges + sector->edge_size - 1)->is_portal;
+
+	//Goes through every edge in the sector
+	for(int e = 0; e < sector->edge_size; e++)
+	{
+		Edge* current_edge = sector->edges[e];
+
+		//If last and current edge arent portals, it means the vertex between them
+		//is only used by this sector, and can be destroyed.
+		if(!is_last_edge_portal && !current_edge.is_portal)
+		{
+			level_destroy_vertex(current_edge->vertex_start);
+		}
+
+		//If edge is not a portal, it means that it is only used by this sector and can be destroyed.
+		if(!current_edge.is_portal)
+		{
+			level_destroy_edge(current_edge);
+		}
+		else //If IT IS a portal then it wont be after this sector is removed, and that edge wont neighbor this sector anymore.
+		{
+			current_edge->is_portal = false;
+
+			if(current_edge->neighboring_sectors[0] == sector) current_edge->neighboring_sectors[0] = NULL;
+			if(current_edge->neighboring_sectors[1] == sector) current_edge->neighboring_sectors[1] = NULL;
+		}
+	}
+
+	//Frees the edges array, since it was malloced on creation.
+	free(sector->edges);
+}
+/*
 Vector2f WORLD_get_vertex_at(const uint32_t index)
 {
 	if(index < world.vertex_size)
@@ -406,6 +451,7 @@ void level_load(const char * file_location)
 	}
 }
 */
+/*
 uint32_t WORLD_add_vertex(const Vector2f vertex)
 {
 	world.vertexes = realloc(world.vertexes, sizeof(Vector2f) * (world.vertex_size + 1));

@@ -5,7 +5,7 @@ BINARY := ffdoomclone
 SOURCES := $(wildcard *.c)
 OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
 DEPENDS := $(patsubst %.c,%.d,$(SOURCES))
-CCFLAGS := `pkg-config --static --cflags sdl2 SDL2_image` -I../ff-stb/C
+CCFLAGS := `pkg-config --static --cflags sdl2 SDL2_image` -I../ff-stb/C -g
 LDFLAGS := `pkg-config --static --libs sdl2 SDL2_image`
 # ADD MORE WARNINGS!
 WARNING := 

@@ -2,6 +2,9 @@
 #define CONSOLE_H
 
 #include "ff_stb.h"
+#include "ff_color.h"
+
+#include "effect.h"
 
 #define CONSOLE_HISTORY_SIZE 16
 #define CONSOLE_CHAR_LIMIT 256
@@ -9,10 +12,20 @@
 typedef struct Console_
 {
 	bool open;
-	int cursor_location;
-	char history[CONSOLE_CHAR_LIMIT * CONSOLE_HISTORY_SIZE];
+	char history[CONSOLE_HISTORY_SIZE][CONSOLE_CHAR_LIMIT];
 
+	uint32_t font;
+	uint32_t size_y;
+
+	Color background_color;
+	Color history_text_color;
+	Color entry_color;
+	Color entry_text_color;
+
+	Effect rainbow_effect;
 } Console;
+
+extern Console console;
 
 typedef struct ConsoleCommand_
 {
@@ -21,18 +34,21 @@ typedef struct ConsoleCommand_
 	void (*function) (char** tokens);
 } ConsoleCommand;
 
+void toggle_console(void * console_);
 void set_console_open(bool value);
 bool is_console_open();
 
 char* get_console_history(int history_index);
+void set_console_font(uint32_t font);
 
-Console* console_init();
+void init_console();
+
+void draw_console();
 
 void scroll_console(int lines);
 void printf_console(const char * char_string, ...);
 
 void parse_console(const char* text_input);
-
-
+void enter_console(void* null);
 
 #endif

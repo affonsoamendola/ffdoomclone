@@ -4,15 +4,12 @@
 #include "SDL2/SDL.h"
 #include "ff_stb.h"
 
+#define ENGINE_VERSION "0.1"
+
 #define MODE_EDITOR 2
 #define MODE_GAME 1
 
 #define DEBUG_TEXT_COLOR color(255, 150, 0, 200)
-
-typedef struct Console_ Console;
-typedef struct GFX_ GFX;
-typedef struct World_ World;
-typedef struct Input_ Input;
 
 typedef struct Engine_
 {
@@ -21,11 +18,6 @@ typedef struct Engine_
 	bool is_running;
 
 	uint32_t game_mode;
-
-	Console* console;
-	GFX* gfx;
-	World* world;
-	Input* input;
 
 	//Frame Timing Values.
 	bool show_fps;

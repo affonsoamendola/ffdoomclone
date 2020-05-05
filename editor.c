@@ -10,6 +10,8 @@
 #include "engine.h"
 #include "effect.h"
 #include "input.h"
+#include "console.h"
+#include "world.h"
 
 Editor editor;
 
@@ -17,6 +19,8 @@ Editor editor;
 Action editor_actions[] =
 {
 	{ACTION_QUIT, signal_quit, &engine},
+	{ACTION_TOGGLE_CONSOLE, toggle_console, &console},
+	{ACTION_CONFIRM_CONSOLE, enter_console, &input.text_input_character_loc},
 	{ACTION_MOUSE_MOVE, (ActionFunction)move_editor_cursor, &editor.cursor_location},
 	{ACTION_MOUSE_DRAG_RIGHT, (ActionFunction)move_editor_view, &editor.center},
 	{ACTION_SCROLL_WHEEL, (ActionFunction)scroll_wheel_zoom, &editor.zoom}
@@ -26,8 +30,6 @@ const static uint32_t editor_actions_size = sizeof(editor_actions)/sizeof(Action
 //Initializes state.
 void init_editor()
 {
-	printf("Initting Editor\n");
-
 	editor.cursor_location = ZERO_VECTOR2F;
 	editor.center = ZERO_VECTOR2F;
 
@@ -36,12 +38,16 @@ void init_editor()
 	editor.cursor_effect = create_effect_breathe(0.7, 1.0, 4.0);
 
 	editor.zoom = 100.0f;
-	editor.zoom_speed = 10.0f;
+	editor.max_zoom = 1000.0f;
+	editor.min_zoom = 40.0f;
+	editor.zoom_speed = 5.0f;
 
 	editor.grid_size = 0.1f;
 	editor.grid_color = color(75, 75, 75, 255);
 
 	set_input_actions(editor_actions, editor_actions_size);
+
+	editor.edge_color = color(100, 100, 100, 255);
 }
 
 //Ran once per frame, updates state.
@@ -57,10 +63,13 @@ void update_editor()
 	editor.viewport_size_y = fabs(editor.viewport_bottom_right.y - editor.viewport_top_left.y); 
 }
 
-void scroll_wheel_zoom(void* zoom, int direction)
+void scroll_wheel_zoom(void* zoom_, int direction)
 {
-	printf("SCROLL %d\n", direction);
-	*(float*)zoom += editor.zoom_speed*direction;
+	float* zoom = (float*)zoom_;
+	*zoom += editor.zoom_speed*direction;
+
+	while(*zoom > editor.max_zoom) *zoom -= editor.zoom_speed*direction;
+	while(*zoom < editor.min_zoom) *zoom -= editor.zoom_speed*direction;
 }
 
 //Draws all of the text on the editor
@@ -73,6 +82,7 @@ void draw_text_overlay()
 void draw_editor()
 {
 	draw_grid();
+	draw_map();
 	draw_editor_cursor(editor.cursor_location, editor.current_cursor_color);
 	GFX_update_pixels(); // Flushes pixel data.
 	draw_text_overlay();
@@ -94,7 +104,7 @@ void draw_grid()
 												editor.center,
 												editor.zoom);
 
-			GFX_set_pixel_clipped(screen_pos.x, screen_pos.y, editor.grid_color);
+			GFX_set_pixel(screen_pos.x, screen_pos.y, editor.grid_color);
 		}
 	}
 }
@@ -108,7 +118,7 @@ void draw_editor_cursor(const Vector2f location, const Color color)
 	{
 		if(i < -1 || i > +1)
 		{
-			GFX_set_pixel_clipped(	cursor_screen_pos.x + i, cursor_screen_pos.y, 
+			GFX_set_pixel(	cursor_screen_pos.x + i, cursor_screen_pos.y, 
 									color);
 		}
 	}
@@ -117,7 +127,7 @@ void draw_editor_cursor(const Vector2f location, const Color color)
 	{
 		if(j < -1 || j > +1)
 		{
-			GFX_set_pixel_clipped(	cursor_screen_pos.x, cursor_screen_pos.y + j, 
+			GFX_set_pixel(	cursor_screen_pos.x, cursor_screen_pos.y + j, 
 									color);
 		}
 	}
@@ -148,6 +158,26 @@ void move_editor_view(void* editor_center, Vector2f amount)
 	*(Vector2f*)editor_center = sum_v2(*(Vector2f*)editor_center, scale_v2(amount, 1.0/editor.zoom));
 }
 
+
+//Draws editor map.
+void draw_map()
+{
+	for(int i = 0; i < world.edge_size; i++)
+	{
+		Edge current_edge = world.edges[i];
+		Vector2f vertex_start = current_edge.vertex_start->value;
+		Vector2f vertex_end = current_edge.vertex_end->value;
+		
+		if(	inside_rect_v2(vertex_start , editor.viewport_top_left, editor.viewport_bottom_right) ||
+			inside_rect_v2(vertex_end, editor.viewport_top_left, editor.viewport_bottom_right))
+		{
+			Point2 ss_start = editor_ws_to_ss(vertex_start, editor.center, editor.zoom);
+			Point2 ss_end = editor_ws_to_ss(vertex_end, editor.center, editor.zoom);
+		
+			GFX_draw_line(ss_start, ss_end, editor.edge_color);
+		}
+	}
+}
 /*
 #define DEFAULT_FLOOR_HEIGHT 0.0f
 #define DEFAULT_CEIL_HEIGHT 1.0f
@@ -226,28 +256,6 @@ int new_sector_size = 0;
 int drawing_sector = 0;
 
 extern PLAYER * player;
-
-
-
-POINT2 convert_ws_to_editor_ss(VECTOR2 pos)
-{
-	POINT2 editor_ss;
-
-	editor_ss.x = (pos.x - editor_center.x)*editor_zoom + engine.gfx->screen_res_x/2;
-	editor_ss.y = engine.gfx->screen_res_y/2 - (pos.y - editor_center.y)*editor_zoom;
-
-	return editor_ss;
-}
-
-VECTOR2 convert_editor_ss_to_ws(POINT2 pos)
-{
-	VECTOR2 ws;
-
-	ws.x = (pos.x - engine.gfx->screen_res_x/2)/editor_zoom + editor_center.x;
-	ws.y = -((pos.y - engine.gfx->screen_res_y/2)/editor_zoom - editor_center.y);
-
-	return ws;
-}
 
 void save_sector()
 {
@@ -341,24 +349,7 @@ void delete_vertex()
 
 	WORLD_delete_vertex_at(closest_vector_index);
 }
-/*
-void draw_cursor()
-{
-	POINT2 cursor_ss;
 
-	cursor_ss = convert_ws_to_editor_ss(editor_cursor);
-
-	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y + 3, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y + 2, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y - 2, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(engine.screen, cursor_ss.x, cursor_ss.y - 3, GFX_Map_Color(cursor_color), 0);
-
-	GFX_set_pixel(engine.screen, cursor_ss.x + 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(engine.screen, cursor_ss.x + 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(engine.screen, cursor_ss.x - 2, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-	GFX_set_pixel(engine.screen, cursor_ss.x - 3, cursor_ss.y, GFX_Map_Color(cursor_color), 0);
-}
-*
 void draw_editor_map()
 {
 	int last_v;

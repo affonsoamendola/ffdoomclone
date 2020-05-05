@@ -25,7 +25,11 @@ typedef struct Editor_
 	float grid_size;
 
 	float zoom;
+	float max_zoom;
+	float min_zoom;
 	float zoom_speed;
+
+	Color edge_color;
 } Editor;
 
 extern Editor editor;
@@ -62,6 +66,8 @@ void move_editor_cursor(void* editor_cursor, Vector2f delta_mouse);
 void move_editor_view(void* editor_center, Vector2f delta_mouse);
 
 void draw_grid();
+void draw_map();
+
 static inline Vector2f get_closest_grid(const Vector2f pos, const float grid_size)
 {
 	return vector2f(round(pos.x/grid_size) * grid_size, round(pos.y/grid_size) * grid_size);

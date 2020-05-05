@@ -122,8 +122,6 @@ void GFX_update_pixels();
 
 Color GFX_get_pixel(const int x, const int y);
 void GFX_set_pixel(const int x, const int y, const Color color);
-void GFX_set_pixel_clipped(	const int x, const int y, 
-							const Color color);
 
 void GFX_blit(	Color* src, Color* dst, 
 				const Rect src_rect, const uint32_t src_pitch, 
@@ -157,6 +155,8 @@ void GFX_free_font_list(FontRegistry* font_registry);
 Font GFX_load_font(const char* location, uint32_t size_x, uint32_t size_y);
 void GFX_free_font(Font font);
 
+Font GFX_get_font(uint32_t font_id);
+
 void GFX_draw_char(const Point2 position, uint32_t font_id, char character);
 void GFX_draw_char_color(const Point2 position, uint32_t font_id, char character, Color color);
 
@@ -165,7 +165,6 @@ void GFX_draw_string_color(const Point2 position, uint32_t font_id, char* string
 
 void GFX_draw_string_f(const Point2 position, uint32_t font_id, char* format_string, ...);
 void GFX_draw_string_color_f(const Point2 position, uint32_t font_id, Color color, char* format_string, ...);
-
 
 int GFX_load_texture_list(const char* location, TextureRegistry* texture_registry);
 void GFX_free_texture_list(TextureRegistry* texture_registry);
@@ -178,6 +177,9 @@ void GFX_texture_return_color_mod(Texture texture);
 
 void GFX_fill_screen(const Color color);
 
+void GFX_fill_rectangle(const Rect rect, const Color color);
+
+void GFX_draw_line(Point2 p_0, Point2 p_1, const Color color);
 /*
 void GFX_set_pixel_from_texture_depth_tint(	SDL_Surface *surface,
 											GFX_TEXTURE_PARAM texture,

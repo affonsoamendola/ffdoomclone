@@ -24,6 +24,8 @@ typedef union ActionFunction_
 typedef enum ActionCode_
 {
 	ACTION_QUIT,
+	ACTION_TOGGLE_CONSOLE,
+	ACTION_CONFIRM_CONSOLE,
 	ACTION_MOUSE_MOVE,
 	ACTION_MOUSE_DRAG_RIGHT,
 	ACTION_SCROLL_WHEEL
@@ -43,11 +45,22 @@ typedef struct Input_
 	Action* registered_actions;
 	uint32_t registered_actions_size;
 
+	ActionCode* disabled_actions;
+	uint32_t disabled_actions_size;
+
+	ActionCode* enabled_actions;
+	uint32_t enabled_actions_size;
+
 	float mouse_sensitivity;
 
 	int mouse_x;
 	int mouse_y;
 	uint32_t mouse_buttons;
+
+	bool text_input_enabled;
+	char* text_input_destination;
+	uint32_t text_input_buffer_size;
+	uint32_t text_input_character_loc;
 } Input;
 
 extern Input input;
@@ -55,7 +68,7 @@ extern Input input;
 typedef struct ActionKeyPair_
 {
 	uint32_t keycode;
-	ActionCode action;
+	ActionCode actioncode;
 } ActionKeyPair;
 
 void init_input();
@@ -63,10 +76,20 @@ void update_input();
 
 void set_input_actions(Action* actions, const uint32_t number_of_actions);
 
+void set_disabled_actions(ActionCode* actions, const uint32_t number_of_actions);
+bool check_disabled_actions(ActionCode action);
+
+void set_enabled_actions(ActionCode* actions, const uint32_t number_of_actions);
+bool check_enabled_actions(ActionCode action);
+
 void on_keydown(SDL_Keycode keycode);
 void on_mouse_movement(const Vector2f amount);
 
 void on_mouse_wheel(const int direction);
+
+void on_text_input(SDL_Keycode keycode);
+void start_text_input(char* text_destination, uint32_t buffer_size);
+void end_text_input();
 
 static inline uint32_t is_keyheld(SDL_Keycode key)
 {

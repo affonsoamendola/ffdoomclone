@@ -9,31 +9,25 @@
 #include "console.h"
 #include "vector3.h"
 #include "player.h"
-/*
-char buffer[128];
 
-extern bool edit_mode;
-extern LEVEL loaded_level;
-extern PLAYER * player;
-/*
-void COMMAND_ver(char** tokens)
+void command_ver(char** tokens)
 {
 
-	printf_console("RT76800\nVersion %s", ENGINE_VERSION);
+	printf_console("RT76800\nVersion %s\n", ENGINE_VERSION);
 }
 
-void COMMAND_intro(char** tokens)
+void command_intro(char** tokens)
 {
 	printf_console("----------------------------------------\n");
-	printf_console("Fofonso's DoomClone Engine\n");
+	printf_console("Foffonso's DoomClone Engine\n");
 	printf_console("Codename DN F3D\n");
-	printf_console("Copyright Affonso Amendola, 2019\n");	
+	printf_console("Copyright Affonso Amendola, 2019-2020\n");	
 	printf_console("Version %s\n\n", ENGINE_VERSION);
 	printf_console("Be Excellent to Each Other\n");
-	printf_console("----------------------------------------");
+	printf_console("----------------------------------------\n");
 }
 
-void COMMAND_help(char** tokens)
+void command_help(char** tokens)
 {
 	int page;
 
@@ -50,7 +44,7 @@ void COMMAND_help(char** tokens)
 		printf_console("sector show [sector value]:\n");
 		printf_console("  shows the sector's vertexes info\n");
 		printf_console("noclip: enables no-clip mode\n");
-		printf_console("----------------------------------------");
+		printf_console("----------------------------------------\n");
 	}
 	else
 	if(page == 2)
@@ -64,7 +58,7 @@ void COMMAND_help(char** tokens)
 		printf_console("  sector to the [r] [g] [b] values      \n");
 		printf_console("  specified, from 0 to 1\n");
 		printf_console("set health [value]: sets health to value\n");
-		printf_console("----------------------------------------");
+		printf_console("----------------------------------------\n");
 	}
 	else
 	if(page >= 3)
@@ -78,11 +72,11 @@ void COMMAND_help(char** tokens)
 		printf_console("load [filename]: \n");
 		printf_console("  loads level from filename\n");
 		printf_console("\n");
-		printf_console("----------------------------------------");
+		printf_console("----------------------------------------\n");
 	}
 }
-
-void COMMAND_sector_show(char** tokens)
+/*
+void command_sector_show(char** tokens)
 {
 	int sector_index;
 

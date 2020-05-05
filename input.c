@@ -3,20 +3,26 @@
 
 #include "engine.h"
 #include "input.h"
+#include "console.h"
 
 #include "ff_vector2.h"
 
 //Relates a Key to an Action
 ActionKeyPair action_dictionary[] = 
 {
-	{SDLK_ESCAPE, ACTION_QUIT}
+	{SDLK_ESCAPE, ACTION_QUIT},
+	{SDLK_BACKQUOTE, ACTION_TOGGLE_CONSOLE},
+	{SDLK_RETURN, ACTION_CONFIRM_CONSOLE},
+	{SDLK_KP_ENTER, ACTION_CONFIRM_CONSOLE}
 };
 const static uint32_t action_dictionary_size = sizeof(action_dictionary)/sizeof(action_dictionary[0]);
 
 //Relates an Action to a function (And its data)
 Action default_registered_actions[] =
 {
-	{ACTION_QUIT, signal_quit, &engine}
+	{ACTION_QUIT, signal_quit, &engine},
+	{ACTION_TOGGLE_CONSOLE, toggle_console, &console},
+	{ACTION_CONFIRM_CONSOLE, enter_console, &input.text_input_character_loc}
 };
 const static uint32_t default_registered_actions_size = sizeof(default_registered_actions)/sizeof(Action);
 
@@ -25,7 +31,6 @@ Input input;
 //Inits state.
 void init_input()
 {
-	printf("Initting Input\n");
 	//Gets a snapshot of the keyboardstate
 	input.is_scancode_down = SDL_GetKeyboardState(NULL);
 	input.mouse_sensitivity = 0.4f;
@@ -33,6 +38,14 @@ void init_input()
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
 	set_input_actions(default_registered_actions, default_registered_actions_size);
+
+	input.text_input_enabled = false;
+	input.text_input_destination = NULL;
+	input.text_input_buffer_size = 0;
+	input.text_input_character_loc = 0;
+
+	input.disabled_actions = NULL;
+	input.disabled_actions_size = 0;
 }
 
 //Called once per frame
@@ -63,11 +76,106 @@ void update_input()
 	}
 }
 
+//Returns true if keycode is in the dictionary and puts the corresponding ActionCode in out_code
+bool get_actioncode_from_keycode(SDL_Keycode keycode, ActionCode* outcode)
+{
+	for(int i = 0; i < action_dictionary_size; i++)
+	{
+		if(action_dictionary[i].keycode == keycode)
+		{
+			*outcode = action_dictionary[i].actioncode;
+			return true;
+		}
+	}
+	return false;
+}
+
+//Returns true if actioncode is in the dictionary and puts the corresponding Keycode in out_code
+bool get_keycode_from_actioncode(ActionCode actioncode, SDL_Keycode* outcode)
+{
+	for(int i = 0; i < action_dictionary_size; i++)
+	{
+		if(action_dictionary[i].actioncode == actioncode)
+		{
+			*outcode = action_dictionary[i].keycode;
+			return true;
+		}
+	}
+	return false;
+}
 //Sets current input action context.
 void set_input_actions(Action* actions, const uint32_t number_of_actions)
 {
-	input.registered_actions = actions;
-	input.registered_actions_size = number_of_actions;
+	if(actions == NULL)
+	{
+		input.registered_actions = default_registered_actions;
+		input.registered_actions_size = default_registered_actions_size;
+	}
+	else
+	{
+		input.registered_actions = actions;
+		input.registered_actions_size = number_of_actions;
+	}
+}
+
+//Disables some actions from being triggered.
+void set_disabled_actions(ActionCode* actions, const uint32_t number_of_actions)
+{
+	if(actions == NULL)
+	{
+		input.disabled_actions = NULL;
+		input.disabled_actions_size = 0;
+	}
+	else
+	{
+		input.disabled_actions = actions;
+		input.disabled_actions_size = number_of_actions;
+	}	
+}
+
+//Disables some actions from being triggered.
+void set_enabled_actions(ActionCode* actions, const uint32_t number_of_actions)
+{
+	if(actions == NULL)
+	{
+		input.enabled_actions = NULL;
+		input.enabled_actions_size = 0;
+	}
+	else
+	{
+		input.enabled_actions = actions;
+		input.enabled_actions_size = number_of_actions;
+	}	
+}
+
+//Returns true if ActionCode is in the disabled actions list.
+bool check_disabled_actions(ActionCode action)
+{
+	for(int i = 0; i < input.disabled_actions_size; i++)
+	{
+		if(action == input.disabled_actions[i])
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//Returns true if ActionCode is in the enabled actions list.
+bool check_enabled_actions(ActionCode action)
+{
+	if(input.enabled_actions == NULL) return true;
+
+	for(int i = 0; i < input.enabled_actions_size; i++)
+	{
+		if(action == input.enabled_actions[i])
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 //Performs action of action_code specified (Only keydowns)
@@ -75,7 +183,9 @@ void on_action(ActionCode action_code)
 {
 	for(int i = 0; i < input.registered_actions_size; i++)
 	{
-		if(action_code == input.registered_actions[i].action)
+		if(	action_code == input.registered_actions[i].action && 
+			!check_disabled_actions(action_code) &&
+			check_enabled_actions(action_code))
 		{
 			input.registered_actions[i].function.default_func(input.registered_actions[i].user_data);
 		}
@@ -87,24 +197,23 @@ void on_action(ActionCode action_code)
 void on_keydown(SDL_Keycode keycode)
 {
 	bool has_action = false;
+
 	ActionCode found_action;
+	
+	has_action = get_actioncode_from_keycode(keycode, &found_action);
 
-	for(int i = 0; i < action_dictionary_size; i++)
-	{
-		if(keycode == action_dictionary[i].keycode)
-		{
-			has_action = true;
-			found_action = action_dictionary[i].action;
-			break;
-		}
-	}
-
+	//This is the normal on_action
 	if(has_action) on_action(found_action);
+
+	//If text input is enabled, write to text out.
+	if(input.text_input_enabled) on_text_input(keycode);
 }
 
 //Performs a Mouse_movement action.
 void on_mouse_movement(const Vector2f amount)
 {
+	if(check_disabled_actions(ACTION_MOUSE_MOVE) || !check_enabled_actions(ACTION_MOUSE_MOVE)) return;
+
 	for(int i = 0; i < input.registered_actions_size; i++)
 	{
 		if(input.registered_actions[i].action == ACTION_MOUSE_MOVE)
@@ -122,6 +231,8 @@ void on_mouse_movement(const Vector2f amount)
 
 void on_mouse_wheel(const int direction)
 {
+	if(check_disabled_actions(ACTION_SCROLL_WHEEL) || !check_enabled_actions(ACTION_SCROLL_WHEEL)) return;
+
 	for(int i = 0; i < input.registered_actions_size; i++)
 	{
 		if(input.registered_actions[i].action == ACTION_SCROLL_WHEEL)
@@ -129,6 +240,53 @@ void on_mouse_wheel(const int direction)
 			input.registered_actions[i].function.mouse_wheel_func(input.registered_actions[i].user_data, direction);
 		}
 	}
+}
+
+void on_text_input(SDL_Keycode keycode)
+{
+	char current_char;
+
+	SDL_Keycode console_open_keycode;
+
+	get_keycode_from_actioncode(ACTION_TOGGLE_CONSOLE, &console_open_keycode);
+
+	current_char = keycode;
+
+	if(keycode >= 0x20 && keycode <= 0x7E && keycode != console_open_keycode)
+	{
+		if(keycode >= 0x61 && keycode <= 0x7A && (SDL_GetModState() & KMOD_SHIFT))
+		{
+			current_char = keycode - 0x20;
+		}
+
+		if(input.text_input_character_loc < input.text_input_buffer_size)
+		{
+			*(input.text_input_destination + input.text_input_character_loc) = current_char; 
+			input.text_input_character_loc++;
+		}
+	}
+
+	if(current_char == '\b' && input.text_input_character_loc > 0)
+	{
+		input.text_input_character_loc -= 1;
+		*(input.text_input_destination + input.text_input_character_loc) = ' ';
+	}
+}
+
+void start_text_input(char* text_destination, uint32_t buffer_size)
+{
+	input.text_input_enabled = true;
+	input.text_input_destination = text_destination;
+	input.text_input_buffer_size = buffer_size;
+	input.text_input_character_loc = 0;
+}
+
+void end_text_input()
+{
+	input.text_input_enabled = false;
+	input.text_input_destination = NULL;
+	input.text_input_buffer_size = 0;
+	input.text_input_character_loc = 0;
 }
 
 /*

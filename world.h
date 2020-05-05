@@ -10,15 +10,25 @@
 #define NO_COLLISION_SECTOR_CHANGE -1
 */
 
+typedef struct Sector_ Sector;
+typedef struct Edge_ Edge;
+
+typedef struct Vertex_ 
+{
+	Vector2f value;
+	//float height; //Eh maybe in the future. SLOPES MAN SLOPES
+} Vertex;
+
 typedef struct Edge_
 {
-	uint32_t vertex_start;
-	uint32_t vertex_end;
+	Vertex* vertex_start;
+	Vertex* vertex_end;
 
 	TextureParam texture_param;
 
 	bool is_portal;
-	uint32_t neighbor_sector_id;
+
+	Sector* neighboring_sectors[2];
 } Edge;
 
 typedef struct Sector_
@@ -34,7 +44,7 @@ typedef struct Sector_
 	TextureParam floor_texture_param;
 
 	uint32_t edge_size;
-	Edge* edges;
+	Edge** edges;
 } Sector;
 
 typedef struct Entity_
@@ -43,8 +53,11 @@ typedef struct Entity_
 
 typedef struct World_
 {
+	uint32_t edge_size;
+	Edge* edges;
+
 	uint32_t vertex_size;
-	Vector2f* vertexes;
+	Vertex* vertexes;
 
 	uint32_t sector_size;
 	Sector* sectors;
@@ -55,9 +68,10 @@ typedef struct World_
 
 extern World world;
 
+void init_world();
+void quit_world();
 
-World* WORLD_init();
-void WORLD_quit();
+
 /*
 void WORLD_Update();
 
