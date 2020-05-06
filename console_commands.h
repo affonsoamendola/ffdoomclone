@@ -8,7 +8,10 @@ void command_intro(char** tokens);
 void command_help(char** tokens);
 
 void command_sector_show(char** tokens);
+
+void command_vertex(char** tokens);
 void command_vertex_list(char** tokens);
+void command_remove_vertex(char** tokens);
 
 void command_noclip(char** tokens);
 

@@ -10,10 +10,12 @@
 #include "gfx.h"
 #include "world.h"
 #include "time.h"
-#include "list.h"
+
 #include "editor.h"
 
 #include "engine.h"
+
+#include "ff_linked_list.h"
 
 Engine engine;
 
@@ -93,6 +95,7 @@ void engine_loop()
 	update_editor();
 
 	GFX_render_start();
+
 	if(engine.game_mode == MODE_EDITOR)
 	{
 		draw_editor();

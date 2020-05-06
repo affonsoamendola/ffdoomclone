@@ -46,6 +46,7 @@ void init_input()
 
 	input.disabled_actions = NULL;
 	input.disabled_actions_size = 0;
+
 }
 
 //Called once per frame
@@ -208,6 +209,8 @@ void on_keydown(SDL_Keycode keycode)
 	//If text input is enabled, write to text out.
 	if(input.text_input_enabled) on_text_input(keycode);
 }
+
+
 
 //Performs a Mouse_movement action.
 void on_mouse_movement(const Vector2f amount)

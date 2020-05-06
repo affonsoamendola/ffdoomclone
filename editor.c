@@ -158,13 +158,12 @@ void move_editor_view(void* editor_center, Vector2f amount)
 	*(Vector2f*)editor_center = sum_v2(*(Vector2f*)editor_center, scale_v2(amount, 1.0/editor.zoom));
 }
 
-
 //Draws editor map.
 void draw_map()
 {
-	for(int i = 0; i < world.edge_size; i++)
+	for(int i = 0; i < world.edges.size; i++)
 	{
-		Edge current_edge = world.edges[i];
+		Edge current_edge = *(Edge*)ff_get_at_list(&world.edges, i);
 		Vector2f vertex_start = current_edge.vertex_start->value;
 		Vector2f vertex_end = current_edge.vertex_end->value;
 		

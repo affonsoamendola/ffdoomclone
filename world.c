@@ -5,16 +5,12 @@
 //#include "console.h"
 #include "ff_vector2.h"
 //#include "player.h"
+#include "ff_linked_list.h"
 
 #include "world.h"
 
 World world;
-/*
-Vector2f vertex_test[] = {{1.0, 1.0}, {2.0, 2.0}, {1.0, 3.0}, {4.0, 5.0}};
-Edge edge_test[] = {{vertex_test+0, vertex_test+1, {0}, false, NULL, NULL},
-					{vertex_test+1, vertex_test+2, {0}, false, NULL, NULL},
-					{vertex_test+2, vertex_test+3, {0}, false, NULL, NULL}};
-*/
+
 void init_world()
 {
 	/*
@@ -24,38 +20,64 @@ void init_world()
 	world.edge_size = sizeof(edge_test)/sizeof(Edge);
 	world.edges = (Edge*)&edge_test;
 	*/
-	
-	world.vertex_size = 0;
-	world.vertexes = malloc(sizeof(Vector2f));
 
-	world.edge_size = 0;
-	world.edges = malloc(sizeof(Edge));
-	
-	world.sector_size = 0;
-	world.sectors = malloc(sizeof(Sector));
-
-	world.entities_size = 0;
-	world.entities = malloc(sizeof(Entity));
+	ff_initialize_list(&world.vertexes);
+	ff_initialize_list(&world.edges);
+	ff_initialize_list(&world.sectors);
+	ff_initialize_list(&world.entities);
 }
 
 void quit_world()
 {
-	free(world.edges);
-	free(world.vertexes);
-	free(world.sectors);
-	free(world.entities);
 }
-/*
-void WORLD_Update()
-{
-	
-	PLAYER_Update();
-}
-*/
 
+void level_add_edge(Vertex* start, Vertex* end)
+{
+	Edge new_edge = {start, end, {0}, 0, {NULL,NULL}};
+	ff_pushback_list(&world.edges, &new_edge);
+}
+
+void level_add_vertex(Vector2f new_vertex_)
+{
+ 	Vertex new_vertex = {new_vertex_};
+	ff_pushback_list(&world.vertexes, &new_vertex);
+}
+
+//Destroyers removers of lists
+void level_destroy_sector(Sector * sector)
+{
+	uint32_t found_index;
+	if(ff_find_list(&world.sectors, &found_index, sector))
+	{
+		ff_remove_at_list(&world.sectors, found_index);
+	}
+}
+
+void level_destroy_edge(Edge * edge)
+{
+	uint32_t found_index;
+	if(ff_find_list(&world.edges, &found_index, edge))
+	{
+		ff_remove_at_list(&world.edges, found_index);
+	}
+}
+
+void level_destroy_vertex(Vertex * vertex)
+{
+	uint32_t found_index;
+	if(ff_find_list(&world.vertexes, &found_index, vertex))
+	{
+		ff_remove_at_list(&world.vertexes, found_index);
+	}
+}
+//End destroyers
+
+//Removes a sector from the level, does all the hierarquical solution for the lower
+//levels, goes trough vertexes and edges and removes those who dont need to exist anymore.
+//Also removes the neighbor information from edges that dont need it anymore.
 void level_remove_sector(Sector* sector)
 {
-	bool is_last_edge_portal = (sector->edges + sector->edge_size - 1)->is_portal;
+	bool is_last_edge_portal = sector->edges[sector->edge_size-1]->is_portal;
 
 	//Goes through every edge in the sector
 	for(int e = 0; e < sector->edge_size; e++)
@@ -64,13 +86,13 @@ void level_remove_sector(Sector* sector)
 
 		//If last and current edge arent portals, it means the vertex between them
 		//is only used by this sector, and can be destroyed.
-		if(!is_last_edge_portal && !current_edge.is_portal)
+		if(!is_last_edge_portal && !current_edge->is_portal)
 		{
 			level_destroy_vertex(current_edge->vertex_start);
 		}
 
 		//If edge is not a portal, it means that it is only used by this sector and can be destroyed.
-		if(!current_edge.is_portal)
+		if(!current_edge->is_portal)
 		{
 			level_destroy_edge(current_edge);
 		}
@@ -85,6 +107,8 @@ void level_remove_sector(Sector* sector)
 
 	//Frees the edges array, since it was malloced on creation.
 	free(sector->edges);
+
+	level_destroy_sector(sector);
 }
 /*
 Vector2f WORLD_get_vertex_at(const uint32_t index)

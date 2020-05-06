@@ -3,6 +3,7 @@
 
 #include "ff_vector2.h"
 #include "gfx.h"
+#include "ff_linked_list.h"
 
 /*
 #define COLLIDED 1
@@ -53,17 +54,10 @@ typedef struct Entity_
 
 typedef struct World_
 {
-	uint32_t edge_size;
-	Edge* edges;
-
-	uint32_t vertex_size;
-	Vertex* vertexes;
-
-	uint32_t sector_size;
-	Sector* sectors;
-
-	uint32_t entities_size;
-	Entity* entities;
+	ff_List vertexes;
+	ff_List edges;
+	ff_List sectors;
+	ff_List entities;
 } World;
 
 extern World world;
@@ -71,6 +65,12 @@ extern World world;
 void init_world();
 void quit_world();
 
+void level_add_edge(Vertex* start, Vertex* end);
+void level_add_vertex(Vector2f new_vertex);
+
+void level_destroy_sector(Sector * sector);
+void level_destroy_edge(Edge * edge);
+void level_destroy_vertex(Vertex * vertex);
 
 /*
 void WORLD_Update();

@@ -216,7 +216,10 @@ ConsoleCommand console_commands[] =
 {
 	{"ver", 0, command_ver},
 	{"intro", 0, command_intro},
-	{"help", 1, command_help}//,
+	{"help", 1, command_help},
+	{"vertex", 1, command_vertex},
+	{"vertexlist", 1, command_vertex_list},
+	{"delvertex", 1, command_remove_vertex},
 /*	{"sector_show", 1, COMMAND_sector_show},
 	{"vertex_list", 0, COMMAND_vertex_list},
 	{"noclip", 0, COMMAND_vertex_list},

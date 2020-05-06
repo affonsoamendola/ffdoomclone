@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +8,8 @@
 #include "console.h"
 #include "vector3.h"
 #include "player.h"
+
+#include "ff_math.h"
 
 void command_ver(char** tokens)
 {
@@ -74,6 +75,50 @@ void command_help(char** tokens)
 		printf_console("\n");
 		printf_console("----------------------------------------\n");
 	}
+}
+
+void console_print_vertex_at(int index)
+{
+	Vertex vert = *(Vertex*)ff_get_at_list(&world.vertexes, index);
+	index %= world.vertexes.size;
+	printf_console("%d x = %.2f, y = %.2f\n", index, vert.value.x, vert.value.y);
+}
+
+void command_vertex(char** tokens)
+{
+	int index;
+
+	sscanf(*tokens, "%d", &index);
+
+	console_print_vertex_at(index);
+}
+
+void command_remove_vertex(char** tokens)
+{
+	int index;
+
+	sscanf(*tokens, "%d", &index);
+
+	level_destroy_vertex(ff_get_at_list(&world.vertexes, index));
+	scroll_console(1);
+}
+
+
+void command_vertex_list(char** tokens)
+{
+	int index;
+
+	sscanf(*tokens, "%d", &index);
+
+	for(uint32_t i = 0; i < ff_min(world.vertexes.size, 12); i++)
+	{
+		console_print_vertex_at(index);
+
+		index++;
+		index %= world.vertexes.size;
+	}
+
+	if(world.vertexes.size == 0) printf_console("No vertexes, dude.\n");
 }
 /*
 void command_sector_show(char** tokens)
