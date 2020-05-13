@@ -19,66 +19,82 @@ extern SECTOR * closest_sector;
 
 extern float closest_vector_distance;
 extern float closest_edge_distance;
-/*
-PLAYER * player;
 
-void PLAYER_Init(PLAYER ** player)
+
+*/
+
+#include "gfx.h"
+#include "camera.h"
+#include "world.h"
+
+void init_player()
 {
-	PLAYER initted_player;
+	init_camera(&world.player.camera, 0.05, 10.0f, (float)gfx.screen_res_x/gfx.screen_res_y, M_PI/4.0f);
 
-	initted_player.pos = vector2(PLAYER_START_X, PLAYER_START_Y);
+	world.player.position = vector2f(0.0f, 0.0f);
+	world.player.current_height = 0.f;
 
-	initted_player.height = PLAYER_START_HEIGHT;
-
-	initted_player.pos_height = PLAYER_START_HEIGHT;
-	initted_player.h_velocity = 0.;
-
-	initted_player.facing = 0.00001;
-
-	initted_player.noclip = 0;
-
-	initted_player.walk_speed = 2.0f;
-	initted_player.run_speed = 4.0f;
-
-	initted_player.walk_turn_speed = 2.0f;
-	initted_player.run_turn_speed = 3.0f;
-
-	initted_player.speed = 1.0f;
-	initted_player.turn_speed = 0.5f;
-
-	initted_player.current_sector = 0;
-
-	initted_player.max_health = PLAYER_MAX_DEFAULT_HEALTH;
-	initted_player.health = PLAYER_MAX_DEFAULT_HEALTH;
-
-	initted_player.max_armor = PLAYER_MAX_DEFAULT_ARMOR;
-	initted_player.armor = PLAYER_MAX_DEFAULT_ARMOR;
-
-	initted_player.current_weapon = 2;
-
-	initted_player.movement_blocked = 0;
-
-	for(int i = 0; i < 10; i ++) initted_player.ammo[i] = 33;
+	world.player.tallness = PLAYER_HEIGHT;
+	world.player.h_velocity = 0.0f;
 	
-	initted_player.max_ammo[0] = WEAPON_0_MAX_AMMO; 
-	initted_player.max_ammo[1] = WEAPON_1_MAX_AMMO; 
-	initted_player.max_ammo[2] = WEAPON_2_MAX_AMMO; 
-	initted_player.max_ammo[3] = WEAPON_3_MAX_AMMO; 
-	initted_player.max_ammo[4] = WEAPON_4_MAX_AMMO; 
-	initted_player.max_ammo[5] = WEAPON_5_MAX_AMMO; 
-	initted_player.max_ammo[6] = WEAPON_6_MAX_AMMO; 
-	initted_player.max_ammo[7] = WEAPON_7_MAX_AMMO; 
-	initted_player.max_ammo[8] = WEAPON_8_MAX_AMMO; 
-	initted_player.max_ammo[9] = WEAPON_9_MAX_AMMO; 
+	world.player.is_grounded = true;
 
-	get_closest_vertex(initted_player.pos, &initted_player.closest_vector, &closest_vector_index, &initted_player.closest_vector_distance);
-	get_closest_edge(initted_player.pos, &initted_player.closest_edge, &closest_edge_projection, &closest_edge_index, &closest_sector_index, &initted_player.closest_edge_distance);
-	initted_player.closest_sector = get_sector_at(closest_sector_index);
-	
-	*player = malloc(sizeof(PLAYER));
-	**player = initted_player;
+	world.player.facing = 0.0f;
+
+	world.player.noclip = false;
+
+	world.player.walk_speed = PLAYER_WALK_SPEED;
+	world.player.run_speed = PLAYER_RUN_SPEED;
+
+	world.player.walk_turn_speed = PLAYER_WALK_TURN_SPEED;
+	world.player.run_turn_speed = PLAYER_RUN_TURN_SPEED;
+
+	world.player.max_health = PLAYER_MAX_DEFAULT_HEALTH;
+	world.player.health = PLAYER_MAX_DEFAULT_HEALTH;
+
+	world.player.max_armor = PLAYER_MAX_DEFAULT_ARMOR;
+	world.player.armor = PLAYER_MAX_DEFAULT_ARMOR;
+
+	world.player.current_sector = NULL;
+	world.player.closest_edge = NULL;
 }
 
+void update_player()
+{
+
+}
+
+static inline float get_player_speed()
+{
+	if(world.player.is_running == true) return world.player.run_speed;
+	else return world.player.walk_speed;
+}
+
+static inline float get_player_turn_speed()
+{
+	if(world.player.is_running == true) return world.player.run_turn_speed;
+	else return world.player.walk_turn_speed;
+}
+
+void move_player(void* direction_)
+{
+	Vector2f amount = scale_v2(*(Vector2f*)direction_, get_player_speed() * engine_delta_time());
+
+	world.player.position = sum_v2(world.player.position, amount);
+
+	world.player.camera.position = world.player.position;
+}
+
+void turn_player(void* direction_)
+{
+	world.player.facing += *(float*)direction_ * get_player_turn_speed() * engine_delta_time();
+
+	while(world.player.facing >= 2.0f * M_PI) world.player.facing -= 2.0f * M_PI;
+	while(world.player.facing < 0.0f) world.player.facing += 2.0f * M_PI;
+
+	world.player.camera.facing = world.player.facing;
+}
+/*
 void PLAYER_Update()
 {
 	if(player->noclip == 0)

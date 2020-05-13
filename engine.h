@@ -16,6 +16,7 @@ typedef struct Engine_
 	char* window_title;
 
 	bool is_running;
+	bool debug_flag; 
 
 	uint32_t game_mode;
 
@@ -34,7 +35,10 @@ extern Engine engine;
 
 void engine_init();
 void engine_quit();
+
 void signal_quit(void* engine);
+
+void engine_change_mode(uint32_t mode);
 
 void engine_loop();
 
@@ -42,6 +46,5 @@ static inline double engine_average_fps() { return engine.fps_samples/engine.fps
 static inline double engine_fps() { return 1.0f/engine.delta_time; }
 static inline double engine_delta_time() { return engine.delta_time; }
 //int engine_blink_state();
-
 
 #endif

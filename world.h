@@ -4,6 +4,7 @@
 #include "ff_vector2.h"
 #include "gfx.h"
 #include "ff_linked_list.h"
+#include "player.h"
 
 /*
 #define COLLIDED 1
@@ -58,6 +59,8 @@ typedef struct World_
 	ff_List edges;
 	ff_List sectors;
 	ff_List entities;
+
+	Player player;
 } World;
 
 extern World world;

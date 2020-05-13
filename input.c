@@ -13,7 +13,13 @@ ActionKeyPair action_dictionary[] =
 	{SDLK_ESCAPE, ACTION_QUIT},
 	{SDLK_BACKQUOTE, ACTION_TOGGLE_CONSOLE},
 	{SDLK_RETURN, ACTION_CONFIRM_CONSOLE},
-	{SDLK_KP_ENTER, ACTION_CONFIRM_CONSOLE}
+	{SDLK_KP_ENTER, ACTION_CONFIRM_CONSOLE},
+	{SDLK_w, ACTION_FORWARD}, 	
+	{SDLK_s, ACTION_BACKWARD}, 		
+	{SDLK_d, ACTION_STRAFE_RIGHT}, 		
+	{SDLK_a, ACTION_STRAFE_LEFT}, 		
+	{SDLK_RIGHT, ACTION_TURN_RIGHT}, 	
+	{SDLK_LEFT, ACTION_TURN_LEFT}
 };
 const static uint32_t action_dictionary_size = sizeof(action_dictionary)/sizeof(action_dictionary[0]);
 
@@ -56,6 +62,7 @@ void update_input()
 
 	input.mouse_buttons = SDL_GetMouseState(&input.mouse_x, &input.mouse_y);
 	
+
 	//Polls all events (also updates input.is_scancode_down by calling SDL_PumpEvents internally)
 	while(SDL_PollEvent(&event))
 	{
@@ -65,7 +72,7 @@ void update_input()
 				signal_quit(&engine);
 				break;
 			case SDL_KEYDOWN:
-				on_keydown(event.key.keysym.sym);
+				on_keydown(event.key.keysym.sym, false);
 				break;
 			case SDL_MOUSEMOTION:
 				on_mouse_movement(scale_v2(vector2f(event.motion.xrel, -event.motion.yrel), input.mouse_sensitivity));
@@ -74,6 +81,17 @@ void update_input()
 				on_mouse_wheel(event.wheel.y);
 				break;
 		}		
+	}
+
+	if(!input.text_input_enabled)
+	{
+		for(int i = 0; i < 284; i++)
+		{
+			if(input.is_scancode_down[i])
+			{
+				on_keydown(SDL_GetKeyFromScancode(i), true);
+			}
+		}
 	}
 }
 
@@ -85,6 +103,7 @@ bool get_actioncode_from_keycode(SDL_Keycode keycode, ActionCode* outcode)
 		if(action_dictionary[i].keycode == keycode)
 		{
 			*outcode = action_dictionary[i].actioncode;
+			
 			return true;
 		}
 	}
@@ -180,37 +199,51 @@ bool check_enabled_actions(ActionCode action)
 }
 
 //Performs action of action_code specified (Only keydowns)
-void on_action(ActionCode action_code)
+void on_action(Action action)
+{
+	if(!check_disabled_actions(action.action) &&
+		check_enabled_actions(action.action))
+	{
+		action.function.default_func(action.user_data);
+	}
+}
+
+bool check_registered_actions(ActionCode code, Action* out)
 {
 	for(int i = 0; i < input.registered_actions_size; i++)
 	{
-		if(	action_code == input.registered_actions[i].action && 
-			!check_disabled_actions(action_code) &&
-			check_enabled_actions(action_code))
+		if(	code == input.registered_actions[i].action )
 		{
-			input.registered_actions[i].function.default_func(input.registered_actions[i].user_data);
+			*out = input.registered_actions[i];
+			return true;
 		}
 	}
+
+	return false;
 }
 
 //Searches the Action Dictionary and Registered actions for the key that was pressed
 //And executes it.
-void on_keydown(SDL_Keycode keycode)
+void on_keydown(SDL_Keycode keycode, bool continuous)
 {
+	//If text input is enabled, write to text out.
+	if(input.text_input_enabled) on_text_input(keycode);
+
 	bool has_action = false;
 
-	ActionCode found_action;
+	ActionCode found_action_code;
+	Action found_action;
+
+	if(!get_actioncode_from_keycode(keycode, &found_action_code)) return;
+
+	has_action = check_registered_actions(found_action_code, &found_action);
 	
-	has_action = get_actioncode_from_keycode(keycode, &found_action);
+	//Do nothing if on continuous mode and action is not continuous
+	if(continuous && !(found_action.flags & ACT_FLAG_CONTINUOUS)) return;
 
 	//This is the normal on_action
 	if(has_action) on_action(found_action);
-
-	//If text input is enabled, write to text out.
-	if(input.text_input_enabled) on_text_input(keycode);
 }
-
-
 
 //Performs a Mouse_movement action.
 void on_mouse_movement(const Vector2f amount)

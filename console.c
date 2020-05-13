@@ -220,6 +220,7 @@ ConsoleCommand console_commands[] =
 	{"vertex", 1, command_vertex},
 	{"vertexlist", 1, command_vertex_list},
 	{"delvertex", 1, command_remove_vertex},
+	{"mode", 1, command_mode},
 /*	{"sector_show", 1, COMMAND_sector_show},
 	{"vertex_list", 0, COMMAND_vertex_list},
 	{"noclip", 0, COMMAND_vertex_list},

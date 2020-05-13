@@ -21,6 +21,8 @@ void command_set(char** tokens);
 void command_save_level(char** tokens);
 void command_load_level(char** tokens);
 
+void command_mode(char** tokens);
+
 void command_edit();
 
 #endif

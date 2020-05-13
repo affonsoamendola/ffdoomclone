@@ -28,14 +28,27 @@ typedef enum ActionCode_
 	ACTION_CONFIRM_CONSOLE,
 	ACTION_MOUSE_MOVE,
 	ACTION_MOUSE_DRAG_RIGHT,
-	ACTION_SCROLL_WHEEL
+	ACTION_SCROLL_WHEEL,
+	ACTION_FORWARD, 	
+	ACTION_BACKWARD, 		
+	ACTION_STRAFE_RIGHT, 		
+	ACTION_STRAFE_LEFT, 		
+	ACTION_TURN_RIGHT, 	
+	ACTION_TURN_LEFT, 
 } ActionCode;
+
+typedef enum ActionFlag_
+{
+	ACT_FLAG_NO_FLAG = 0,
+	ACT_FLAG_CONTINUOUS
+} ActionFlag;
 
 typedef struct Action_
 {
 	ActionCode action;
 	ActionFunction function;
 	void* user_data;
+	ActionFlag flags;
 } Action;
 
 typedef struct Input_
@@ -82,7 +95,7 @@ bool check_disabled_actions(ActionCode action);
 void set_enabled_actions(ActionCode* actions, const uint32_t number_of_actions);
 bool check_enabled_actions(ActionCode action);
 
-void on_keydown(SDL_Keycode keycode);
+void on_keydown(SDL_Keycode keycode, bool continuous);
 void on_mouse_movement(const Vector2f amount);
 
 void on_mouse_wheel(const int direction);

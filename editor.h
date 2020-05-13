@@ -55,6 +55,9 @@ static inline void get_editor_bounds(Vector2f* top_left, Vector2f* bot_right)
 
 void init_editor();
 
+void enter_editor();
+void leave_editor();
+
 void update_editor();
 
 void scroll_wheel_zoom(void* zoom, int direction);

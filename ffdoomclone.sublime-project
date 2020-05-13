@@ -1,0 +1,27 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+			"file_exclude_patterns": ["*.d"]
+		},
+		{
+			"path": "../ff-stb"
+		}
+	],
+	"build_systems":
+	[
+		{
+			"name": "make -j9",
+			"shell_cmd": "make -j9",
+			"variants" :
+			[
+				{
+				"name": "Run",
+				"shell_cmd": "make -j9 run"
+				}
+			]
+		}
+		
+	]
+}

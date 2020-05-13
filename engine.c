@@ -9,6 +9,7 @@
 #include "console_commands.h"
 #include "gfx.h"
 #include "world.h"
+#include "game.h"
 #include "time.h"
 
 #include "editor.h"
@@ -24,8 +25,9 @@ void engine_init()
 {
 	//Default values
 	engine.is_running = true;
+	engine.debug_flag = true;
 
-	engine.game_mode = MODE_EDITOR;
+	engine.game_mode = MODE_GAME;
 
 	engine.delta_time = 0.0f;
   	engine.fps_samples = 0.0f;
@@ -51,34 +53,55 @@ void engine_init()
 
 	init_console();
 	printf_console("Console Initted.\n");
+	
 	printf_console("Initting Input...\n");
 	init_input();
 	printf_console("Input Initted.\n");
-	//Initializes engine subsystems, and sets pointers to their structs.
-	//	engine.console = console_init();
+
 	printf_console("Initting GFX...\n");
 	GFX_init();
 	printf_console("GFX Initted.\n");
+
 	printf_console("Initting World...\n");
 	init_world();
 	printf_console("World Initted.\n");
+
 	printf_console("Initting Editor...\n");
 	init_editor();
 	printf_console("Editor Initted.\n");
 
-	command_intro(NULL);
-	//EDITOR_Init();
+	printf_console("Initting Game...\n");
+	init_game();
+	printf_console("Game Initted.\n");
 
-	//COMMAND_intro(NULL);
+	command_intro(NULL);
 }
 
 void engine_quit()
 {
+	quit_game();
 	quit_world();
 	GFX_quit();
 	IMG_Quit();
 	SDL_Quit();
 	exit(0);
+}
+
+void engine_change_mode(uint32_t mode)
+{
+	if(mode == engine.game_mode) return;
+
+	if(mode == MODE_EDITOR)
+	{
+		engine.game_mode = mode;
+		enter_editor();
+	}
+
+	if(mode == MODE_GAME)
+	{
+		engine.game_mode = mode;
+		leave_editor();
+	}
 }
 
 void signal_quit(void* engine)
@@ -92,7 +115,14 @@ void engine_loop()
 	const Uint64 frame_start = SDL_GetPerformanceCounter();
 
 	update_input();
-	update_editor();
+	if(engine.game_mode == MODE_EDITOR)
+	{
+		update_editor();
+	}
+	else if(engine.game_mode == MODE_GAME)
+	{
+		update_game();
+	}
 
 	GFX_render_start();
 
@@ -100,6 +130,11 @@ void engine_loop()
 	{
 		draw_editor();
 	}
+	else if(engine.game_mode == MODE_GAME)
+	{
+		draw_game();
+	}
+
 	if(console.open) draw_console();
 
 	GFX_draw_string_color_f(point2(250, 1), 3, DEBUG_TEXT_COLOR, "    FPS: %-.1f", engine_fps());

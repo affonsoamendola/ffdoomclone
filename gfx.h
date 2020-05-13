@@ -141,6 +141,14 @@ void GFX_blit_blend(	Color* src, Color* dst,
 
 Texture* GFX_get_texture_id(uint32_t texture_id);
 
+//Applies conversion from middle of screen being 0,0 to screen coordinates.
+//Also flips y coordinates
+static inline Point2 GFX_get_screen_coordinates(const Vector2f point) 
+{
+	return point2(	point.x + (gfx.screen_res_x/2), 
+					(gfx.screen_res_y/2) - point.y);
+}
+
 void GFX_blit_texture(	Texture* src, Texture* dst, 
 						Rect src_rect, Point2 dst_offset,
 						Point2 scale);

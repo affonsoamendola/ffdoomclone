@@ -1,24 +1,93 @@
-/*
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
 #include "engine.h"
 
-#include "vector2.h"
-#include "point2.h"
-#include "gfx.h"
-#include "world.h"
-#include "list.h"
-#include "player.h"
-#include "utility.h"
-
 #include "3d.h"
+#include "camera.h"
+#include "ff_vector2.h"
 
-extern PLAYER * player;
-extern LEVEL loaded_level;
-extern CAMERA * main_camera;
-extern SDL_Surface * screen;
+void render_wall(	Camera* cam,
+					const Vector2f v0_world, const Vector2f v1_world, 
+					float floor_world, float ceiling_world)
+{	
+
+	Vector2f v0_local = transform_camera(cam, v0_world);
+	Vector2f v1_local = transform_camera(cam, v1_world);
+
+	//If both vertexes are behind the player just leave.
+	if(v0_local.y <= cam->near_clip && v1_local.y <= cam->near_clip) return;
+
+	//Texture information for both vertexes.
+	float u0 = 0.0f;
+	float u1 = 1.0f;
+	
+	if(v0_local.y <= cam->near_clip)
+	{
+		Vector2f i0;
+
+		intersect_v2(	v0_local, v1_local, 
+						vector2f(-cam->near_x, cam->near_clip),
+						vector2f(-cam->far_x, cam->far_clip),
+						&i0);
+
+		u0 = (i0.x - v0_local.x) / (v1_local.x - v1_local.x);
+
+		v0_local = i0;
+	}
+	else if(v1_local.y <= cam->near_clip)
+	{
+		Vector2f i1;
+
+		intersect_v2(	v0_local, v1_local, 
+						vector2f(cam->near_x, cam->near_clip),
+						vector2f(cam->far_x,  cam->far_clip),
+						&i1);
+
+		u1 = (i1.x - v0_local.x) / (v1_local.x - v1_local.x);
+
+		v1_local = i1;
+	}
+
+	float floor_local = rel_height_camera(cam, floor_world);
+	float ceiling_local = rel_height_camera(cam, ceiling_world);
+
+	float scale0;
+
+	project_cam(cam, v0_local, &scale0);
+
+	Vector2f v0 = scale_v2(v0_local, scale0);
+	float floor0 = floor_local * scale0;
+	float ceil0 = ceiling_local * scale0;
+
+	float scale1;
+
+	project_cam(cam, v1_local, &scale1);
+
+	Vector2f v1 = scale_v2(v1_local, scale1);
+	float floor1 = floor_local * scale1;
+	float ceil1 = ceiling_local * scale1;
+
+	GFX_draw_string_color_f(GFX_get_screen_coordinates(vector2f(v0.x-32.0f, ceil0)), 
+							3, DEBUG_TEXT_COLOR, "%f", u0);
+	GFX_draw_line(	GFX_get_screen_coordinates(vector2f(v0.x, ceil0)), 
+					GFX_get_screen_coordinates(vector2f(v0.x, floor0)), color(255,0,0,255));
+
+	GFX_draw_string_color_f(GFX_get_screen_coordinates(vector2f(v1.x-32.0f, ceil1)), 
+							3, DEBUG_TEXT_COLOR, "%f", u1);
+	GFX_draw_line(	GFX_get_screen_coordinates(vector2f(v1.x, ceil1)), 
+					GFX_get_screen_coordinates(vector2f(v1.x, floor1)), color(0,255,0,255));
+}
+
+void render_level(Camera* cam)
+{	
+	Vector2f v0 = vector2f(0.4, 3.0);
+	Vector2f v1 = vector2f(0.7, 2.0);
+
+	render_wall(	cam,
+					v0, v1, 
+					-0.5, 0.5);
+
+	GFX_update_pixels();
+}
+
 /*
 void  G3D_transform_no_height(	VECTOR2 origin, float origin_rotation,
 								VECTOR2 position, VECTOR2* out_pos)

@@ -18,12 +18,12 @@ Editor editor;
 //Relates an Action to a function (And its data)
 Action editor_actions[] =
 {
-	{ACTION_QUIT, signal_quit, &engine},
-	{ACTION_TOGGLE_CONSOLE, toggle_console, &console},
-	{ACTION_CONFIRM_CONSOLE, enter_console, &input.text_input_character_loc},
-	{ACTION_MOUSE_MOVE, (ActionFunction)move_editor_cursor, &editor.cursor_location},
-	{ACTION_MOUSE_DRAG_RIGHT, (ActionFunction)move_editor_view, &editor.center},
-	{ACTION_SCROLL_WHEEL, (ActionFunction)scroll_wheel_zoom, &editor.zoom}
+	{ACTION_QUIT, signal_quit, &engine, 0},
+	{ACTION_TOGGLE_CONSOLE, toggle_console, &console, 0},
+	{ACTION_CONFIRM_CONSOLE, enter_console, &input.text_input_character_loc, 0},
+	{ACTION_MOUSE_MOVE, (ActionFunction)move_editor_cursor, &editor.cursor_location, 0},
+	{ACTION_MOUSE_DRAG_RIGHT, (ActionFunction)move_editor_view, &editor.center, 0},
+	{ACTION_SCROLL_WHEEL, (ActionFunction)scroll_wheel_zoom, &editor.zoom, 0}
 };
 const static uint32_t editor_actions_size = sizeof(editor_actions)/sizeof(Action);
 
@@ -45,9 +45,19 @@ void init_editor()
 	editor.grid_size = 0.1f;
 	editor.grid_color = color(75, 75, 75, 255);
 
-	set_input_actions(editor_actions, editor_actions_size);
-
 	editor.edge_color = color(100, 100, 100, 255);
+
+	enter_editor();
+}
+
+void enter_editor()
+{
+	set_input_actions(editor_actions, editor_actions_size);
+}
+
+void leave_editor()
+{
+	set_input_actions(NULL, 0);
 }
 
 //Ran once per frame, updates state.

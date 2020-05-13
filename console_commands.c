@@ -120,6 +120,36 @@ void command_vertex_list(char** tokens)
 
 	if(world.vertexes.size == 0) printf_console("No vertexes, dude.\n");
 }
+
+void command_mode(char** tokens)
+{
+	uint32_t mode;
+	sscanf(*tokens, "%d", &mode);
+
+	switch(mode)
+	{
+		case MODE_EDITOR:
+		{
+			printf_console("Changing to editor mode.\n");
+			engine_change_mode(mode);
+		}
+		break;
+
+		case MODE_GAME:
+		{
+			printf_console("Changing to game mode.\n");
+			engine_change_mode(mode);
+		}
+		break;
+
+		default:
+		{
+			printf_console("Unrecognized mode.\n");
+		}
+		break;
+	}
+}
+
 /*
 void command_sector_show(char** tokens)
 {

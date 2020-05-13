@@ -1,0 +1,1096 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"reg",
+				"registered_actions_size"
+			],
+			[
+				"found",
+				"found_action"
+			],
+			[
+				"found_ac",
+				"found_action_code"
+			],
+			[
+				"check",
+				"check_registered_actions"
+			],
+			[
+				"Actio",
+				"ActionCode"
+			],
+			[
+				"is",
+				"is_scancode_down"
+			],
+			[
+				"text",
+				"text_input_enabled"
+			],
+			[
+				"foun",
+				"found_action"
+			],
+			[
+				"Ac",
+				"ActionFlag"
+			],
+			[
+				"Act",
+				"ActionFlags_"
+			],
+			[
+				"get",
+				"get_player_turn_speed"
+			],
+			[
+				"engine",
+				"engine_delta_time"
+			],
+			[
+				"vector2",
+				"vector2"
+			],
+			[
+				"Ve",
+				"vector2"
+			],
+			[
+				"min",
+				"min_x"
+			],
+			[
+				"max",
+				"max_x"
+			],
+			[
+				"v0",
+				"v0_local"
+			],
+			[
+				"far",
+				"far_clip"
+			],
+			[
+				"far_",
+				"far_x"
+			],
+			[
+				"near",
+				"near_clip"
+			],
+			[
+				"floo",
+				"floor_world"
+			],
+			[
+				"cei",
+				"ceil1"
+			],
+			[
+				"ceil",
+				"ceil0"
+			],
+			[
+				"vec",
+				"vector2f"
+			],
+			[
+				"init",
+				"init_3d"
+			],
+			[
+				"scree",
+				"screen_res_y"
+			],
+			[
+				"sca",
+				"scale_v2"
+			],
+			[
+				"hither",
+				"hither_z"
+			],
+			[
+				"hit",
+				"hither_z"
+			],
+			[
+				"pro",
+				"proj_x"
+			],
+			[
+				"proj",
+				"proj_x"
+			],
+			[
+				"vect",
+				"vector2"
+			],
+			[
+				"scre",
+				"screen_space_coordinates"
+			],
+			[
+				"scale",
+				"scale_v"
+			],
+			[
+				"world",
+				"world_pos"
+			],
+			[
+				"pos",
+				"position"
+			],
+			[
+				"vector2f",
+				"Vector2f"
+			],
+			[
+				"MODE",
+				"MODE_GAME"
+			],
+			[
+				"game",
+				"game_mode"
+			],
+			[
+				"consol",
+				"printf_console"
+			],
+			[
+				"size",
+				"size"
+			],
+			[
+				"curre",
+				"current_projection"
+			],
+			[
+				"closes",
+				"closest_projection"
+			],
+			[
+				"vertex",
+				"vertex_start"
+			],
+			[
+				"start",
+				"start_pos"
+			],
+			[
+				"curren",
+				"current_distance"
+			],
+			[
+				"vector",
+				"vector_to"
+			],
+			[
+				"nex",
+				"next_element"
+			],
+			[
+				"firs",
+				"first_element"
+			],
+			[
+				"CHAR",
+				"CHAR_WIDTH"
+			],
+			[
+				"char",
+				"CHAR_HEIGHT"
+			],
+			[
+				"bmp",
+				"bmp_height"
+			],
+			[
+				"b",
+				"bmp_width"
+			],
+			[
+				"bm",
+				"bmp_file"
+			],
+			[
+				"b_",
+				"bmp_height"
+			],
+			[
+				"Cha",
+				"CHAR_HEIGHT"
+			],
+			[
+				"Char",
+				"CHAR_HEIGHT"
+			],
+			[
+				"bi",
+				"bmp_width"
+			],
+			[
+				"CH",
+				"CHAR_WIDTH"
+			],
+			[
+				"C",
+				"CHAR_TABLE_WIDTH"
+			],
+			[
+				"Ch",
+				"CHAR_WIDTH"
+			],
+			[
+				"arg",
+				"argc"
+			],
+			[
+				"ch",
+				"CHAR_WIDTH"
+			],
+			[
+				"bin",
+				"bin_in"
+			],
+			[
+				"png",
+				"png_width"
+			],
+			[
+				"pn",
+				"png_width"
+			],
+			[
+				"dupe",
+				"dupe_id"
+			],
+			[
+				"file",
+				"file_size"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "3d.c",
+			"settings":
+			{
+				"buffer_size": 23549,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "3d.h",
+			"settings":
+			{
+				"buffer_size": 784,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "game.c",
+			"settings":
+			{
+				"buffer_size": 1700,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "editor.c",
+			"settings":
+			{
+				"buffer_size": 31359,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "engine.h",
+			"settings":
+			{
+				"buffer_size": 995,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "engine.c",
+			"settings":
+			{
+				"buffer_size": 3504,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "input.c",
+			"settings":
+			{
+				"buffer_size": 13965,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "input.h",
+			"settings":
+			{
+				"buffer_size": 2470,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "world.c",
+			"settings":
+			{
+				"buffer_size": 11815,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "world.h",
+			"settings":
+			{
+				"buffer_size": 2802,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "camera.h",
+			"settings":
+			{
+				"buffer_size": 887,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "player.c",
+			"settings":
+			{
+				"buffer_size": 4404,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "player.h",
+			"settings":
+			{
+				"buffer_size": 1467,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/home/affonso/git/ffdoomclone",
+		"/home/affonso/git/ff-stb",
+		"/home/affonso/git/ff-stb/C"
+	],
+	"file_history":
+	[
+		"/home/affonso/git/ffdoomclone/3d.c",
+		"/home/affonso/git/ffdoomclone/player.h",
+		"/home/affonso/git/ffdoomclone/gfx.h",
+		"/home/affonso/git/ffdoomclone/gfx.c",
+		"/home/affonso/git/ffdoomclone/engine.c",
+		"/home/affonso/git/ff-stb/C/ff_vector2.h",
+		"/home/affonso/git/ff-stb/C/ff_math.h",
+		"/home/affonso/git/ffdoomclone/camera.h",
+		"/home/affonso/git/academia/eps/aga0505/ex07/im0.png",
+		"/home/affonso/git/ffdoomclone/game.c",
+		"/home/affonso/git/ffdoomclone/game.h",
+		"/home/affonso/git/ffdoomclone/3d.h",
+		"/home/affonso/git/ffdoomclone/world.c",
+		"/home/affonso/git/ffdoomclone/world.h",
+		"/home/affonso/git/ffdoomclone/console_commands.c",
+		"/home/affonso/git/ffdoomclone/console.c",
+		"/home/affonso/git/ffdoomclone/editor.c",
+		"/home/affonso/git/ffdoomclone/input.c",
+		"/home/affonso/git/ffdoomclone/input.h",
+		"/home/affonso/git/ffdoomclone/editor.h",
+		"/home/affonso/git/ffdoomclone/engine.h",
+		"/home/affonso/git/ffdoomclone/console_commands.h",
+		"/home/affonso/git/ff-stb/C/ff_linked_list.h",
+		"/home/affonso/git/ffdoomclone/ffdoomclone.sublime-project",
+		"/home/affonso/research/console/neogeo_mvs/games/agressors_of_dark_kombat/Mini1Jfake.txt",
+		"/home/affonso/research/antique/gangbusters/Story1.txt",
+		"/home/affonso/downloads/torrents/segadoeswhatnintendontlololol/unsorted/d1/routefree/ng/depot/CVSROOT/loginfo",
+		"/home/affonso/downloads/torrents/segadoeswhatnintendontlololol/unsorted/depot/hw/chip/lib/kilopass/081205/datasheet/KPS13_DS_V031605.pdf,v",
+		"/home/affonso/downloads/torrents/segadoeswhatnintendontlololol/unsorted/d1/routefree/ng/depot/doc/index.html,v",
+		"/home/affonso/research/computers/pc/fstop/Notice.txt",
+		"/home/affonso/downloads/torrents/mega-archive/full/hl2_src/createallprojects.bat",
+		"/home/affonso/downloads/torrents/mega-archive/full/hl2_src/hammer/hammer.h",
+		"/home/affonso/downloads/torrents/mega-archive/full/hl2_src/filelist2013.txt",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/Notice.txt",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/src/createfstop.bat",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/README.md",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/thirdpartylegalnotices.txt",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/README",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/src/game/client/c_env_ambient_light.cpp",
+		"/home/affonso/downloads/torrents/mega-archive/fstop-src-master/src/engine/iblackbox.h",
+		"/home/affonso/downloads/torrents/mega-archive/Notice.txt",
+		"/home/affonso/downloads/torrents/mega-archive/What is full.zip.txt",
+		"/home/affonso/downloads/torrents/mega-archive/2016 Half-Life 3 related leaks/Direct Messages - Valve News Network,Jackathan, DankParrot.txt",
+		"/home/affonso/downloads/torrents/mega-archive/2016 Half-Life 3 related leaks/Cephalon.txt",
+		"/home/affonso/downloads/torrents/mega-archive/2016 Half-Life 3 related leaks/explanation.txt",
+		"/home/affonso/downloads/torrents/mega-archive/Images of Valves VSS/Explanation.txt",
+		"/home/affonso/git/bin-font-extractor/Makefile",
+		"/home/affonso/git/bin-font-extractor/extract.c",
+		"/home/affonso/downloads/torrents/April 22nd 2020, random leaked shit/mega-archive/Images of Valves VSS/Explanation.txt",
+		"/home/affonso/research/console/Nintendo Switch/NintendoSDK+NWv7.3.2/Documents/Package/contents/Pages/Page_83955510.html",
+		"/home/affonso/research/console/Nintendo Switch/NintendoSDK+NWv7.3.2/NintendoSDK+NWv7.3.2/Include/vulkan/vk_platform.h",
+		"/home/affonso/git/ffdoomclone/Makefile",
+		"/home/affonso/git/png-extractor/png-extractor.py",
+		"/home/affonso/git/bin-font-extractor/fontextract.py",
+		"/home/affonso/research/results.txt",
+		"/home/affonso/data_ripping/hgc_font",
+		"/home/affonso/research/results (copy 1).txt",
+		"/home/affonso/downloads/torrents/TempleOS/TORRENT_README.md",
+		"/home/affonso/downloads/torrents/TempleOS/Official/Linux/TOSZ.CPP",
+		"/home/affonso/downloads/torrents/TempleOS/Official/TOS_Supplemental1.ISO.C",
+		"/home/affonso/hackerstuff/Collection 1/Collection  #1_OLD CLOUD_Japan combos/37.txt",
+		"/home/affonso/oldshit/phonebackup/SD Card (Read-only)/.listing",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/leancloud/dontpanic.cp",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.tinder/.listing",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.tinder/cache/.listing",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.ecareme.asuswebstorage/cache/uil-images/journal",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.asus.server.azs/.listing",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.asus.server.azs/cache/.listing",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.asus.message/cache/.listing",
+		"/home/affonso/oldshit/phonebackup/Internal Storage (Asus ASUS_T00J)/Android/data/com.asus.message/.listing",
+		"/home/affonso/documents/Senha NEt",
+		"/home/affonso/oldshit/palette.txt",
+		"/home/affonso/oldshit/saf",
+		"/home/affonso/oldshit/hands_files.h",
+		"/home/affonso/oldshit/anim.c",
+		"/home/affonso/oldshit/nohup.out",
+		"/home/affonso/oldshit/aff.csv",
+		"/home/affonso/oldshit/quake/readme.txt",
+		"/home/affonso/hackerstuff/testing/random_pwnable.c",
+		"/home/affonso/oldshit/git/zoom/README",
+		"/home/affonso/oldshit/git/u80sees/main.cpp",
+		"/home/affonso/oldshit/git/testing/test.c",
+		"/home/affonso/oldshit/git/songsources/youtubelist",
+		"/home/affonso/oldshit/git/simh/README.md",
+		"/home/affonso/oldshit/git/siamxt/README.txt",
+		"/home/affonso/oldshit/git/Shark/src/Version.cpp",
+		"/home/affonso/oldshit/git/SGDK/readme.txt",
+		"/home/affonso/oldshit/git/pyMageManip/pyMageManip.py",
+		"/home/affonso/oldshit/git/profileTest/teste.c",
+		"/home/affonso/oldshit/git/pp2d/renderer.hpp",
+		"/home/affonso/git/ffdoomclone/engine.",
+		"/home/affonso/oldshit/git/moser/hdust/beatlas/beatlas.py3",
+		"/home/affonso/oldshit/git/matrix/dist/matrix.cpp",
+		"/home/affonso/oldshit/bin/OUTPUT.LOG",
+		"/home/affonso/oldshit/bin/ascii",
+		"/home/affonso/oldshit/backup/ComoObservarOCeu.rtf",
+		"/home/affonso/oldshit/backup/Perolas/VASEFODERNOINFERNO.txt",
+		"/home/affonso/oldshit/backup/Perolas/VERMEDESPRESIVEL.txt",
+		"/home/affonso/oldshit/backup/Carciofi/eps/Fernanda/ex1.py",
+		"/home/affonso/oldshit/backup/Carciofi/eps/Fernanda/exercicio1.py",
+		"/home/affonso/oldshit/backup/archiv/Research/Interesting features of old notebooks p.1",
+		"/home/affonso/oldshit/backup/archiv/Research/SpaceAndAstronomyRetroComputing/cd.textfiles.com/spaceandast/VIEWERS/SGI/00_INDEX.TXT",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/test2.bash",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/UprightR-S/test2.bash",
+		"/home/affonso/oldshit/backup/archiv/Research/S100 8086/s100_8086.sch",
+		"/home/affonso/research/computers/CPC-14 Color Monitor/FuseTypes",
+		"/home/affonso/oldshit/backup/archiv/Research/Arduino Rom Reader/leitorDeRom.ino",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/Upright1-C/test2.bash",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/oNyX-NewMarqueePhotos/Also KOF2001 and RaidenII but forgot.nt",
+		"/home/affonso/git/collection-file-structure/README.md",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/MAMEnews/test2.bash",
+		"/home/affonso/bin/vscode",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/HoustonExpo(Fitzgeralds)-20030405_oNyX/test2.bash",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/cali-extreme/test.bash",
+		"/home/affonso/.bashrc",
+		"/home/affonso/.path",
+		"/home/affonso/.config/fish/config.fish",
+		"/home/affonso/oldshit/backup/archiv/Research/Arcade and Pinball/The oNyX Museum/20031108-TexasPinballFestival_oNyX/test.bash",
+		"/home/affonso/bin/vscode.sh",
+		"/home/affonso/.config/Kvantum/Matchama-Dark#/Matchama-Dark#.kvconfig"
+	],
+	"find":
+	{
+		"height": 48.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"))",
+			"flags",
+			"editor",
+			"player.",
+			"player->",
+			"ayer.",
+			"position",
+			"position ",
+			"player->",
+			"int ",
+			"height",
+			"PLAYER",
+			"near",
+			"near_y",
+			"near",
+			"world",
+			"sector",
+			"_projected",
+			"point2",
+			"),",
+			"float ",
+			"screen_space_coordinates",
+			"_initialize",
+			".\n",
+			"start",
+			"end",
+			"VECTOR2",
+			"Vector2f",
+			"const",
+			"png",
+			"filename",
+			"d3dae3"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 2,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "3d.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23549,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1677,
+								1677
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C Improved/C Improved.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1482.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "3d.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 784,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								72,
+								72
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 11,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "game.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1700,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1470,
+								1470
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 919.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "editor.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 31359,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								301,
+								301
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C Improved/C Improved.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1092.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "engine.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 995,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								938,
+								938
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 780.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "engine.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3504,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1935,
+								1935
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C Improved/C Improved.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2184.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "input.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 13965,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5710,
+								5710
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C Improved/C Improved.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 5200.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "input.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2470,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2023,
+								2023
+							]
+						],
+						"settings":
+						{
+							"spell_check": true,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2292.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "world.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 11815,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								197,
+								197
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C Improved/C Improved.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1248.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "world.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2802,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								291,
+								291
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "camera.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 887,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								517,
+								517
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 858.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 12,
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "player.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4404,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								512,
+								512
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C Improved/C Improved.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 728.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 10,
+					"type": "text"
+				},
+				{
+					"buffer": 12,
+					"file": "player.h",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1467,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								117,
+								117
+							]
+						],
+						"settings":
+						{
+							"spell_check": true,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 9,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 35.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 348.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "make -j9",
+	"project": "ffdoomclone.sublime-project",
+	"replace":
+	{
+		"height": 66.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 203.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

@@ -8,27 +8,26 @@
 #include "ff_linked_list.h"
 
 #include "world.h"
+#include "player.h"
 
 World world;
 
 void init_world()
 {
-	/*
-	world.vertex_size = sizeof(vertex_test)/sizeof(Vector2f);
-	world.vertexes = (Vector2f*)&vertex_test;
-
-	world.edge_size = sizeof(edge_test)/sizeof(Edge);
-	world.edges = (Edge*)&edge_test;
-	*/
-
 	ff_initialize_list(&world.vertexes);
 	ff_initialize_list(&world.edges);
 	ff_initialize_list(&world.sectors);
 	ff_initialize_list(&world.entities);
+
+	init_player();
 }
 
 void quit_world()
 {
+	ff_destroy_list(&world.vertexes);
+	ff_destroy_list(&world.edges);
+	ff_destroy_list(&world.sectors);
+	ff_destroy_list(&world.entities);
 }
 
 void level_add_edge(Vertex* start, Vertex* end)
@@ -44,7 +43,7 @@ void level_add_vertex(Vector2f new_vertex_)
 }
 
 //Destroyers removers of lists
-void level_destroy_sector(Sector * sector)
+void level_destroy_sector(Sector* sector)
 {
 	uint32_t found_index;
 	if(ff_find_list(&world.sectors, &found_index, sector))
@@ -53,7 +52,7 @@ void level_destroy_sector(Sector * sector)
 	}
 }
 
-void level_destroy_edge(Edge * edge)
+void level_destroy_edge(Edge* edge)
 {
 	uint32_t found_index;
 	if(ff_find_list(&world.edges, &found_index, edge))
@@ -62,7 +61,7 @@ void level_destroy_edge(Edge * edge)
 	}
 }
 
-void level_destroy_vertex(Vertex * vertex)
+void level_destroy_vertex(Vertex* vertex)
 {
 	uint32_t found_index;
 	if(ff_find_list(&world.vertexes, &found_index, vertex))
@@ -111,215 +110,6 @@ void level_remove_sector(Sector* sector)
 	level_destroy_sector(sector);
 }
 /*
-Vector2f WORLD_get_vertex_at(const uint32_t index)
-{
-	if(index < world.vertex_size)
-	{
-		return *(world.vertexes + index);
-	}
-	else
-	{
-		return vector2f(0, 0);
-	}
-}
-/*
-void WORLD_delete_edge_at(int sector_index, int edge_index)
-{
-	EDGE * new_e;
-	SECTOR * sector;
-
-	sector = loaded_level.sectors + sector_index;
-
-	new_e = malloc(sizeof(EDGE) * (sector->e_num-1));
-
-	for(int i = 0; i < edge_index; i++)
-	{
-		new_e[i] = sector->e[i];
-	}
-
-	for(int i = edge_index + 1; i < sector->e_num; i++)
-	{
-		new_e[i-1] = sector->e[i];
-	}
-
-	sector->e_num -= 1;
-
-	free(sector->e);
-
-	if(sector->e_num == 0)
-	{
-		WORLD_delete_sector_at(sector_index);
-	}
-	else
-	{
-		sector->e = new_e;
-	}
-}
-/*
-void WORLD_delete_sector_at(int index)
-{
-	SECTOR * new_sectors;
-
-	new_sectors = malloc(sizeof(SECTOR) * (loaded_level.s_num - 1));
-
-	for(int i = 0; i < index; i++)
-	{
-		new_sectors[i] = loaded_level.sectors[i];
-	}
-
-	for(int i = index + 1; i < loaded_level.s_num; i++)
-	{
-		loaded_level.sectors[i].sector_id--;
-		new_sectors[i-1] = loaded_level.sectors[i];
-	}
-
-	free(loaded_level.sectors);
-
-	loaded_level.sectors = new_sectors;
-	loaded_level.s_num -= 1;
-}
-
-void WORLD_delete_vertex_at(int index)
-{
-	if(loaded_level.v_num > 0)
-	{
-		VECTOR2 * new_vertexes;
-
-		new_vertexes = malloc(sizeof(VECTOR2) * (loaded_level.v_num - 1));
-
-		for(int i = 0; i < index; i++)
-		{
-			new_vertexes[i] = loaded_level.vertexes[i];
-		}
-
-		for(int i = index + 1; i < loaded_level.v_num; i ++)
-		{
-			new_vertexes[i - 1] = loaded_level.vertexes[i];
-		}
-
-		loaded_level.v_num -= 1;
-
-		free(loaded_level.vertexes);
-		loaded_level.vertexes = new_vertexes;
-
-		SECTOR * current_sector;
-		EDGE * current_edge;
-		EDGE * next_edge;
-		int next_edge_index;
-
-		int sector_amount;
-
-		sector_amount = loaded_level.s_num;
-
-		for(int s = 0; s < sector_amount; s++)
-		{
-			current_sector = loaded_level.sectors + s;
-
-			for(int e = 0; e < current_sector->e_num; e++)
-			{	
-				current_edge = current_sector->e + e;
-
-				if(e == current_sector->e_num - 1)
-				{
-					next_edge_index = 0;
-				}
-				else
-				{
-					next_edge_index = e + 1;
-				}
-
-				next_edge = current_sector->e + next_edge_index;
-
-				if(current_edge->v_end == index)
-				{
-					current_edge->v_end = next_edge->v_end;
-
-					delete_edge_at(s, next_edge_index);
-
-					if(sector_amount > loaded_level.s_num)
-					{
-						sector_amount = loaded_level.s_num;
-						s--;
-						break;
-					}
-				}
-			}
-		}
-
-		for(int s = 0; s < loaded_level.s_num; s++)
-		{
-			current_sector = loaded_level.sectors + s;
-
-			for(int e = 0; e < current_sector->e_num; e++)
-			{	
-				current_edge = current_sector->e + e;
-
-				if(current_edge->v_start > index)
-					current_edge->v_start--;
-
-				if(current_edge->v_end > index)
-					current_edge->v_end--;
-			}
-		}
-	}
-}
-
-EDGE * get_edge_from_level(int sector_index, int edge_index)
-{
-	SECTOR * sector;
-	EDGE * edge;
-
-	edge = NULL;
-
-	if(sector_index < loaded_level.s_num)
-	{
-		sector = loaded_level.sectors + sector_index;
-		
-		if(edge_index < sector->e_num)
-		{	
-			edge = sector->e + edge_index;
-		}
-	}
-
-	return edge;
-}
-
-EDGE * get_edge_at(SECTOR * sector, int edge_index)
-{
-	if(edge_index >= 0 && edge_index < sector->e_num)
-	{
-		return sector->e + edge_index;
-	}
-	else
-	{
-		return sector->e;
-	}
-}
-
-SECTOR * get_sector_at(int sector_index)
-{
-	if(sector_index >= 0 && sector_index < loaded_level.s_num)
-	{
-		return loaded_level.sectors + sector_index;
-	}
-	else
-	{
-		return loaded_level.sectors;
-	}
-}
-
-VECTOR2 get_vertex_from_sector(SECTOR * sector, int edge_index, int start_or_end)
-{
-	if(start_or_end == 0)
-	{
-		return get_vertex_at(get_edge_at(sector, edge_index)->v_start);
-	}
-	else
-	{
-		return get_vertex_at(get_edge_at(sector, edge_index)->v_end);
-	}
-}
-
 void level_load(const char * file_location)
 {
 	FILE * level_file;
@@ -475,302 +265,86 @@ void level_load(const char * file_location)
 	}
 }
 */
-/*
-uint32_t WORLD_add_vertex(const Vector2f vertex)
+
+//Gets the closest vertex in the world for that position
+//Puts NULL in closest and 0 in distance if cant find one (Basically means the closest is itself.)
+void level_closest_vertex(const Vector2f pos, Vector2f** closest_out, float * distance_out)
 {
-	world.vertexes = realloc(world.vertexes, sizeof(Vector2f) * (world.vertex_size + 1));
+	float closest_distance = FLT_MAX;
+	Vector2f* closest_vector = NULL;
 
-	world.vertexes[world.vertex_size] = vertex;
-	world.vertex_size += 1;
-
-	return world.vertex_size;
-}
-/*
-void WORLD_remove_n_vertexes(int n)
-{
-	VECTOR2 * new_vertexes;
-
-	int new_vertexes_size;
-
-	new_vertexes_size = loaded_level.v_num - n;
-
-	new_vertexes = malloc(sizeof(VECTOR2) * (new_vertexes_size));
-
-	for(int v = 0; v < new_vertexes_size; v ++)
+	for(int i=0; i < world.vertexes.size; i++) //world.vertexes.size guarantees(hopefully) that the carouselling will go back to the first element being first.
 	{
-		new_vertexes[v] = loaded_level.vertexes[v];
-	}
-
-	loaded_level.v_num -= n;
-
-	free(loaded_level.vertexes);
-
-	loaded_level.vertexes = new_vertexes;
-}
-
-int WORLD_add_edge_to_sector(SECTOR * sector, int vertex_start_index, int vertex_end_index)
-{
-	int new_edge_index = sector->e_num;
-
-	EDGE new_edge;
-
-	EDGE * new_e;
-
-	new_e = malloc(sizeof(EDGE) * (new_edge_index + 1));	
-
-	for(int i = 0; i < new_edge_index; i++)
-	{
-		new_e[i] = sector->e[i];
-	}
-
-	new_edge.v_start = vertex_start_index;
-	new_edge.v_end = vertex_end_index;
-
-	new_edge.text_param = DEFAULT_TEXTURE_PARAM;
-
-	new_edge.is_portal = 0;
-	new_edge.neighbor_sector_id = -1;
-
-	SECTOR * old_sector;
-	EDGE * old_edge;
-
-	for(int old_s = 0; old_s < loaded_level.s_num; old_s ++)
-	{
-		old_sector = loaded_level.sectors + old_s;
-
-		for(int old_e = 0; old_e < old_sector->e_num; old_e ++)
-		{
-			old_edge = old_sector->e + old_e;
-
-			if( (new_edge.v_start == old_edge->v_start && new_edge.v_end == old_edge->v_end) ||
-				(new_edge.v_start == old_edge->v_end && new_edge.v_end == old_edge->v_start))
-			{
-				new_edge.is_portal = true;
-				old_edge->is_portal = true;
-
-				new_edge.neighbor_sector_id = old_s;
-				old_edge->neighbor_sector_id = sector->sector_id;
-			}
-		}	
-	}
-
-	new_e[new_edge_index] = new_edge;
-
-	free(sector->e);
-	sector->e = new_e;
-
-	sector->e_num = (sector->e_num) + 1;
-
-	return new_edge_index;
-}	
-
-int WORLD_add_sector_to_level(SECTOR * sector)
-{
-	int new_sector_index = loaded_level.s_num;
-
-	SECTOR * new_sectors;
-
-	new_sectors = malloc(sizeof(SECTOR) * (new_sector_index + 1));
-
-	for(int i = 0; i < new_sector_index; i++)
-	{
-		new_sectors[i] = loaded_level.sectors[i];
-	}
-
-	sector->sector_id = new_sector_index;
-	sector->tint = GFX_Tint(1., 1., 1.);
-	new_sectors[new_sector_index] = *sector;
-	loaded_level.s_num += 1;
-
-	free(loaded_level.sectors);
-	loaded_level.sectors = new_sectors;
-
-	return new_sector_index;
-}
-
-void get_closest_vertex(VECTOR2 pos, VECTOR2 * closest, int * vertex_index, float * distance)
-{
-	VECTOR2 current_vector;
-	float current_distance;
-
-	int closest_vector_i = 0;
-	VECTOR2 closest_vector = loaded_level.vertexes[0];
-	float closest_distance = norm_v2(sub_v2(pos, closest_vector));
-
-	for(int v = 0; v < loaded_level.v_num; v++)
-	{
-		current_vector = loaded_level.vertexes[v];
-
-		current_distance = norm_v2(sub_v2(pos, loaded_level.vertexes[v]));
+		//Standard closest checking.
+		Vector2f* current_vector = (Vector2f*)ff_get_at_list(&world.vertexes, 0);
+		float current_distance = distance_v2(pos, *current_vector);
 
 		if(current_distance < closest_distance)
 		{
-			closest_vector_i = v;
-			closest_vector = current_vector;
 			closest_distance = current_distance;
+			closest_vector = current_vector;
 		}
-	}
-
-	if(closest != NULL)
-	{
-		*closest = closest_vector;
-	}
-
-	if(vertex_index != NULL)
-	{
-		*vertex_index = closest_vector_i;
-	}
-
-	if(distance != NULL)
-	{
-		*distance = closest_distance;
-	}
-}
-
-void get_closest_edge(VECTOR2 pos, EDGE ** edge, VECTOR2 * projection, int * edge_index, int * sector_index, float * distance)
-{
-	float closest_edge_index;
-	float closest_sector_index;
-	float closest_distance;
-	VECTOR2 closest_projection;
-
-	SECTOR * current_sector;
-	EDGE * current_edge;
-	VECTOR2 current_projection;
-
-	float current_distance;
-
-	current_distance = distance_v2_to_segment(pos, get_vertex_at(loaded_level.sectors->e->v_start), get_vertex_at(loaded_level.sectors->e->v_end), &current_projection);
-	
-	closest_edge_index = 0;
-	closest_sector_index = 0;
-	closest_distance = current_distance;
-	closest_projection = current_projection;
-
-	for(int s = 0; s < loaded_level.s_num; s++)
-	{
-		current_sector = loaded_level.sectors + s;
-
-		for(int e = 0; e < current_sector->e_num; e++)
-		{
-			current_edge = current_sector->e + e;
-
-			current_distance = distance_v2_to_segment(pos, get_vertex_at(current_edge->v_start), get_vertex_at(current_edge->v_end), &current_projection);
 		
-			if(	current_distance < closest_distance && point_side_v2(pos, get_vertex_at(current_edge->v_start), get_vertex_at(current_edge->v_end)) == -1)
-			{
-				closest_edge_index = e;
-				closest_sector_index = s;
-				closest_distance = current_distance;
-				closest_projection = current_projection;
-			}
-		}
+		//Uses vertex as a carrousel, moving the first element pointer forward.
+		ff_move_carrousel(&world.vertexes, 1);
 	}
 
-	if(edge != NULL)
-		*edge = get_edge_from_level(closest_sector_index, closest_edge_index);
-
-	if(projection != NULL)
-		*projection = closest_projection;
-
-	if(edge_index != NULL)
-		*edge_index = closest_edge_index;
-
-	if(sector_index != NULL)
-		*sector_index = closest_sector_index;
-
-	if(distance != NULL)
-		*distance = closest_distance;
+	if(closest_vector == NULL)
+	{
+		*distance_out = 0.0f;
+		*closest_out = NULL;
+	}
+	else
+	{
+		*distance_out = closest_distance;
+		*closest_out = closest_vector;
+	}
 }
 
-VECTOR2 convert_ss_to_ws(CAMERA * camera, POINT2 screen_space, float height)
+void level_closest_edge(	const Vector2f pos, 
+							Edge** closest_out, 
+							Vector2f* projection_out,  
+							float* distance_out)
 {
-	VECTOR2 world_space;
+	float closest_distance = FLT_MAX;
+	Vector2f closest_projection = {0,0};
+	Edge* closest_edge = NULL;
 
-	world_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - engine.screen_res_y/2);
-	world_space.x = ((float)(screen_space.x - engine.screen_res_x/2) * world_space.y) / camera->camera_parameters_x;
+	//Standard closest checking.
+	for(int i=0; i < world.edges.size; i++)
+	{
+		Edge* current_edge = (Edge*)ff_get_at_list(&world.edges, 0);
+		Vector2f current_projection;
+		float current_distance = distance_to_segment_v2(pos, 
+														current_edge->vertex_start->value,
+														current_edge->vertex_end->value,
+														&current_projection);
 
-	world_space = rot_v2(world_space, -(player->facing));
-	world_space = sum_v2(world_space, player->pos);
+		if(current_distance < closest_distance)
+		{
+			closest_distance = current_distance;
+			closest_projection = current_projection;
+			closest_edge = current_edge;
+		}
+		
+		//Same thing as in closest vertex.
+		ff_move_carrousel(&world.edges, 1);
+	}
 
-	return world_space;
+	if(closest_edge == NULL)
+	{
+		*distance_out = 0.0f;
+		*projection_out = vector2f(0,0);
+		*closest_out = NULL;
+	}
+	else
+	{
+		*distance_out = closest_distance;
+		*projection_out = closest_projection;
+		*closest_out = closest_edge;
+	}
 }
-
-VECTOR2 convert_ss_to_rs(CAMERA * camera, POINT2 screen_space, float height)
-{
-	VECTOR2 relative_space;
-
-	relative_space.y = -(((float)(height)) * camera->camera_parameters_y)/(float)(screen_space.y - engine.screen_res_y/2);
-	relative_space.x = ((float)(screen_space.x - engine.screen_res_x/2) * relative_space.y) / camera->camera_parameters_x;
-
-	return relative_space;
-}
-
-VECTOR2 convert_rs_to_ws(VECTOR2 relative_space)
-{
-	VECTOR2 world_space;
-
-	world_space = rot_v2(world_space, -(player->facing));
-	world_space = sum_v2(world_space, player->pos);
-
-	return world_space;
-}
-
-POINT2 convert_ws_to_ss(CAMERA * camera, VECTOR2 world_space, float height)
-{
-	VECTOR2 transformed_pos;
-	float transformed_height;
-
-	POINT2 screen_space;
-
-	transformed_pos = sub_v2(world_space, player->pos);
-	transformed_pos = rot_v2(transformed_pos, player->facing);
-
-	transformed_height = height - player->pos_height;
-
-	float xscale = camera->camera_parameters_x / transformed_pos.y;
-	float yscale = camera->camera_parameters_y / transformed_pos.y;
-
-	float proj_x = transformed_pos.x * xscale;
-	float proj_height = transformed_height * yscale;
-
-	int x = (int)(proj_x) + engine.screen_res_x/2;
-	int y = engine.screen_res_y/2 - (int)(proj_height);
-
-	screen_space.x = x;
-	screen_space.y = y;
-
-	return screen_space;
-}
-
-void convert_ws_to_rs(	VECTOR2 world_space, float world_height,
-						VECTOR2 * relative_space, float * relative_height)
-{
-	*relative_space = sub_v2(world_space, player->pos);
-	*relative_space = rot_v2(*relative_space, player->facing);
-
-	*relative_height = world_height - player->pos_height;
-}
-
-POINT2 convert_rs_to_ss(CAMERA * camera, VECTOR2 relative_space, float relative_height)
-{
-	POINT2 screen_space;
-
-	float xscale = camera->camera_parameters_x / relative_space.y;
-	float yscale = camera->camera_parameters_y / relative_space.y;
-
-	float proj_x = relative_space.x * xscale;
-	float proj_height = relative_height * yscale;
-
-	int x = (int)(proj_x) + engine.screen_res_x/2;
-	int y = engine.screen_res_y/2 - (int)(proj_height);
-
-	screen_space.x = x;
-	screen_space.y = y;
-
-	return screen_space;
-}
-
+/*
 //Checks collision in the world, takes a lot of parameters,
 //start_sector, is the sector which the start_pos is located, move amount is a vector which shows how much to move from the start pos
 //intersected pos is a pointer to a vector 2, will be filled with a position which is an intersection of start_pos+move_amounte and a wall
